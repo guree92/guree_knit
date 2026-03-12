@@ -23,12 +23,12 @@ const works = [
 
 export default function MyWorkPage() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f8f4ff_50%,#eef8f2_100%)] px-6 py-10 text-slate-800">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f8f4ff_48%,#eef8f2_100%)] px-6 py-8 text-slate-800 md:px-8 md:py-10">
       <div className="mx-auto max-w-6xl">
         <Header />
 
         <section className="mt-12">
-          <div className="rounded-[2rem] border border-white/60 bg-white/85 p-8 shadow-sm">
+          <div className="rounded-[2rem] border border-white/70 bg-white/85 p-8 shadow-sm backdrop-blur">
             <div className="inline-flex rounded-full bg-emerald-100 px-4 py-2 text-sm font-semibold text-emerald-700">
               MY WORK
             </div>
@@ -44,17 +44,17 @@ export default function MyWorkPage() {
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-3">
-            <div className="rounded-[2rem] bg-violet-50 p-6 shadow-sm">
+            <div className="rounded-[2rem] bg-violet-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="text-sm text-violet-700">전체 작품</div>
               <div className="mt-2 text-3xl font-black text-slate-800">12</div>
             </div>
 
-            <div className="rounded-[2rem] bg-emerald-50 p-6 shadow-sm">
+            <div className="rounded-[2rem] bg-emerald-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="text-sm text-emerald-700">진행 중</div>
               <div className="mt-2 text-3xl font-black text-slate-800">4</div>
             </div>
 
-            <div className="rounded-[2rem] bg-amber-50 p-6 shadow-sm">
+            <div className="rounded-[2rem] bg-amber-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="text-sm text-amber-700">완성작</div>
               <div className="mt-2 text-3xl font-black text-slate-800">8</div>
             </div>
@@ -64,7 +64,7 @@ export default function MyWorkPage() {
             {works.map((work) => (
               <article
                 key={work.title}
-                className="rounded-[2rem] border border-white/60 bg-white/90 p-6 shadow-sm"
+                className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
               >
                 <div className="flex flex-wrap items-center gap-3">
                   <h2 className="text-xl font-bold text-slate-800">
