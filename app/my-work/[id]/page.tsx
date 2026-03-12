@@ -1,16 +1,142 @@
-import Link from "next/link";
-import Header from "@/components/layout/Header";
-import { getProgressBadgeClass, getWorkById } from "@/data/my-work";
+"use client";
 
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Header from "@/components/layout/Header";
+import {
+  getProgressBadgeClass,
+  workItems,
+  type WorkItem,
+  type WorkProgress,
+} from "@/data/my-work";
+
+type EditableWorkItem = WorkItem & {
+  source?: "seed" | "local";
 };
 
-export default async function MyWorkDetailPage({ params }: PageProps) {
-  const { id } = await params;
-  const work = getWorkById(id);
+export default function MyWorkDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const id = String(params.id);
+
+  const [work, setWork] = useState<EditableWorkItem | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const [title, setTitle] = useState("");
+  const [progress, setProgress] = useState<WorkProgress>("진행 중");
+  const [yarn, setYarn] = useState("");
+  const [note, setNote] = useState("");
+
+  useEffect(() => {
+    const base = workItems.find((item) => item.id === id);
+    let localMatch: EditableWorkItem | null = null;
+
+    try {
+      const raw = localStorage.getItem("knit_my_work_extra");
+      if (raw) {
+        const parsed = JSON.parse(raw) as EditableWorkItem[];
+        if (Array.isArray(parsed)) {
+          const found = parsed.find((item) => item.id === id);
+          if (found) {
+            localMatch = { ...found, source: "local" };
+          }
+        }
+      }
+    } catch (error) {
+      console.error(error);
+    }
+
+    const finalWork = localMatch ?? (base ? { ...base, source: "seed" as const } : null);
+
+    setWork(finalWork);
+
+    if (finalWork) {
+      setTitle(finalWork.title);
+      setProgress(finalWork.progress);
+      setYarn(finalWork.yarn);
+      setNote(finalWork.note);
+    }
+  }, [id]);
+
+  const isLocalWork = useMemo(() => work?.source === "local", [work]);
+
+  const handleStartEdit = () => {
+    if (!work || !isLocalWork) return;
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    if (!work) return;
+    setTitle(work.title);
+    setProgress(work.progress);
+    setYarn(work.yarn);
+    setNote(work.note);
+    setIsEditing(false);
+  };
+
+  const handleSaveEdit = () => {
+    if (!work || !isLocalWork) return;
+
+    const trimmedTitle = title.trim();
+    const trimmedYarn = yarn.trim();
+    const trimmedNote = note.trim();
+
+    if (!trimmedTitle || !trimmedYarn || !trimmedNote) {
+      alert("작품명, 사용 실, 메모를 모두 입력해줘.");
+      return;
+    }
+
+    try {
+      const raw = localStorage.getItem("knit_my_work_extra");
+      const parsed = raw ? (JSON.parse(raw) as EditableWorkItem[]) : [];
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      const updatedItem: EditableWorkItem = {
+        ...work,
+        title: trimmedTitle,
+        progress,
+        yarn: trimmedYarn,
+        note: trimmedNote,
+        detail: trimmedNote,
+        updatedAt: today,
+        source: "local",
+      };
+
+      const next = parsed.map((item) =>
+        item.id === work.id ? updatedItem : item
+      );
+
+      localStorage.setItem("knit_my_work_extra", JSON.stringify(next));
+      setWork(updatedItem);
+      setIsEditing(false);
+      alert("작품 정보를 수정했어.");
+    } catch (error) {
+      console.error(error);
+      alert("수정 중 오류가 발생했어.");
+    }
+  };
+
+  const handleDelete = () => {
+    if (!work || !isLocalWork) return;
+
+    const ok = window.confirm("이 작품을 삭제할까?");
+    if (!ok) return;
+
+    try {
+      const raw = localStorage.getItem("knit_my_work_extra");
+      const parsed = raw ? (JSON.parse(raw) as EditableWorkItem[]) : [];
+      const next = parsed.filter((item) => item.id !== work.id);
+
+      localStorage.setItem("knit_my_work_extra", JSON.stringify(next));
+      alert("작품을 삭제했어.");
+      router.push("/my-work");
+    } catch (error) {
+      console.error(error);
+      alert("삭제 중 오류가 발생했어.");
+    }
+  };
 
   if (!work) {
     return (
@@ -74,40 +200,142 @@ export default async function MyWorkDetailPage({ params }: PageProps) {
 
           <div className="space-y-5">
             <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-800">기본 정보</h2>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-slate-800">기본 정보</h2>
 
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                  <span>상태</span>
-                  <span className="font-semibold text-slate-800">
-                    {work.progress}
+                {isLocalWork ? (
+                  <div className="flex gap-2">
+                    {!isEditing ? (
+                      <button
+                        onClick={handleStartEdit}
+                        className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                      >
+                        수정
+                      </button>
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleSaveEdit}
+                          className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
+                        >
+                          저장
+                        </button>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
+                        >
+                          취소
+                        </button>
+                      </>
+                    )}
+
+                    <button
+                      onClick={handleDelete}
+                      className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"
+                    >
+                      삭제
+                    </button>
+                  </div>
+                ) : (
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                    기본 예시 데이터
                   </span>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                  <span>사용 실</span>
-                  <span className="font-semibold text-slate-800">
-                    {work.yarn}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                  <span>바늘</span>
-                  <span className="font-semibold text-slate-800">
-                    {work.needle}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                  <span>시작일</span>
-                  <span className="font-semibold text-slate-800">
-                    {work.startedAt}
-                  </span>
-                </div>
-                <div className="flex justify-between gap-4">
-                  <span>최근 수정일</span>
-                  <span className="font-semibold text-slate-800">
-                    {work.updatedAt}
-                  </span>
-                </div>
+                )}
               </div>
+
+              {!isEditing ? (
+                <div className="mt-4 space-y-3 text-sm text-slate-600">
+                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span>상태</span>
+                    <span className="font-semibold text-slate-800">
+                      {work.progress}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span>사용 실</span>
+                    <span className="font-semibold text-slate-800">
+                      {work.yarn}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span>바늘</span>
+                    <span className="font-semibold text-slate-800">
+                      {work.needle}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span>시작일</span>
+                    <span className="font-semibold text-slate-800">
+                      {work.startedAt}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
+                    <span>최근 수정일</span>
+                    <span className="font-semibold text-slate-800">
+                      {work.updatedAt}
+                    </span>
+                  </div>
+                  <div className="border-t border-slate-100 pt-3">
+                    <div className="mb-2 text-sm text-slate-500">한줄 메모</div>
+                    <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+                      {work.note}
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      작품명
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      상태
+                    </label>
+                    <select
+                      value={progress}
+                      onChange={(e) => setProgress(e.target.value as WorkProgress)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
+                    >
+                      <option value="진행 중">진행 중</option>
+                      <option value="완성">완성</option>
+                      <option value="중단">중단</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      사용 실
+                    </label>
+                    <input
+                      type="text"
+                      value={yarn}
+                      onChange={(e) => setYarn(e.target.value)}
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+                      메모
+                    </label>
+                    <textarea
+                      rows={5}
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm">
@@ -120,13 +348,6 @@ export default async function MyWorkDetailPage({ params }: PageProps) {
                   </li>
                 ))}
               </ul>
-            </div>
-
-            <div className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm">
-              <h2 className="text-xl font-bold text-slate-800">한줄 메모</h2>
-              <p className="mt-4 rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
-                {work.note}
-              </p>
             </div>
           </div>
         </section>

@@ -6,7 +6,8 @@ import Header from "@/components/layout/Header";
 import { patternCategories, patternItems } from "@/data/patterns";
 
 export default function PatternsPage() {
-  const [selectedCategory, setSelectedCategory] = useState("전체");
+  const [selectedCategory, setSelectedCategory] =
+  useState<(typeof patternCategories)[number]>("전체");
   const [keyword, setKeyword] = useState("");
 
   const filteredCards = useMemo(() => {

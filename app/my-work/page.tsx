@@ -1,18 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import {
   getProgressBadgeClass,
   workFilters,
   workItems,
+  type WorkFilter,
   type WorkItem,
   type WorkProgress,
 } from "@/data/my-work";
-import { type WorkFilter } from "@/data/my-work";
 
-type LocalWorkItem = WorkItem;
+type LocalWorkItem = WorkItem & {
+  source?: "seed" | "local";
+};
 
 function slugify(text: string) {
   return (
@@ -26,7 +28,12 @@ function slugify(text: string) {
 }
 
 export default function MyWorkPage() {
-  const [works, setWorks] = useState<LocalWorkItem[]>(workItems);
+const [works, setWorks] = useState<LocalWorkItem[]>(
+  workItems.map((item) => ({
+    ...item,
+    source: "seed",
+  }))
+);
   const [selectedFilter, setSelectedFilter] = useState<WorkFilter>("전체");
   const [isAdding, setIsAdding] = useState(false);
 
@@ -34,6 +41,38 @@ export default function MyWorkPage() {
   const [progress, setProgress] = useState<WorkProgress>("진행 중");
   const [yarn, setYarn] = useState("");
   const [note, setNote] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("knit_my_work_extra");
+      if (!raw) return;
+
+const parsed = JSON.parse(raw) as LocalWorkItem[];
+if (!Array.isArray(parsed) || parsed.length === 0) return;
+
+setWorks((prev) => {
+  const localItems: LocalWorkItem[] = parsed.map((item) => ({
+    ...item,
+    source: "local" as const,
+  }));
+
+  const baseItems: LocalWorkItem[] = prev.map((item) => ({
+    ...item,
+    source: item.source ?? "seed",
+  }));
+
+  const merged: LocalWorkItem[] = [...localItems, ...baseItems];
+
+  const unique = merged.filter(
+    (item, index, arr) => arr.findIndex((v) => v.id === item.id) === index
+  );
+
+  return unique;
+});
+    } catch (error) {
+      console.error(error);
+    }
+  }, []);
 
   const filteredWorks = useMemo(() => {
     if (selectedFilter === "전체") return works;
@@ -68,6 +107,7 @@ export default function MyWorkPage() {
     const trimmedTitle = title.trim();
     const trimmedYarn = yarn.trim();
     const trimmedNote = note.trim();
+  
 
     if (!trimmedTitle || !trimmedYarn || !trimmedNote) {
       alert("작품명, 사용 실, 메모를 모두 입력해줘.");
@@ -76,18 +116,19 @@ export default function MyWorkPage() {
 
     const today = new Date().toISOString().slice(0, 10);
 
-    const newWork: LocalWorkItem = {
-      id: `${slugify(trimmedTitle)}-${Date.now()}`,
-      title: trimmedTitle,
-      progress,
-      yarn: trimmedYarn,
-      note: trimmedNote,
-      needle: "미정",
-      startedAt: today,
-      updatedAt: today,
-      detail: trimmedNote,
-      checklist: ["새 작품 생성", "세부 단계는 나중에 추가"],
-    };
+const newWork: LocalWorkItem = {
+  id: `${slugify(trimmedTitle)}-${Date.now()}`,
+  title: trimmedTitle,
+  progress,
+  yarn: trimmedYarn,
+  note: trimmedNote,
+  needle: "미정",
+  startedAt: today,
+  updatedAt: today,
+  detail: trimmedNote,
+  checklist: ["새 작품 생성", "세부 단계는 나중에 추가"],
+  source: "local",
+};
 
     setWorks((prev) => [newWork, ...prev]);
     setSelectedFilter("전체");

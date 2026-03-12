@@ -13,11 +13,21 @@ function cloneGrid(grid: GridRow[]) {
   }));
 }
 
+function countColoredCells(grid: GridRow[]) {
+  return grid.reduce((acc, row) => {
+    return (
+      acc +
+      row.cells.filter((cell) => cell.color.toLowerCase() !== "#ffffff").length
+    );
+  }, 0);
+}
+
 export default function DotMakerPage() {
   const [rows, setRows] = useState("20");
   const [cols, setCols] = useState("20");
   const [grid, setGrid] = useState<GridRow[]>([]);
   const [selectedColor, setSelectedColor] = useState("#222222");
+  const [workTitle, setWorkTitle] = useState("");
 
   const [isPainting, setIsPainting] = useState(false);
   const [hasSavedSnapshot, setHasSavedSnapshot] = useState(false);
@@ -147,6 +157,28 @@ export default function DotMakerPage() {
         };
       });
     });
+
+    setHasSavedSnapshot(false);
+  };
+
+  const handleResetAll = () => {
+    setGrid((prev) => {
+      if (prev.length === 0) return prev;
+
+      setHistory((historyPrev) => [...historyPrev, cloneGrid(prev)]);
+
+      return prev.map((row) => ({
+        ...row,
+        checked: false,
+        cells: row.cells.map((cell) => ({
+          ...cell,
+          color: "#ffffff",
+        })),
+      }));
+    });
+
+    setIsPainting(false);
+    setHasSavedSnapshot(false);
   };
 
   const handleUndo = () => {
@@ -182,6 +214,53 @@ export default function DotMakerPage() {
     } catch (error) {
       console.error(error);
       alert("PNG 저장 중 오류가 발생했어.");
+    }
+  };
+
+  const handleAddToMyWork = () => {
+    if (grid.length === 0) {
+      alert("먼저 도트 표를 만들어줘.");
+      return;
+    }
+
+    const trimmedTitle = workTitle.trim();
+    if (!trimmedTitle) {
+      alert("작품명을 입력해줘.");
+      return;
+    }
+
+    const coloredCount = countColoredCells(grid);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const draftItem = {
+      id: `dot-${Date.now()}`,
+      title: trimmedTitle,
+      progress: "진행 중",
+      yarn: "도트메이커 작업",
+      note: `${rows} x ${cols} 도트 작업 · 색칠된 칸 ${coloredCount}개`,
+      needle: "해당 없음",
+      startedAt: today,
+      updatedAt: today,
+      detail: `도트메이커에서 만든 작업이야. 격자 크기는 ${rows} x ${cols}이고, 현재 색칠된 칸은 ${coloredCount}개야.`,
+      checklist: [
+        "도트메이커에서 작품 생성",
+        `${rows} x ${cols} 격자 설정`,
+        `색칠된 칸 ${coloredCount}개`,
+      ],
+    };
+
+    try {
+      const raw = localStorage.getItem("knit_my_work_extra");
+      const parsed = raw ? JSON.parse(raw) : [];
+
+      const next = [draftItem, ...parsed];
+      localStorage.setItem("knit_my_work_extra", JSON.stringify(next));
+
+      alert("작품기록에 추가했어!");
+      setWorkTitle("");
+    } catch (error) {
+      console.error(error);
+      alert("작품기록 저장 중 오류가 발생했어.");
     }
   };
 
@@ -237,6 +316,14 @@ export default function DotMakerPage() {
               </button>
 
               <button
+                onClick={handleResetAll}
+                disabled={grid.length === 0}
+                className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                전체 초기화
+              </button>
+
+              <button
                 onClick={handleExportPng}
                 disabled={grid.length === 0}
                 className="rounded-2xl border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-700 disabled:cursor-not-allowed disabled:opacity-40"
@@ -258,11 +345,35 @@ export default function DotMakerPage() {
               />
 
               <div
-                className="h-8 w-8 rounded-md border border-slate-300"
+                className="h-8 w-8 rounded-md border border-slate-300 shadow-sm"
                 style={{ backgroundColor: selectedColor }}
               />
 
-              <span className="text-sm text-slate-600">{selectedColor}</span>
+              <span className="text-sm font-medium text-slate-600">
+                {selectedColor}
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-2xl bg-emerald-50 px-4 py-4 md:flex-row md:items-center">
+              <input
+                type="text"
+                value={workTitle}
+                onChange={(e) => setWorkTitle(e.target.value)}
+                placeholder="작품기록에 저장할 작품명"
+                className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400 md:max-w-sm"
+              />
+
+              <button
+                onClick={handleAddToMyWork}
+                disabled={grid.length === 0}
+                className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                작품기록에 추가
+              </button>
+
+              <p className="text-sm text-emerald-800/80">
+                현재 도트 작업을 작품기록 페이지로 보낼 수 있어.
+              </p>
             </div>
           </div>
 

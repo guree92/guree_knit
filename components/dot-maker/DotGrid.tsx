@@ -26,7 +26,7 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
 ) {
   if (grid.length === 0) {
     return (
-      <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-10 text-center text-slate-500">
+      <div className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-gradient-to-br from-slate-50 to-slate-100 p-10 text-center text-slate-500 shadow-sm">
         아직 만들어진 표가 없어. 위에 숫자를 입력해서 시작해줘.
       </div>
     );
@@ -54,22 +54,27 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
   };
 
   return (
-    <div className="mt-8 overflow-auto rounded-2xl border border-slate-200 bg-slate-50 p-4">
-      <div className="mb-4 flex items-center gap-3 text-sm text-slate-600">
-        <span>현재 선택 색상</span>
+    <div className="mt-8 overflow-auto rounded-[1.75rem] border border-slate-200 bg-gradient-to-b from-slate-50 to-white p-5 shadow-inner">
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm">
+        <span className="font-medium">현재 선택 색상</span>
         <div
-          className="h-8 w-8 rounded-md border border-slate-300"
+          className="h-9 w-9 rounded-xl border border-slate-300 shadow-sm"
           style={{ backgroundColor: selectedColor }}
         />
-        <span className="font-medium">{selectedColor}</span>
+        <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
+          {selectedColor}
+        </span>
       </div>
 
-      <div ref={ref} className="w-fit bg-white p-0">
+      <div
+        ref={ref}
+        className="w-fit rounded-2xl border border-slate-300 bg-white p-3 shadow-lg shadow-slate-200/70"
+      >
         {grid.map((row, rowIndex) => (
           <div key={rowIndex} className="flex items-stretch">
             <div className="relative">
               <div
-                className="grid border-x border-t border-slate-500"
+                className="grid border-l border-t border-slate-400"
                 style={{
                   gridTemplateColumns: `repeat(${colCount}, 24px)`,
                 }}
@@ -90,24 +95,27 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
                       e.preventDefault();
                       handleCellTouchMove(e);
                     }}
-                    className="h-6 w-6 select-none border-r border-b border-slate-500 bg-white"
-                    style={{ backgroundColor: cell.color, touchAction: "none" }}
+                    className="h-6 w-6 select-none border-r border-b border-slate-300 transition hover:brightness-95 active:scale-[0.98]"
+                    style={{
+                      backgroundColor: cell.color,
+                      touchAction: "none",
+                    }}
                     aria-label={`${rowIndex + 1}행 ${colIndex + 1}열 색칠`}
                   />
                 ))}
               </div>
 
               {row.checked && (
-                <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-10 h-[2px] -translate-y-1/2 bg-rose-600" />
+                <div className="pointer-events-none absolute left-0 right-0 top-1/2 z-10 h-[2px] -translate-y-1/2 bg-rose-500 shadow-sm" />
               )}
             </div>
 
-            <label className="flex min-w-10 items-center justify-center border border-l-0 border-slate-500 bg-white px-2 text-xs text-slate-600">
+            <label className="flex min-w-12 items-center justify-center border border-l-0 border-slate-300 bg-slate-50 px-2 text-xs text-slate-600">
               <input
                 type="checkbox"
                 checked={row.checked}
                 onChange={() => onToggleRowCheck(rowIndex)}
-                className="h-4 w-4 cursor-pointer"
+                className="h-4 w-4 cursor-pointer accent-violet-500"
                 aria-label={`${rowIndex + 1}행 완료 체크`}
               />
             </label>
@@ -116,7 +124,7 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
 
         <div className="flex">
           <div
-            className="grid border-x border-t border-slate-500"
+            className="grid border-l border-t border-slate-400"
             style={{
               gridTemplateColumns: `repeat(${colCount}, 24px)`,
             }}
@@ -128,7 +136,7 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
               return (
                 <div
                   key={`guide-${colIndex}`}
-                  className="flex h-8 items-center justify-center border-r border-b border-slate-500 bg-white text-[11px] font-semibold text-slate-600"
+                  className="flex h-8 items-center justify-center border-r border-b border-slate-300 bg-slate-50 text-[11px] font-bold text-slate-500"
                 >
                   {label}
                 </div>
@@ -136,7 +144,7 @@ const DotGrid = forwardRef<HTMLDivElement, DotGridProps>(function DotGrid(
             })}
           </div>
 
-          <div className="min-w-10 border border-l-0 border-slate-500 bg-white" />
+          <div className="min-w-12 border border-l-0 border-slate-300 bg-slate-50" />
         </div>
       </div>
     </div>
