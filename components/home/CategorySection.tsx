@@ -1,12 +1,16 @@
-const categories = ["가방", "목도리", "인형", "모자", "의류", "소품"];
+import Link from "next/link";
+import { patternCategories, patternItems } from "@/data/patterns";
 
 export default function CategorySection() {
+  const categories = patternCategories.filter((item) => item !== "전체");
+  const featuredPatterns = patternItems.slice(0, 3);
+
   return (
     <section className="mt-20">
       <div className="mb-8">
         <h3 className="text-3xl font-black text-slate-800">인기 카테고리</h3>
         <p className="mt-2 text-slate-600">
-          만들고 싶은 작품부터 가볍게 골라볼 수 있어.
+          만들고 싶은 작품부터 가볍게 골라보고, 바로 도안도 살펴볼 수 있어.
         </p>
       </div>
 
@@ -22,65 +26,44 @@ export default function CategorySection() {
       </div>
 
       <div className="mt-8 grid gap-5 md:grid-cols-3">
-        <article className="overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-sm">
-          <div className="h-40 bg-[linear-gradient(135deg,#efe7ff,#edf9ef,#fff2e6)]" />
-          <div className="p-5">
-            <div className="mb-3 flex gap-2 text-xs">
-              <span className="rounded-full bg-violet-100 px-3 py-1 font-medium text-violet-700">
-                초급
-              </span>
-              <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">
-                가방
-              </span>
-            </div>
-            <h4 className="text-lg font-bold text-slate-800">
-              봄에 들기 좋은 네트백
-            </h4>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              가볍게 뜨기 좋은 코바늘 가방 도안 예시 카드야.
-            </p>
-          </div>
-        </article>
+        {featuredPatterns.map((pattern, index) => (
+          <Link
+            key={pattern.id}
+            href={`/patterns/${pattern.id}`}
+            className="overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+          >
+            <div
+              className={`h-40 ${
+                index % 3 === 0
+                  ? "bg-[linear-gradient(135deg,#efe7ff,#edf9ef,#fff2e6)]"
+                  : index % 3 === 1
+                  ? "bg-[linear-gradient(135deg,#fff0f5,#f3f7ff,#eefbf4)]"
+                  : "bg-[linear-gradient(135deg,#eef8ff,#f5f0ff,#fff8ef)]"
+              }`}
+            />
+            <div className="p-5">
+              <div className="mb-3 flex gap-2 text-xs">
+                <span className="rounded-full bg-violet-100 px-3 py-1 font-medium text-violet-700">
+                  {pattern.level}
+                </span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">
+                  {pattern.category}
+                </span>
+              </div>
 
-        <article className="overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-sm">
-          <div className="h-40 bg-[linear-gradient(135deg,#fff0f5,#f3f7ff,#eefbf4)]" />
-          <div className="p-5">
-            <div className="mb-3 flex gap-2 text-xs">
-              <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-700">
-                중급
-              </span>
-              <span className="rounded-full bg-sky-100 px-3 py-1 font-medium text-sky-700">
-                인형
-              </span>
-            </div>
-            <h4 className="text-lg font-bold text-slate-800">
-              손바닥만 한 토끼 인형
-            </h4>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              작은 소품이나 인형 뜨개를 좋아하는 사람들을 위한 예시 카드야.
-            </p>
-          </div>
-        </article>
+              <h4 className="text-lg font-bold text-slate-800">
+                {pattern.title}
+              </h4>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                {pattern.desc}
+              </p>
 
-        <article className="overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-sm">
-          <div className="h-40 bg-[linear-gradient(135deg,#eef8ff,#f5f0ff,#fff8ef)]" />
-          <div className="p-5">
-            <div className="mb-3 flex gap-2 text-xs">
-              <span className="rounded-full bg-rose-100 px-3 py-1 font-medium text-rose-700">
-                인기
-              </span>
-              <span className="rounded-full bg-lime-100 px-3 py-1 font-medium text-lime-700">
-                소품
-              </span>
+              <div className="mt-4 text-sm font-semibold text-violet-600">
+                도안 보러가기 →
+              </div>
             </div>
-            <h4 className="text-lg font-bold text-slate-800">
-              꽃 모양 코스터 세트
-            </h4>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              짧은 시간 안에 완성 가능한 소품류 도안 예시 카드야.
-            </p>
-          </div>
-        </article>
+          </Link>
+        ))}
       </div>
     </section>
   );

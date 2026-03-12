@@ -1,48 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-
-const categories = ["전체", "가방", "목도리", "인형", "모자", "의류", "소품"];
-
-const patternCards = [
-  {
-    title: "봄 네트백",
-    level: "초급",
-    category: "가방",
-    desc: "가볍고 산뜻하게 들 수 있는 코바늘 네트백 도안이야.",
-  },
-  {
-    title: "리본 머플러",
-    level: "중급",
-    category: "목도리",
-    desc: "포근한 계절감이 느껴지는 부드러운 머플러 도안이야.",
-  },
-  {
-    title: "토끼 인형",
-    level: "중급",
-    category: "인형",
-    desc: "손바닥 크기로 만들기 좋은 귀여운 인형 도안이야.",
-  },
-  {
-    title: "데일리 비니",
-    level: "초급",
-    category: "모자",
-    desc: "무난하게 코디하기 좋은 베이직한 비니 도안이야.",
-  },
-  {
-    title: "플라워 코스터",
-    level: "초급",
-    category: "소품",
-    desc: "짧은 시간 안에 완성할 수 있는 꽃 모양 코스터 도안이야.",
-  },
-  {
-    title: "포근한 조끼",
-    level: "고급",
-    category: "의류",
-    desc: "레이어드해서 입기 좋은 니트 조끼 도안이야.",
-  },
-];
+import { patternCategories, patternItems } from "@/data/patterns";
 
 export default function PatternsPage() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
@@ -51,7 +12,7 @@ export default function PatternsPage() {
   const filteredCards = useMemo(() => {
     const lowerKeyword = keyword.trim().toLowerCase();
 
-    return patternCards.filter((card) => {
+    return patternItems.filter((card) => {
       const matchesCategory =
         selectedCategory === "전체" || card.category === selectedCategory;
 
@@ -99,7 +60,7 @@ export default function PatternsPage() {
 
           <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap gap-3">
-              {categories.map((item) => {
+              {patternCategories.map((item) => {
                 const isActive = selectedCategory === item;
 
                 return (
@@ -127,8 +88,9 @@ export default function PatternsPage() {
           {filteredCards.length > 0 ? (
             <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
               {filteredCards.map((card, index) => (
-                <article
-                  key={card.title}
+                <Link
+                  key={card.id}
+                  href={`/patterns/${card.id}`}
                   className="overflow-hidden rounded-[2rem] border border-white/70 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
                 >
                   <div
@@ -156,8 +118,12 @@ export default function PatternsPage() {
                     <p className="mt-2 text-sm leading-6 text-slate-600">
                       {card.desc}
                     </p>
+
+                    <div className="mt-4 text-sm font-semibold text-violet-600">
+                      상세 보기 →
+                    </div>
                   </div>
-                </article>
+                </Link>
               ))}
             </div>
           ) : (

@@ -1,55 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-
-type PostCategory = "완성작" | "질문" | "팁공유" | "같이뜨기";
-
-type CommunityPost = {
-  id: number;
-  category: PostCategory;
-  title: string;
-  author: string;
-  preview: string;
-};
-
-const categories = ["전체", "완성작", "질문", "팁공유", "같이뜨기"] as const;
-
-const initialPosts: CommunityPost[] = [
-  {
-    id: 1,
-    category: "완성작",
-    title: "첫 인형 뜨개 완성했어!",
-    author: "ribbie",
-    preview: "생각보다 시간이 오래 걸렸지만 너무 귀엽게 나와서 만족해.",
-  },
-  {
-    id: 2,
-    category: "질문",
-    title: "코바늘 6호로 네트백 뜨면 너무 흐물할까?",
-    author: "knitday",
-    preview: "실이 얇은 편인데 바늘 호수를 어느 정도로 잡아야 할지 고민이야.",
-  },
-  {
-    id: 3,
-    category: "팁공유",
-    title: "실 정리 깔끔하게 하는 방법",
-    author: "woolnote",
-    preview: "남은 실이 많아질 때 나는 이렇게 보관해두고 있어.",
-  },
-  {
-    id: 4,
-    category: "같이뜨기",
-    title: "봄 코스터 같이 뜰 사람 구해요",
-    author: "momo",
-    preview: "난이도는 쉬운 편이라 초보도 같이 할 수 있어.",
-  },
-];
+import {
+  communityCategories,
+  communityPosts,
+  type CommunityPost,
+  type PostCategory,
+} from "@/data/community";
 
 export default function CommunityPage() {
   const [selectedCategory, setSelectedCategory] =
-    useState<(typeof categories)[number]>("전체");
-  const [posts, setPosts] = useState<CommunityPost[]>(initialPosts);
+    useState<(typeof communityCategories)[number]>("전체");
+  const [posts, setPosts] = useState<CommunityPost[]>(communityPosts);
   const [isWriting, setIsWriting] = useState(false);
 
   const [writeCategory, setWriteCategory] = useState<PostCategory>("완성작");
@@ -60,6 +24,14 @@ export default function CommunityPage() {
     if (selectedCategory === "전체") return posts;
     return posts.filter((post) => post.category === selectedCategory);
   }, [posts, selectedCategory]);
+
+  const slugify = (text: string) =>
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-가-힣]/g, "")
+      .slice(0, 40) || String(Date.now());
 
   const handleOpenWrite = () => {
     setIsWriting(true);
@@ -82,11 +54,13 @@ export default function CommunityPage() {
     }
 
     const newPost: CommunityPost = {
-      id: Date.now(),
+      id: `${slugify(title)}-${Date.now()}`,
       category: writeCategory,
       title,
       author: "me",
       preview: content,
+      content,
+      tags: [writeCategory, "new"],
     };
 
     setPosts((prev) => [newPost, ...prev]);
@@ -191,7 +165,7 @@ export default function CommunityPage() {
           </div>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            {categories.map((item, index) => (
+            {communityCategories.map((item) => (
               <button
                 key={item}
                 onClick={() => setSelectedCategory(item)}
@@ -199,8 +173,6 @@ export default function CommunityPage() {
                   "rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition",
                   selectedCategory === item
                     ? "bg-slate-800 text-white"
-                    : index === 0
-                    ? "border border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md"
                     : "border border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md",
                 ].join(" ")}
               >
@@ -212,9 +184,10 @@ export default function CommunityPage() {
           <div className="mt-8 space-y-4">
             {filteredPosts.length > 0 ? (
               filteredPosts.map((post) => (
-                <article
+                <Link
                   key={post.id}
-                  className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+                  href={`/community/${post.id}`}
+                  className="block rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
@@ -227,7 +200,11 @@ export default function CommunityPage() {
                     {post.title}
                   </h2>
                   <p className="mt-2 leading-7 text-slate-600">{post.preview}</p>
-                </article>
+
+                  <div className="mt-4 text-sm font-semibold text-slate-600">
+                    글 보러가기 →
+                  </div>
+                </Link>
               ))
             ) : (
               <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-6 py-14 text-center shadow-sm">
