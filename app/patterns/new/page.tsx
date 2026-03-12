@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { patternCategories } from "@/data/patterns";
 
@@ -32,6 +32,8 @@ export default function NewPatternPage() {
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
   const [tips, setTips] = useState(["", "", ""]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState("");
   const [submitted, setSubmitted] = useState(false);
 
   const previewId = useMemo(() => makeId(title), [title]);
@@ -41,8 +43,32 @@ export default function NewPatternPage() {
       ? `가로 ${width.trim() || "0"}cm × 세로 ${height.trim() || "0"}cm`
       : "";
 
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl("");
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(imageFile);
+    setImagePreviewUrl(objectUrl);
+
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [imageFile]);
+
   function updateTip(index: number, value: string) {
     setTips((prev) => prev.map((tip, i) => (i === index ? value : tip)));
+  }
+
+  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+  }
+
+  function removeImage() {
+    setImageFile(null);
+    setImagePreviewUrl("");
   }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
@@ -61,9 +87,11 @@ export default function NewPatternPage() {
       needle: needle.trim(),
       size: sizeText,
       tips: cleanedTips,
+      imageName: imageFile?.name ?? "",
     };
 
     console.log("새 도안 데이터", newPattern);
+    console.log("대표 이미지 파일", imageFile);
     setSubmitted(true);
   }
 
@@ -93,8 +121,8 @@ export default function NewPatternPage() {
             </h1>
 
             <p className="mt-3 max-w-2xl leading-7 text-slate-600">
-              먼저 기본 정보부터 입력해보자. 지금은 저장 테스트 전 단계라서,
-              제출하면 콘솔에 데이터가 찍히게 해둘게.
+              기본 정보와 대표 이미지를 함께 등록해보자. 지금은 저장 테스트 전
+              단계라서, 제출하면 콘솔에 데이터가 찍히게 해둘게.
             </p>
 
             <div className="mt-8 grid gap-5">
@@ -195,136 +223,182 @@ export default function NewPatternPage() {
               </div>
 
               <div>
-  <span className="mb-2 block text-sm font-semibold text-slate-700">
-    완성 크기
-  </span>
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  완성 크기
+                </span>
 
-  <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4">
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "12px",
-        width: "100%",
-        flexWrap: "nowrap",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
-        <span
-          style={{
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "#475569",
-          }}
-        >
-          가로
-        </span>
+                <div className="rounded-[1.5rem] border border-slate-200 bg-white px-4 py-4">
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      width: "100%",
+                      flexWrap: "nowrap",
+                    }}
+                  >
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: "#475569",
+                        }}
+                      >
+                        가로
+                      </span>
 
-        <input
-          type="number"
-          min="0"
-          step="1"
-          inputMode="numeric"
-          value={width}
-          onChange={(e) => setWidth(e.target.value)}
-          placeholder="0"
-          className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            width: "100%",
-          }}
-        />
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={width}
+                        onChange={(e) => setWidth(e.target.value)}
+                        placeholder="0"
+                        className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          width: "100%",
+                        }}
+                      />
 
-        <span
-          style={{
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-            fontSize: "14px",
-            color: "#64748b",
-          }}
-        >
-          cm
-        </span>
-      </div>
+                      <span
+                        style={{
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          fontSize: "14px",
+                          color: "#64748b",
+                        }}
+                      >
+                        cm
+                      </span>
+                    </div>
 
-      <span
-        style={{
-          whiteSpace: "nowrap",
-          flexShrink: 0,
-          fontSize: "18px",
-          fontWeight: 700,
-          color: "#94a3b8",
-        }}
-      >
-        ×
-      </span>
+                    <span
+                      style={{
+                        whiteSpace: "nowrap",
+                        flexShrink: 0,
+                        fontSize: "18px",
+                        fontWeight: 700,
+                        color: "#94a3b8",
+                      }}
+                    >
+                      ×
+                    </span>
 
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "10px",
-          flex: 1,
-          minWidth: 0,
-        }}
-      >
-        <span
-          style={{
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-            fontSize: "14px",
-            fontWeight: 600,
-            color: "#475569",
-          }}
-        >
-          세로
-        </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "10px",
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
+                      <span
+                        style={{
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: "#475569",
+                        }}
+                      >
+                        세로
+                      </span>
 
-        <input
-          type="number"
-          min="0"
-          step="1"
-          inputMode="numeric"
-          value={height}
-          onChange={(e) => setHeight(e.target.value)}
-          placeholder="0"
-          className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            width: "100%",
-          }}
-        />
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        inputMode="numeric"
+                        value={height}
+                        onChange={(e) => setHeight(e.target.value)}
+                        placeholder="0"
+                        className="rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-violet-100"
+                        style={{
+                          flex: 1,
+                          minWidth: 0,
+                          width: "100%",
+                        }}
+                      />
 
-        <span
-          style={{
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-            fontSize: "14px",
-            color: "#64748b",
-          }}
-        >
-          cm
-        </span>
-      </div>
-    </div>
-  </div>
+                      <span
+                        style={{
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
+                          fontSize: "14px",
+                          color: "#64748b",
+                        }}
+                      >
+                        cm
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
-  <p className="mt-2 text-xs text-slate-500">
-    숫자만 입력하면 자동으로 cm 단위로 표시돼.
-  </p>
-</div>
+                <p className="mt-2 text-xs text-slate-500">
+                  숫자만 입력하면 자동으로 cm 단위로 표시돼.
+                </p>
+              </div>
+
+              <div>
+                <span className="mb-2 block text-sm font-semibold text-slate-700">
+                  대표 이미지
+                </span>
+
+                <div className="rounded-[1.5rem] border border-slate-200 bg-white p-4">
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-[1.25rem] border border-dashed border-slate-300 bg-slate-50 px-6 py-8 text-center transition hover:bg-slate-100">
+                    <span className="text-sm font-semibold text-slate-700">
+                      이미지 업로드
+                    </span>
+                    <span className="mt-2 text-xs text-slate-500">
+                      JPG, PNG, WEBP 파일을 선택해줘.
+                    </span>
+
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+
+                  {imageFile ? (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-slate-50 px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-slate-700">
+                          {imageFile.name}
+                        </p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {(imageFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={removeImage}
+                        className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100"
+                      >
+                        이미지 제거
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
               <div>
                 <div className="mb-2 block text-sm font-semibold text-slate-700">
                   뜨개 팁
@@ -362,7 +436,8 @@ export default function NewPatternPage() {
 
               {submitted ? (
                 <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                  제출됐어. 개발자 도구 콘솔에서 데이터가 잘 찍혔는지 확인해봐.
+                  제출됐어. 개발자 도구 콘솔에서 데이터와 이미지 파일이 잘
+                  찍혔는지 확인해봐.
                 </div>
               ) : null}
             </div>
@@ -391,7 +466,17 @@ export default function NewPatternPage() {
                     "도안 설명을 입력하면 여기에 미리 보이게 할 수 있어."}
                 </p>
 
-                <div className="mt-5 h-40 rounded-[1.5rem] bg-[linear-gradient(135deg,#efe7ff,#edf9ef,#fff2e6)]" />
+                <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white">
+  {imagePreviewUrl ? (
+    <img
+      src={imagePreviewUrl}
+      alt="대표 이미지 미리보기"
+      className="h-56 w-full object-cover"
+    />
+  ) : (
+    <div className="h-40 bg-[linear-gradient(135deg,#efe7ff,#edf9ef,#fff2e6)]" />
+  )}
+</div>
 
                 <div className="mt-5 space-y-2 text-sm text-slate-600">
                   <div className="flex justify-between gap-4 border-b border-slate-200 pb-2">
@@ -415,10 +500,17 @@ export default function NewPatternPage() {
                     </span>
                   </div>
 
-                  <div className="flex justify-between gap-4">
+                  <div className="flex justify-between gap-4 border-b border-slate-200 pb-2">
                     <span>완성 크기</span>
                     <span className="font-semibold text-slate-800">
                       {sizeText || "-"}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between gap-4">
+                    <span>대표 이미지</span>
+                    <span className="truncate font-semibold text-slate-800">
+                      {imageFile?.name || "-"}
                     </span>
                   </div>
                 </div>
@@ -432,13 +524,13 @@ export default function NewPatternPage() {
 
               <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
                 <li className="rounded-2xl bg-slate-50 px-4 py-3">
-                  1. 입력 폼이 잘 보이는지 확인
+                  1. 대표 이미지 선택하면 오른쪽 미리보기에 바로 반영되는지 확인
                 </li>
                 <li className="rounded-2xl bg-slate-50 px-4 py-3">
-                  2. 입력값이 오른쪽 미리보기에 반영되는지 확인
+                  2. 이미지 제거 버튼이 정상 동작하는지 확인
                 </li>
                 <li className="rounded-2xl bg-slate-50 px-4 py-3">
-                  3. 제출하면 콘솔에 객체가 잘 찍히는지 확인
+                  3. 제출하면 콘솔에 이미지 파일 정보가 함께 찍히는지 확인
                 </li>
               </ul>
             </div>
