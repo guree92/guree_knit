@@ -172,7 +172,19 @@ export default function PatternsPage() {
                       <p className="mt-2 text-sm leading-6 text-[#77685d]">
                         {card.description}
                       </p>
+<p className="mt-2 text-sm leading-6 text-[#77685d]">
+  {card.description}
+</p>
 
+<div className="mt-3 flex items-center gap-2 text-xs font-medium text-[#8b7b6e]">
+  <span>🤍</span>
+  <span>{card.like_count ?? 0}</span>
+</div>
+
+<div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6f8669]">
+  상세 보기
+  <span className="transition group-hover:translate-x-1">→</span>
+</div>
                       <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6f8669]">
                         상세 보기
                         <span className="transition group-hover:translate-x-1">

@@ -11,6 +11,7 @@ export type PatternItem = {
   size: string;
   tips: string[];
   image_path: string;
+  like_count: number;
   created_at?: string;
 };
 
@@ -46,6 +47,26 @@ export async function getPatternById(id: string) {
 
   if (error) {
     return null;
+  }
+
+  return data as PatternItem;
+}
+
+export async function increasePatternLikeCount(
+  id: string,
+  currentLikeCount: number
+) {
+  const { data, error } = await supabase
+    .from("patterns")
+    .update({
+      like_count: currentLikeCount + 1,
+    })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) {
+    throw new Error(error.message);
   }
 
   return data as PatternItem;

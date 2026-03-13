@@ -8,6 +8,7 @@ import { supabase } from "@/lib/supabase";
 import {
   getPatternById,
   getPatternImageUrl,
+  increasePatternLikeCount,
   type PatternItem,
 } from "@/lib/patterns";
 
@@ -17,6 +18,24 @@ type PageProps = {
   }>;
 };
 
+function parsePatternSize(sizeText: string) {
+  const widthMatch = sizeText.match(/가로\s*(\d+)/);
+  const heightMatch = sizeText.match(/세로\s*(\d+)/);
+  const gaugeStitchesMatch = sizeText.match(/게이지\s*:\s*(\d+)코/);
+  const gaugeRowsMatch = sizeText.match(/\*\s*(\d+)단/);
+
+  return {
+    sizeText:
+      widthMatch || heightMatch
+        ? `가로 ${widthMatch?.[1] ?? "0"}cm × 세로 ${heightMatch?.[1] ?? "0"}cm`
+        : "",
+    gaugeText:
+      gaugeStitchesMatch || gaugeRowsMatch
+        ? `${gaugeStitchesMatch?.[1] ?? "0"}코 X ${gaugeRowsMatch?.[1] ?? "0"}단`
+        : "",
+  };
+}
+
 export default function PatternDetailPage({ params }: PageProps) {
   const router = useRouter();
 
@@ -24,6 +43,7 @@ export default function PatternDetailPage({ params }: PageProps) {
   const [loading, setLoading] = useState(true);
   const [resolvedId, setResolvedId] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [liking, setLiking] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -84,6 +104,29 @@ export default function PatternDetailPage({ params }: PageProps) {
     }
   }
 
+  async function handleLike() {
+    if (!pattern || liking) return;
+
+    setLiking(true);
+
+    try {
+      const updated = await increasePatternLikeCount(
+        pattern.id,
+        pattern.like_count ?? 0
+      );
+      setPattern(updated);
+    } catch (error) {
+      console.error("좋아요 실패", error);
+
+      const message =
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어.";
+
+      alert(`좋아요 실패: ${message}`);
+    } finally {
+      setLiking(false);
+    }
+  }
+
   if (loading) {
     return (
       <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
@@ -123,6 +166,7 @@ export default function PatternDetailPage({ params }: PageProps) {
   }
 
   const imageUrl = getPatternImageUrl(pattern.image_path);
+  const parsedSize = parsePatternSize(pattern.size || "");
 
   return (
     <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
@@ -158,13 +202,25 @@ export default function PatternDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 text-xs">
-              <span className="rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-3 py-1 font-semibold text-[#6f8669]">
-                {pattern.level}
-              </span>
-              <span className="rounded-full border border-[#e4d7cb] bg-[#f6eee6] px-3 py-1 font-semibold text-[#8b725d]">
-                {pattern.category}
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-3 py-1 font-semibold text-[#6f8669]">
+                  {pattern.level}
+                </span>
+                <span className="rounded-full border border-[#e4d7cb] bg-[#f6eee6] px-3 py-1 font-semibold text-[#8b725d]">
+                  {pattern.category}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleLike}
+                disabled={liking}
+                className="inline-flex items-center gap-2 rounded-full border border-[#ead8d2] bg-[#fff7f5] px-4 py-2 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeeea] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <span>{liking ? "…" : "♥"}</span>
+                <span>좋아요 {pattern.like_count ?? 0}</span>
+              </button>
             </div>
 
             <h1 className="mt-4 text-4xl font-black leading-tight text-[#4a392f]">
@@ -217,10 +273,22 @@ export default function PatternDetailPage({ params }: PageProps) {
                     {pattern.needle || "-"}
                   </span>
                 </div>
-                <div className="flex justify-between gap-4 pt-3">
+                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
+                  <span>좋아요</span>
+                  <span className="font-semibold text-[#4a392f]">
+                    {pattern.like_count ?? 0}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>완성 크기</span>
                   <span className="font-semibold text-[#4a392f]">
-                    {pattern.size || "-"}
+                    {parsedSize.sizeText || "-"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4 pt-3">
+                  <span>게이지</span>
+                  <span className="font-semibold text-[#4a392f]">
+                    {parsedSize.gaugeText || "-"}
                   </span>
                 </div>
               </div>
@@ -231,9 +299,9 @@ export default function PatternDetailPage({ params }: PageProps) {
 
               <ul className="mt-4 space-y-3 text-sm leading-6 text-[#756457]">
                 {pattern.tips.length > 0 ? (
-                  pattern.tips.map((tip) => (
+                  pattern.tips.map((tip, index) => (
                     <li
-                      key={tip}
+                      key={`${tip}-${index}`}
                       className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3"
                     >
                       {tip}
