@@ -6,40 +6,26 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { patternCategories } from "@/data/patterns";
 import { createClient } from "@/lib/supabase/client";
-import { getPatternById, getPatternImageUrl } from "@/lib/patterns";
 
 const levelOptions = ["초급", "중급", "고급"] as const;
 const categoryOptions = patternCategories.filter(
   (item) => item !== "전체"
 ) as Array<(typeof patternCategories)[number]>;
 
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+function makeId(text: string) {
+  const trimmed = text.trim();
 
-function parseSize(sizeText: string) {
-  const widthMatch = sizeText.match(/가로\s*(\d+)/);
-  const heightMatch = sizeText.match(/세로\s*(\d+)/);
-  const gaugeStitchesMatch = sizeText.match(/게이지\s*:\s*(\d+)코/);
-  const gaugeRowsMatch = sizeText.match(/\*\s*(\d+)단/);
+  if (!trimmed) return "";
 
-  return {
-    width: widthMatch?.[1] ?? "",
-    height: heightMatch?.[1] ?? "",
-    gaugeStitches: gaugeStitchesMatch?.[1] ?? "",
-    gaugeRows: gaugeRowsMatch?.[1] ?? "",
-  };
+  return trimmed
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^\w-가-힣]/g, "");
 }
 
-export default function EditPatternPage({ params }: PageProps) {
+export default function NewPatternForm() {
   const router = useRouter();
   const supabase = createClient();
-
-  const [patternId, setPatternId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
 
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<(typeof levelOptions)[number]>("초급");
@@ -53,105 +39,24 @@ export default function EditPatternPage({ params }: PageProps) {
   const [gaugeStitches, setGaugeStitches] = useState("");
   const [gaugeRows, setGaugeRows] = useState("");
   const [tips, setTips] = useState(["", "", ""]);
-
-  const [existingImagePath, setExistingImagePath] = useState("");
-  const [existingImageUrl, setExistingImageUrl] = useState("");
-
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState("");
-  const [removeCurrentImage, setRemoveCurrentImage] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [notFound, setNotFound] = useState(false);
-  const [forbidden, setForbidden] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const previewId = useMemo(() => makeId(title), [title]);
 
-  const previewSizeText =
+  const sizeText =
     width.trim() || height.trim()
       ? `가로 ${width.trim() || "0"}cm X 세로 ${height.trim() || "0"}cm`
       : "";
 
-  const previewGaugeText =
+  const gaugeText =
     gaugeStitches.trim() || gaugeRows.trim()
       ? `${gaugeStitches.trim() || "0"}코 X ${gaugeRows.trim() || "0"}단`
       : "";
 
-  const finalSizeText = [previewSizeText, previewGaugeText]
-    .filter(Boolean)
-    .join("\n");
-
-  const previewImageSrc = useMemo(() => {
-    if (imagePreviewUrl) return imagePreviewUrl;
-    if (!removeCurrentImage && existingImageUrl) return existingImageUrl;
-    return "";
-  }, [imagePreviewUrl, existingImageUrl, removeCurrentImage]);
-
-  useEffect(() => {
-    async function loadPattern() {
-      try {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          console.error("유저 조회 실패", userError);
-        }
-
-        if (!user) {
-          router.push("/login");
-          return;
-        }
-
-        setCurrentUserId(user.id);
-
-        const { id } = await params;
-        setPatternId(id);
-
-        const pattern = await getPatternById(id);
-
-        if (!pattern) {
-          setNotFound(true);
-          setLoading(false);
-          return;
-        }
-
-        if (pattern.user_id !== user.id) {
-          setForbidden(true);
-          setLoading(false);
-          return;
-        }
-
-        const parsedSize = parseSize(pattern.size || "");
-
-        setTitle(pattern.title);
-        setLevel(pattern.level);
-        setCategory(pattern.category as (typeof categoryOptions)[number]);
-        setDescription(pattern.description || "");
-        setYarn(pattern.yarn || "");
-        setNeedle(pattern.needle || "");
-        setWidth(parsedSize.width);
-        setHeight(parsedSize.height);
-        setGaugeStitches(parsedSize.gaugeStitches);
-        setGaugeRows(parsedSize.gaugeRows);
-
-        const paddedTips = [...(pattern.tips || [])];
-        while (paddedTips.length < 3) paddedTips.push("");
-        setTips(paddedTips.slice(0, 3));
-
-        setExistingImagePath(pattern.image_path || "");
-        setExistingImageUrl(
-          pattern.image_path ? getPatternImageUrl(pattern.image_path) : ""
-        );
-      } catch (error) {
-        console.error("도안 수정 페이지 불러오기 실패", error);
-        setNotFound(true);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadPattern();
-  }, [params, router, supabase]);
+  const finalSizeText = [sizeText, gaugeText].filter(Boolean).join("\n");
 
   useEffect(() => {
     if (!imageFile) {
@@ -174,67 +79,53 @@ export default function EditPatternPage({ params }: PageProps) {
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
-
-    if (file) {
-      setRemoveCurrentImage(false);
-    }
   }
 
-  function handleRemoveImage() {
+  function removeImage() {
     setImageFile(null);
     setImagePreviewUrl("");
-    setRemoveCurrentImage(true);
-  }
-
-  function handleKeepCurrentImage() {
-    setRemoveCurrentImage(false);
   }
 
   async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
-
-    if (!patternId) return;
 
     if (!title.trim()) {
       alert("도안 제목을 입력해줘.");
       return;
     }
 
-    if (!currentUserId) {
-      alert("로그인 후 수정할 수 있어.");
-      router.push("/login");
-      return;
-    }
-
     setSubmitting(true);
+    setSubmitted(false);
 
     try {
-      const cleanedTips = tips.map((tip) => tip.trim()).filter(Boolean);
-      let finalImagePath = existingImagePath;
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      const shouldDeleteOldImage =
-        !!existingImagePath && (removeCurrentImage || !!imageFile);
-
-      if (shouldDeleteOldImage) {
-        const { error: removeOldImageError } = await supabase.storage
-          .from("pattern-images")
-          .remove([existingImagePath]);
-
-        if (removeOldImageError) {
-          throw new Error(removeOldImageError.message);
-        }
-
-        finalImagePath = "";
+      if (userError) {
+        console.error("유저 조회 오류", userError);
       }
+
+      if (!user) {
+        alert("로그인 후 등록할 수 있어.");
+        router.push("/login");
+        return;
+      }
+
+      const cleanedTips = tips.map((tip) => tip.trim()).filter(Boolean);
+      const finalId = `${previewId || "pattern"}-${Date.now()}`;
+
+      let imagePath = "";
 
       if (imageFile) {
         const ext = imageFile.name.split(".").pop()?.toLowerCase() || "jpg";
         const fileName = `${Date.now()}.${ext}`;
-        finalImagePath = `${currentUserId}/${patternId}/${fileName}`;
+        imagePath = `${user.id}/${finalId}/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from("pattern-images")
-          .upload(finalImagePath, imageFile, {
+          .upload(imagePath, imageFile, {
             cacheControl: "3600",
             upsert: false,
           });
@@ -244,104 +135,37 @@ export default function EditPatternPage({ params }: PageProps) {
         }
       }
 
-      if (!imageFile && removeCurrentImage) {
-        finalImagePath = "";
+      const { error: insertError } = await supabase.from("patterns").insert({
+        id: finalId,
+        user_id: user.id,
+        title: title.trim(),
+        level,
+        category,
+        description: description.trim(),
+        yarn: yarn.trim(),
+        needle: needle.trim(),
+        size: finalSizeText,
+        tips: cleanedTips,
+        image_path: imagePath,
+      });
+
+      if (insertError) {
+        throw new Error(insertError.message);
       }
 
-      const { error: updateError } = await supabase
-        .from("patterns")
-        .update({
-          title: title.trim(),
-          level,
-          category,
-          description: description.trim(),
-          yarn: yarn.trim(),
-          needle: needle.trim(),
-          size: finalSizeText,
-          tips: cleanedTips,
-          image_path: finalImagePath,
-        })
-        .eq("id", patternId)
-        .eq("user_id", currentUserId);
-
-      if (updateError) {
-        throw new Error(updateError.message);
-      }
-
-      alert("도안이 수정됐어.");
-      router.push(`/patterns/${patternId}`);
+      setSubmitted(true);
+      router.push(`/patterns/${finalId}`);
       router.refresh();
     } catch (error) {
-      console.error("도안 수정 실패", error);
+      console.error("도안 등록 실패", error);
 
       const message =
         error instanceof Error ? error.message : "알 수 없는 오류가 발생했어.";
 
-      alert(`도안 수정 실패: ${message}`);
+      alert(`도안 등록 실패: ${message}`);
     } finally {
       setSubmitting(false);
     }
-  }
-
-  if (loading) {
-    return (
-      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
-        <div className="mx-auto max-w-6xl">
-          <Header />
-          <section className="mt-12 rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-10 text-center shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-            <p className="text-[#8f7f73]">도안 정보를 불러오는 중...</p>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
-  if (notFound) {
-    return (
-      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
-        <div className="mx-auto max-w-6xl">
-          <Header />
-          <section className="mt-12 rounded-[2.25rem] border border-dashed border-[#d9cec2] bg-[#f8f4ee] p-10 text-center shadow-sm">
-            <h1 className="text-2xl font-black text-[#4a392f]">
-              수정할 도안을 찾지 못했어
-            </h1>
-            <p className="mt-3 text-[#756457]">
-              존재하지 않거나 이미 삭제된 도안일 수 있어.
-            </p>
-            <Link
-              href="/patterns"
-              className="mt-6 inline-flex rounded-[1.3rem] bg-[#96a792] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(150,167,146,0.28)] transition hover:bg-[#879a83]"
-            >
-              도안 목록으로 돌아가기
-            </Link>
-          </section>
-        </div>
-      </main>
-    );
-  }
-
-  if (forbidden) {
-    return (
-      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
-        <div className="mx-auto max-w-6xl">
-          <Header />
-          <section className="mt-12 rounded-[2.25rem] border border-dashed border-[#d9cec2] bg-[#f8f4ee] p-10 text-center shadow-sm">
-            <h1 className="text-2xl font-black text-[#4a392f]">
-              수정 권한이 없어
-            </h1>
-            <p className="mt-3 text-[#756457]">
-              내가 작성한 도안만 수정할 수 있어.
-            </p>
-            <Link
-              href={patternId ? `/patterns/${patternId}` : "/patterns"}
-              className="mt-6 inline-flex rounded-[1.3rem] bg-[#96a792] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(150,167,146,0.28)] transition hover:bg-[#879a83]"
-            >
-              도안 상세로 돌아가기
-            </Link>
-          </section>
-        </div>
-      </main>
-    );
   }
 
   return (
@@ -355,22 +179,23 @@ export default function EditPatternPage({ params }: PageProps) {
             className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-8 shadow-[0_10px_30px_rgba(91,74,60,0.06)]"
           >
             <Link
-              href={`/patterns/${patternId}`}
+              href="/patterns"
               className="inline-flex text-sm font-semibold text-[#7b9274] transition hover:text-[#5f7759]"
             >
-              ← 도안 상세로
+              ← 도안 목록으로
             </Link>
 
             <div className="mt-6 inline-flex rounded-full border border-[#d9d0c6] bg-[#fdfaf6] px-4 py-2 text-sm font-semibold text-[#8f7a67]">
-              EDIT PATTERN
+              NEW PATTERN
             </div>
 
             <h1 className="mt-4 text-3xl font-black text-[#4a392f] md:text-4xl">
-              도안 수정
+              새 도안 등록
             </h1>
 
             <p className="mt-3 max-w-2xl leading-7 text-[#756457]">
-              기존 도안 정보를 수정하고 미리보기까지 바로 확인할 수 있어.
+              기본 정보와 대표 이미지를 함께 등록해보자.
+              차분한 톤으로 미리보기까지 바로 확인할 수 있게 해뒀어.
             </p>
 
             <div className="mt-8 grid gap-5">
@@ -578,7 +403,7 @@ export default function EditPatternPage({ params }: PageProps) {
                 <div className="rounded-[1.6rem] border border-[#e1d7cb] bg-[#fffdf9] p-4">
                   <label className="flex cursor-pointer flex-col items-center justify-center rounded-[1.3rem] border border-dashed border-[#d8cec2] bg-[#f6f1ea] px-6 py-8 text-center transition hover:bg-[#f1ebe4]">
                     <span className="text-sm font-semibold text-[#5f5044]">
-                      새 이미지 업로드
+                      이미지 업로드
                     </span>
                     <span className="mt-2 text-xs text-[#8b7b6e]">
                       JPG, PNG, WEBP 파일을 선택해줘.
@@ -592,36 +417,24 @@ export default function EditPatternPage({ params }: PageProps) {
                     />
                   </label>
 
-                  {(existingImageUrl && !removeCurrentImage) || imageFile ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
+                  {imageFile ? (
+                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[1.3rem] border border-[#e5ddd3] bg-[#f8f4ee] px-4 py-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-semibold text-[#5c4c40]">
+                          {imageFile.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[#8b7b6e]">
+                          {(imageFile.size / 1024 / 1024).toFixed(2)} MB
+                        </p>
+                      </div>
+
                       <button
                         type="button"
-                        onClick={handleRemoveImage}
-                        className="rounded-xl border border-[#e7c9c4] bg-[#fff4f2] px-3 py-2 text-xs font-semibold text-[#b05b52] transition hover:bg-[#fdeae6]"
+                        onClick={removeImage}
+                        className="rounded-xl border border-[#ddd3c8] bg-[#fffdf9] px-3 py-2 text-xs font-semibold text-[#6f6054] transition hover:bg-[#f6f1ea]"
                       >
                         이미지 제거
                       </button>
-
-                      {removeCurrentImage ? (
-                        <button
-                          type="button"
-                          onClick={handleKeepCurrentImage}
-                          className="rounded-xl border border-[#ddd3c8] bg-[#fffdf9] px-3 py-2 text-xs font-semibold text-[#6f6054] transition hover:bg-[#f6f1ea]"
-                        >
-                          기존 이미지 유지
-                        </button>
-                      ) : null}
-                    </div>
-                  ) : null}
-
-                  {imageFile ? (
-                    <div className="mt-4 rounded-[1.3rem] border border-[#e5ddd3] bg-[#f8f4ee] px-4 py-3">
-                      <p className="truncate text-sm font-semibold text-[#5c4c40]">
-                        {imageFile.name}
-                      </p>
-                      <p className="mt-1 text-xs text-[#8b7b6e]">
-                        {(imageFile.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
                     </div>
                   ) : null}
                 </div>
@@ -652,16 +465,22 @@ export default function EditPatternPage({ params }: PageProps) {
                   disabled={submitting}
                   className="inline-flex rounded-[1.3rem] bg-[#96a792] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(150,167,146,0.28)] transition hover:bg-[#879a83] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {submitting ? "수정 중..." : "도안 수정 저장"}
+                  {submitting ? "등록 중..." : "도안 등록"}
                 </button>
 
                 <Link
-                  href={`/patterns/${patternId}`}
+                  href="/patterns"
                   className="inline-flex rounded-[1.3rem] border border-[#ddd3c8] bg-[#fffdf9] px-5 py-3 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f6f1ea]"
                 >
                   취소
                 </Link>
               </div>
+
+              {submitted ? (
+                <div className="rounded-[1.4rem] border border-[#d5e0d2] bg-[#edf3ea] px-4 py-3 text-sm text-[#62785d]">
+                  도안이 정상 등록됐어.
+                </div>
+              ) : null}
             </div>
           </form>
 
@@ -689,9 +508,9 @@ export default function EditPatternPage({ params }: PageProps) {
                 </p>
 
                 <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-[#ebe3d9] bg-white">
-                  {previewImageSrc ? (
+                  {imagePreviewUrl ? (
                     <img
-                      src={previewImageSrc}
+                      src={imagePreviewUrl}
                       alt="대표 이미지 미리보기"
                       className="h-56 w-full object-cover"
                     />
@@ -704,7 +523,7 @@ export default function EditPatternPage({ params }: PageProps) {
                   <div className="flex justify-between gap-4 border-b border-[#eee5db] pb-2">
                     <span>id</span>
                     <span className="font-semibold text-[#4a392f]">
-                      {patternId || "-"}
+                      {previewId || "-"}
                     </span>
                   </div>
 
@@ -725,25 +544,21 @@ export default function EditPatternPage({ params }: PageProps) {
                   <div className="flex justify-between gap-4 border-b border-[#eee5db] pb-2">
                     <span>완성 크기</span>
                     <span className="font-semibold text-[#4a392f]">
-                      {previewSizeText || "-"}
+                      {sizeText || "-"}
                     </span>
                   </div>
 
                   <div className="flex justify-between gap-4 border-b border-[#eee5db] pb-2">
                     <span>게이지</span>
                     <span className="font-semibold text-[#4a392f]">
-                      {previewGaugeText || "-"}
+                      {gaugeText || "-"}
                     </span>
                   </div>
 
                   <div className="flex justify-between gap-4">
                     <span>대표 이미지</span>
                     <span className="truncate font-semibold text-[#4a392f]">
-                      {removeCurrentImage
-                        ? "-"
-                        : imageFile?.name ||
-                          existingImagePath.split("/").pop() ||
-                          "-"}
+                      {imageFile?.name || "-"}
                     </span>
                   </div>
                 </div>
@@ -752,18 +567,18 @@ export default function EditPatternPage({ params }: PageProps) {
 
             <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-6 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
               <h2 className="text-xl font-black text-[#4a392f]">
-                수정 시 체크할 것
+                이번 단계 목표
               </h2>
 
               <ul className="mt-4 space-y-3 text-sm leading-6 text-[#756457]">
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  1. 제목, 설명, 난이도, 카테고리가 원하는 값으로 바뀌는지
+                  1. 대표 이미지 선택하면 오른쪽 미리보기에 바로 반영
                 </li>
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  2. 새 이미지 업로드 시 기존 이미지가 교체되는지
+                  2. 등록하면 Storage + DB 둘 다 저장
                 </li>
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  3. 저장 후 상세 페이지에 수정 내용이 바로 반영되는지
+                  3. 등록 직후 목록 페이지에서 새 도안이 보이는지 확인
                 </li>
               </ul>
             </div>

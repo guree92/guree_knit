@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import {
   getPatternById,
   getPatternImageUrl,
@@ -27,7 +27,7 @@ function parsePatternSize(sizeText: string) {
   return {
     sizeText:
       widthMatch || heightMatch
-        ? `가로 ${widthMatch?.[1] ?? "0"}cm × 세로 ${heightMatch?.[1] ?? "0"}cm`
+        ? `가로 ${widthMatch?.[1] ?? "0"}cm X 세로 ${heightMatch?.[1] ?? "0"}cm`
         : "",
     gaugeText:
       gaugeStitchesMatch || gaugeRowsMatch
@@ -38,12 +38,26 @@ function parsePatternSize(sizeText: string) {
 
 export default function PatternDetailPage({ params }: PageProps) {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const [pattern, setPattern] = useState<PatternItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [resolvedId, setResolvedId] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [liking, setLiking] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadCurrentUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setCurrentUserId(user?.id ?? null);
+    }
+
+    loadCurrentUser();
+  }, [supabase]);
 
   useEffect(() => {
     async function load() {
@@ -58,8 +72,15 @@ export default function PatternDetailPage({ params }: PageProps) {
     load();
   }, [params]);
 
+  const isOwner = !!pattern && !!currentUserId && pattern.user_id === currentUserId;
+
   async function handleDelete() {
     if (!pattern) return;
+
+    if (!isOwner) {
+      alert("내가 작성한 도안만 삭제할 수 있어.");
+      return;
+    }
 
     const confirmed = window.confirm(
       "이 도안을 삭제할까?\n삭제하면 되돌릴 수 없어."
@@ -183,23 +204,25 @@ export default function PatternDetailPage({ params }: PageProps) {
                 ← 도안 목록으로
               </Link>
 
-              <div className="flex flex-wrap gap-2">
-                <Link
-                  href={`/patterns/${pattern.id}/edit`}
-                  className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#d8cec2] bg-[#fffdf9] px-4 py-2.5 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f3ede6]"
-                >
-                  수정하기
-                </Link>
+              {isOwner ? (
+                <div className="flex flex-wrap gap-2">
+                  <Link
+                    href={`/patterns/${pattern.id}/edit`}
+                    className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#d8cec2] bg-[#fffdf9] px-4 py-2.5 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f3ede6]"
+                  >
+                    수정하기
+                  </Link>
 
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={deleting}
-                  className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#e7c9c4] bg-[#fff4f2] px-4 py-2.5 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeae6] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {deleting ? "삭제 중..." : "삭제하기"}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#e7c9c4] bg-[#fff4f2] px-4 py-2.5 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeae6] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {deleting ? "삭제 중..." : "삭제하기"}
+                  </button>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center justify-between gap-3">
@@ -226,6 +249,10 @@ export default function PatternDetailPage({ params }: PageProps) {
             <h1 className="mt-4 text-4xl font-black leading-tight text-[#4a392f]">
               {pattern.title}
             </h1>
+
+            <p className="mt-3 text-sm font-medium text-[#8b7b6e]">
+              작성자 · {pattern.author_nickname ?? "알 수 없음"}
+            </p>
 
             <p className="mt-4 max-w-2xl leading-7 text-[#756457]">
               {pattern.description}
@@ -255,36 +282,49 @@ export default function PatternDetailPage({ params }: PageProps) {
                     {pattern.level}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>카테고리</span>
                   <span className="font-semibold text-[#4a392f]">
                     {pattern.category}
                   </span>
                 </div>
+
+                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
+                  <span>작성자</span>
+                  <span className="font-semibold text-[#4a392f]">
+                    {pattern.author_nickname ?? "-"}
+                  </span>
+                </div>
+
                 <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>사용 실</span>
                   <span className="font-semibold text-[#4a392f]">
                     {pattern.yarn || "-"}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>바늘</span>
                   <span className="font-semibold text-[#4a392f]">
                     {pattern.needle || "-"}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>좋아요</span>
                   <span className="font-semibold text-[#4a392f]">
                     {pattern.like_count ?? 0}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
                   <span>완성 크기</span>
                   <span className="font-semibold text-[#4a392f]">
                     {parsedSize.sizeText || "-"}
                   </span>
                 </div>
+
                 <div className="flex justify-between gap-4 pt-3">
                   <span>게이지</span>
                   <span className="font-semibold text-[#4a392f]">

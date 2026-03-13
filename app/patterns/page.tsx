@@ -44,7 +44,8 @@ export default function PatternsPage() {
         card.title.toLowerCase().includes(lowerKeyword) ||
         card.description.toLowerCase().includes(lowerKeyword) ||
         card.category.toLowerCase().includes(lowerKeyword) ||
-        card.level.toLowerCase().includes(lowerKeyword);
+        card.level.toLowerCase().includes(lowerKeyword) ||
+        (card.author_nickname ?? "").toLowerCase().includes(lowerKeyword);
 
       return matchesCategory && matchesKeyword;
     });
@@ -87,7 +88,7 @@ export default function PatternsPage() {
                 type="text"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
-                placeholder="도안 이름, 난이도, 카테고리 검색"
+                placeholder="도안 이름, 작성자, 난이도, 카테고리 검색"
                 className="w-full rounded-[1.5rem] border border-[#ddd3c8] bg-[#fffdf9] px-5 py-3.5 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
               />
             </div>
@@ -169,22 +170,19 @@ export default function PatternsPage() {
                         {card.title}
                       </h2>
 
+                      <p className="mt-2 text-sm text-[#8b7b6e]">
+                        작성자 · {card.author_nickname ?? "알 수 없음"}
+                      </p>
+
                       <p className="mt-2 text-sm leading-6 text-[#77685d]">
                         {card.description}
                       </p>
-<p className="mt-2 text-sm leading-6 text-[#77685d]">
-  {card.description}
-</p>
 
-<div className="mt-3 flex items-center gap-2 text-xs font-medium text-[#8b7b6e]">
-  <span>🤍</span>
-  <span>{card.like_count ?? 0}</span>
-</div>
+                      <div className="mt-3 flex items-center gap-2 text-xs font-medium text-[#8b7b6e]">
+                        <span>🤍</span>
+                        <span>{card.like_count ?? 0}</span>
+                      </div>
 
-<div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6f8669]">
-  상세 보기
-  <span className="transition group-hover:translate-x-1">→</span>
-</div>
                       <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#6f8669]">
                         상세 보기
                         <span className="transition group-hover:translate-x-1">

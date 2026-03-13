@@ -75,7 +75,7 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="E-mail"
+                placeholder="guree92@icloud.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}
@@ -131,6 +131,13 @@ export default function LoginPage() {
               className="flex h-14 w-full items-center justify-center rounded-full border border-[#d9d0c4] bg-white/70 text-base font-bold text-[#7d6d60] transition hover:bg-[#faf6f0]"
             >
               계정이 없어? 회원가입
+            </Link>
+
+            <Link
+              href="/"
+              className="flex h-14 w-full items-center justify-center rounded-full border border-[#d9d0c4] bg-[#f8f4ee] text-base font-bold text-[#7d6d60] transition hover:bg-[#eef3ec] hover:text-[#5d7460]"
+            >
+              메인화면으로 가기
             </Link>
           </form>
         </div>

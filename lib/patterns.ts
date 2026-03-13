@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 
 export type PatternItem = {
   id: string;
+  user_id: string | null;
   title: string;
   level: "초급" | "중급" | "고급";
   category: string;
@@ -13,6 +14,7 @@ export type PatternItem = {
   image_path: string;
   like_count: number;
   created_at?: string;
+  author_nickname?: string | null;
 };
 
 export function getPatternImageUrl(imagePath: string) {
@@ -25,6 +27,35 @@ export function getPatternImageUrl(imagePath: string) {
   return data.publicUrl;
 }
 
+async function attachNicknames(patterns: PatternItem[]) {
+  const userIds = Array.from(
+    new Set(patterns.map((p) => p.user_id).filter(Boolean))
+  ) as string[];
+
+  if (userIds.length === 0) return patterns;
+
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, nickname")
+    .in("id", userIds);
+
+  if (error) {
+    console.error("닉네임 불러오기 실패", error);
+    return patterns;
+  }
+
+  const nicknameMap = new Map(
+    (data ?? []).map((p) => [p.id, p.nickname])
+  );
+
+  return patterns.map((pattern) => ({
+    ...pattern,
+    author_nickname: pattern.user_id
+      ? nicknameMap.get(pattern.user_id) ?? null
+      : null,
+  }));
+}
+
 export async function getPatterns() {
   const { data, error } = await supabase
     .from("patterns")
@@ -35,7 +66,9 @@ export async function getPatterns() {
     throw new Error(error.message);
   }
 
-  return (data ?? []) as PatternItem[];
+  const patterns = (data ?? []) as PatternItem[];
+
+  return await attachNicknames(patterns);
 }
 
 export async function getPatternById(id: string) {
@@ -49,7 +82,11 @@ export async function getPatternById(id: string) {
     return null;
   }
 
-  return data as PatternItem;
+  const pattern = data as PatternItem;
+
+  const result = await attachNicknames([pattern]);
+
+  return result[0];
 }
 
 export async function increasePatternLikeCount(
@@ -69,5 +106,9 @@ export async function increasePatternLikeCount(
     throw new Error(error.message);
   }
 
-  return data as PatternItem;
+  const pattern = data as PatternItem;
+
+  const result = await attachNicknames([pattern]);
+
+  return result[0];
 }
