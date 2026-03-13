@@ -16,7 +16,7 @@ export default function Header() {
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 py-2">
-      
+
       {/* Logo */}
       <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] text-[#3f342c]">
         <Link href="/" className="transition hover:opacity-80">
@@ -24,30 +24,43 @@ export default function Header() {
         </Link>
       </h1>
 
-      {/* Menu */}
-      <nav className="flex flex-wrap items-center gap-2 text-sm">
-        {menus.map((menu) => {
-          const isActive =
-            menu.href === "/"
-              ? pathname === "/"
-              : pathname === menu.href || pathname.startsWith(`${menu.href}/`);
+      {/* Right Area */}
+      <div className="flex items-center gap-3">
 
-          return (
-            <Link
-              key={menu.href}
-              href={menu.href}
-              className={[
-                "rounded-full px-4 py-2 font-medium transition hover:-translate-y-[1px]",
-                isActive
-                  ? "bg-[#8ca08b] text-white shadow-md shadow-[#e1ebe2]"
-                  : "bg-white text-[#6f6258] border border-[#ebe1d6] hover:border-[#dce5dc] hover:bg-[#f7faf7] hover:text-[#5d7460]",
-              ].join(" ")}
-            >
-              {menu.label}
-            </Link>
-          );
-        })}
-      </nav>
+        {/* Menu */}
+        <nav className="flex flex-wrap items-center gap-2 text-sm">
+          {menus.map((menu) => {
+            const isActive =
+              menu.href === "/"
+                ? pathname === "/"
+                : pathname === menu.href || pathname.startsWith(`${menu.href}/`);
+
+            return (
+              <Link
+                key={menu.href}
+                href={menu.href}
+                className={[
+                  "rounded-full px-4 py-2 font-medium transition hover:-translate-y-[1px]",
+                  isActive
+                    ? "bg-[#8ca08b] text-white shadow-md shadow-[#e1ebe2]"
+                    : "bg-white text-[#6f6258] border border-[#ebe1d6] hover:border-[#dce5dc] hover:bg-[#f7faf7] hover:text-[#5d7460]",
+                ].join(" ")}
+              >
+                {menu.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Login Button */}
+        <Link
+          href="/login"
+          className="rounded-full px-5 py-2 text-sm font-semibold border border-[#e6ddd2] bg-[#f8f4ee] text-[#6f6258] transition hover:bg-[#eef3ec] hover:text-[#5d7460]"
+        >
+          로그인
+        </Link>
+
+      </div>
     </header>
   );
 }
