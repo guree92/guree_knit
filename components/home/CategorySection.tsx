@@ -6,19 +6,26 @@ export default function CategorySection() {
   const featuredPatterns = patternItems.slice(0, 3);
 
   return (
-    <section className="mt-20">
+    <section>
       <div className="mb-8">
-        <h3 className="text-3xl font-black text-slate-800">인기 카테고리</h3>
-        <p className="mt-2 text-slate-600">
-          만들고 싶은 작품부터 가볍게 골라보고, 바로 도안도 살펴볼 수 있어.
+        <h3 className="text-3xl font-black tracking-[-0.02em] text-[#3f342b]">
+          도안 둘러보기
+        </h3>
+        <p className="mt-2 text-[#74695f]">
+          가볍게 둘러보다가 마음에 드는 작품을 찾고, 공유된 도안이나 판매
+          도안까지 자연스럽게 연결될 수 있게.
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
-        {categories.map((category) => (
+        {categories.map((category, index) => (
           <div
             key={category}
-            className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm"
+            className={`rounded-full px-5 py-3 text-sm font-semibold shadow-sm ${
+              index % 3 === 1
+                ? "border border-[#dce6dc] bg-[#eef4ee] text-[#6f856f]"
+                : "border border-[#e7dccf] bg-white text-[#5d5045]"
+            }`}
           >
             {category}
           </div>
@@ -30,35 +37,36 @@ export default function CategorySection() {
           <Link
             key={pattern.id}
             href={`/patterns/${pattern.id}`}
-            className="overflow-hidden rounded-[2rem] border border-white/60 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+            className="overflow-hidden rounded-[2rem] border border-[#eee3d7] bg-white/90 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
           >
             <div
               className={`h-40 ${
                 index % 3 === 0
-                  ? "bg-[linear-gradient(135deg,#efe7ff,#edf9ef,#fff2e6)]"
+                  ? "bg-[linear-gradient(135deg,#f4eadf,#eef4ee,#fbf6ef)]"
                   : index % 3 === 1
-                  ? "bg-[linear-gradient(135deg,#fff0f5,#f3f7ff,#eefbf4)]"
-                  : "bg-[linear-gradient(135deg,#eef8ff,#f5f0ff,#fff8ef)]"
+                  ? "bg-[linear-gradient(135deg,#f7efe6,#f1f6f1,#f4eadf)]"
+                  : "bg-[linear-gradient(135deg,#efe6da,#edf4ee,#f8f2ea)]"
               }`}
             />
+
             <div className="p-5">
               <div className="mb-3 flex gap-2 text-xs">
-                <span className="rounded-full bg-violet-100 px-3 py-1 font-medium text-violet-700">
+                <span className="rounded-full bg-[#f4eadf] px-3 py-1 font-medium text-[#8b725d]">
                   {pattern.level}
                 </span>
-                <span className="rounded-full bg-emerald-100 px-3 py-1 font-medium text-emerald-700">
+                <span className="rounded-full bg-[#eef4ee] px-3 py-1 font-medium text-[#6f856f]">
                   {pattern.category}
                 </span>
               </div>
 
-              <h4 className="text-lg font-bold text-slate-800">
+              <h4 className="text-lg font-bold text-[#4a3d33]">
                 {pattern.title}
               </h4>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-7 text-[#74695f]">
                 {pattern.desc}
               </p>
 
-              <div className="mt-4 text-sm font-semibold text-violet-600">
+              <div className="mt-4 text-sm font-semibold text-[#7c927a]">
                 도안 보러가기 →
               </div>
             </div>

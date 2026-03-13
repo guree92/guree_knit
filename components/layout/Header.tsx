@@ -15,26 +15,32 @@ export default function Header() {
   const pathname = usePathname();
 
   return (
-    <header className="flex flex-wrap items-center justify-between gap-4">
-      <h1 className="text-2xl font-bold tracking-tight text-slate-800">
+    <header className="flex flex-wrap items-center justify-between gap-4 py-2">
+      
+      {/* Logo */}
+      <h1 className="text-[1.6rem] font-bold tracking-[-0.02em] text-[#3f342c]">
         <Link href="/" className="transition hover:opacity-80">
-          knit<span className="text-violet-500">.home</span>
+          Knit<span className="text-[#8ca08b]"> . GUREE</span>
         </Link>
       </h1>
 
+      {/* Menu */}
       <nav className="flex flex-wrap items-center gap-2 text-sm">
         {menus.map((menu) => {
-          const isActive = pathname === menu.href;
+          const isActive =
+            menu.href === "/"
+              ? pathname === "/"
+              : pathname === menu.href || pathname.startsWith(`${menu.href}/`);
 
           return (
             <Link
               key={menu.href}
               href={menu.href}
               className={[
-                "rounded-full px-4 py-2 font-medium transition",
+                "rounded-full px-4 py-2 font-medium transition hover:-translate-y-[1px]",
                 isActive
-                  ? "bg-violet-500 text-white shadow-md shadow-violet-200"
-                  : "bg-white/70 text-slate-700 hover:bg-white hover:shadow-sm",
+                  ? "bg-[#8ca08b] text-white shadow-md shadow-[#e1ebe2]"
+                  : "bg-white text-[#6f6258] border border-[#ebe1d6] hover:border-[#dce5dc] hover:bg-[#f7faf7] hover:text-[#5d7460]",
               ].join(" ")}
             >
               {menu.label}
