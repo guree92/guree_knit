@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import {
   formatCommunityDate,
   mapCommunityPost,
@@ -18,6 +18,8 @@ type PageProps = {
 };
 
 export default function CommunityDetailPage({ params }: PageProps) {
+  const supabase = useMemo(() => createClient(), []);
+
   const [post, setPost] = useState<CommunityPost | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -49,7 +51,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
     }
 
     resolveParamsAndFetch();
-  }, [params]);
+  }, [params, supabase]);
 
   if (isLoading) {
     return (

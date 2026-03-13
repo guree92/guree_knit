@@ -26,7 +26,6 @@ export default function CommunityPage() {
 
   useEffect(() => {
     fetchPosts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function fetchPosts() {
@@ -111,13 +110,12 @@ export default function CommunityPage() {
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-<Link
-  href="/community/write"
-  prefetch={false}
-  className="inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#788a73] hover:shadow-md"
->
-  글쓰기
-</Link>
+              <Link
+                href="/community/write"
+                className="inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#788a73] hover:shadow-md"
+              >
+                글쓰기
+              </Link>
             </div>
 
             <div className="mt-6">
@@ -211,12 +209,11 @@ export default function CommunityPage() {
               </div>
             ) : filteredPosts.length > 0 ? (
               filteredPosts.map((post) => (
-<Link
-  key={post.id}
-  href={`/community/${post.id}`}
-  prefetch={false}
-  className="block rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-6 shadow-[0_8px_20px_rgba(61,49,40,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,49,40,0.08)]"
->
+                <Link
+                  key={post.id}
+                  href={`/community/${post.id}`}
+                  className="block rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-6 shadow-[0_8px_20px_rgba(61,49,40,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,49,40,0.08)]"
+                >
                   <div className="flex flex-wrap items-center gap-3">
                     <span className="rounded-full bg-[#d7e0d3] px-3 py-1 text-xs font-semibold text-[#52624d]">
                       {post.category}

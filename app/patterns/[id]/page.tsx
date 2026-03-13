@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
 import { createClient } from "@/lib/supabase/client";
@@ -11,12 +11,6 @@ import {
   increasePatternLikeCount,
   type PatternItem,
 } from "@/lib/patterns";
-
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
 
 function parsePatternSize(sizeText: string) {
   const widthMatch = sizeText.match(/가로\s*(\d+)/);
@@ -36,8 +30,9 @@ function parsePatternSize(sizeText: string) {
   };
 }
 
-export default function PatternDetailPage({ params }: PageProps) {
+export default function PatternDetailPage() {
   const router = useRouter();
+  const params = useParams<{ id: string }>();
   const supabase = useMemo(() => createClient(), []);
 
   const [pattern, setPattern] = useState<PatternItem | null>(null);
@@ -61,7 +56,13 @@ export default function PatternDetailPage({ params }: PageProps) {
 
   useEffect(() => {
     async function load() {
-      const { id } = await params;
+      const id = params.id;
+
+      if (!id || typeof id !== "string") {
+        setLoading(false);
+        return;
+      }
+
       setResolvedId(id);
 
       const data = await getPatternById(id);
@@ -70,7 +71,7 @@ export default function PatternDetailPage({ params }: PageProps) {
     }
 
     load();
-  }, [params]);
+  }, [params.id]);
 
   const isOwner = !!pattern && !!currentUserId && pattern.user_id === currentUserId;
 

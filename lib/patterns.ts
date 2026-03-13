@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 
 export type PatternItem = {
   id: string;
@@ -20,6 +20,8 @@ export type PatternItem = {
 export function getPatternImageUrl(imagePath: string) {
   if (!imagePath) return "";
 
+  const supabase = createClient();
+
   const { data } = supabase.storage
     .from("pattern-images")
     .getPublicUrl(imagePath);
@@ -27,7 +29,9 @@ export function getPatternImageUrl(imagePath: string) {
   return data.publicUrl;
 }
 
-async function attachNicknames(patterns: PatternItem[]) {
+async function attachNicknames(patterns: PatternItem[]): Promise<PatternItem[]> {
+  const supabase = createClient();
+
   const userIds = Array.from(
     new Set(patterns.map((p) => p.user_id).filter(Boolean))
   ) as string[];
@@ -56,7 +60,9 @@ async function attachNicknames(patterns: PatternItem[]) {
   }));
 }
 
-export async function getPatterns() {
+export async function getPatterns(): Promise<PatternItem[]> {
+  const supabase = createClient();
+
   const { data, error } = await supabase
     .from("patterns")
     .select("*")
@@ -71,14 +77,16 @@ export async function getPatterns() {
   return await attachNicknames(patterns);
 }
 
-export async function getPatternById(id: string) {
+export async function getPatternById(id: string): Promise<PatternItem | null> {
+  const supabase = createClient();
+
   const { data, error } = await supabase
     .from("patterns")
     .select("*")
     .eq("id", id)
     .single();
 
-  if (error) {
+  if (error || !data) {
     return null;
   }
 
@@ -92,7 +100,10 @@ export async function getPatternById(id: string) {
 export async function increasePatternLikeCount(
   id: string,
   currentLikeCount: number
-) {
+): Promise<PatternItem> {
+
+  const supabase = createClient();
+
   const { data, error } = await supabase
     .from("patterns")
     .update({

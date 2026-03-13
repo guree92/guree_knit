@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@/lib/supabase/client";
 import { type PostCategory } from "@/lib/community";
 
 export default function CommunityWritePage() {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [writeCategory, setWriteCategory] = useState<PostCategory>("완성작");
@@ -26,33 +27,42 @@ export default function CommunityWritePage() {
 
     setIsSubmitting(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    const authorName =
-      user?.user_metadata?.nickname ||
-      user?.user_metadata?.name ||
-      user?.email?.split("@")[0] ||
-      "익명";
+      const authorName =
+        user?.user_metadata?.nickname ||
+        user?.user_metadata?.name ||
+        user?.email?.split("@")[0] ||
+        "익명";
 
-    const { error } = await supabase.from("community_posts").insert({
-      category: writeCategory,
-      title,
-      content,
-      author_name: authorName,
-      tags: [writeCategory, "new"],
-    });
+      const { error } = await supabase.from("community_posts").insert({
+        category: writeCategory,
+        title,
+        content,
+        author_name: authorName,
+        user_id: user?.id ?? null,
+        tags: [writeCategory, "new"],
+      });
 
-    if (error) {
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      router.push("/community");
+      router.refresh();
+    } catch (error) {
       console.error(error);
-      alert("글 등록에 실패했어.");
-      setIsSubmitting(false);
-      return;
-    }
 
-    router.push("/community");
-    router.refresh();
+      const message =
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어.";
+
+      alert(`글 등록에 실패했어: ${message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

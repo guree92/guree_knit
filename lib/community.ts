@@ -18,9 +18,9 @@ export type CommunityPostRow = {
   category: PostCategory;
   title: string;
   content: string;
-  author_name: string;
-  tags: string[];
-  created_at: string;
+  author_name: string | null;
+  tags: string[] | null;
+  created_at: string | null;
   community_likes?: CommunityLikeCountRow[];
 };
 
@@ -38,7 +38,9 @@ export type CommunityPost = {
 
 export function makePreview(content: string, maxLength = 120) {
   const cleaned = content.replace(/\s+/g, " ").trim();
+
   if (cleaned.length <= maxLength) return cleaned;
+
   return `${cleaned.slice(0, maxLength)}...`;
 }
 
@@ -47,11 +49,11 @@ export function mapCommunityPost(row: CommunityPostRow): CommunityPost {
     id: row.id,
     category: row.category,
     title: row.title,
-    author: row.author_name,
-    preview: makePreview(row.content),
-    content: row.content,
+    author: row.author_name ?? "익명",
+    preview: makePreview(row.content ?? ""),
+    content: row.content ?? "",
     tags: row.tags ?? [],
-    createdAt: row.created_at,
+    createdAt: row.created_at ?? "",
     likes: row.community_likes?.[0]?.count ?? 0,
   };
 }
