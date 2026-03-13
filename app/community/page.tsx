@@ -1,166 +1,153 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
+import { createClient } from "@/lib/supabase/client";
 import {
   communityCategories,
-  communityPosts,
+  formatCommunityDate,
+  mapCommunityPost,
   type CommunityPost,
-  type PostCategory,
-} from "@/data/community";
+  type CommunityPostRow,
+} from "@/lib/community";
+
+type SortOption = "latest" | "popular";
 
 export default function CommunityPage() {
+  const supabase = useMemo(() => createClient(), []);
+
   const [selectedCategory, setSelectedCategory] =
     useState<(typeof communityCategories)[number]>("전체");
-  const [posts, setPosts] = useState<CommunityPost[]>(communityPosts);
-  const [isWriting, setIsWriting] = useState(false);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [sortOption, setSortOption] = useState<SortOption>("latest");
+  const [isLoading, setIsLoading] = useState(true);
 
-  const [writeCategory, setWriteCategory] = useState<PostCategory>("완성작");
-  const [writeTitle, setWriteTitle] = useState("");
-  const [writeContent, setWriteContent] = useState("");
+  useEffect(() => {
+    fetchPosts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const filteredPosts = useMemo(() => {
-    if (selectedCategory === "전체") return posts;
-    return posts.filter((post) => post.category === selectedCategory);
-  }, [posts, selectedCategory]);
+  async function fetchPosts() {
+    setIsLoading(true);
 
-  const slugify = (text: string) =>
-    text
-      .toLowerCase()
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/[^\w-가-힣]/g, "")
-      .slice(0, 40) || String(Date.now());
+    const { data, error } = await supabase
+      .from("community_posts")
+      .select(
+        `
+          *,
+          community_likes(count)
+        `
+      )
+      .order("created_at", { ascending: false });
 
-  const handleOpenWrite = () => {
-    setIsWriting(true);
-  };
-
-  const handleCancelWrite = () => {
-    setIsWriting(false);
-    setWriteCategory("완성작");
-    setWriteTitle("");
-    setWriteContent("");
-  };
-
-  const handleSubmitPost = () => {
-    const title = writeTitle.trim();
-    const content = writeContent.trim();
-
-    if (!title || !content) {
-      alert("제목과 내용을 모두 입력해줘.");
+    if (error) {
+      console.error(error);
+      alert("커뮤니티 글을 불러오지 못했어.");
+      setIsLoading(false);
       return;
     }
 
-    const newPost: CommunityPost = {
-      id: `${slugify(title)}-${Date.now()}`,
-      category: writeCategory,
-      title,
-      author: "me",
-      preview: content,
-      content,
-      tags: [writeCategory, "new"],
-    };
+    const rows = (data ?? []) as CommunityPostRow[];
+    setPosts(rows.map(mapCommunityPost));
+    setIsLoading(false);
+  }
 
-    setPosts((prev) => [newPost, ...prev]);
-    handleCancelWrite();
-    setSelectedCategory("전체");
-  };
+  const filteredPosts = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+
+    const searched = posts.filter((post) => {
+      const matchesCategory =
+        selectedCategory === "전체" || post.category === selectedCategory;
+
+      if (!matchesCategory) return false;
+      if (!keyword) return true;
+
+      const targetText = [
+        post.title,
+        post.content,
+        post.author,
+        ...(post.tags ?? []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return targetText.includes(keyword);
+    });
+
+    const sorted = [...searched].sort((a, b) => {
+      if (sortOption === "popular") {
+        return b.likes - a.likes;
+      }
+
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+
+      return bTime - aTime;
+    });
+
+    return sorted;
+  }, [posts, searchText, selectedCategory, sortOption]);
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f8f4ff_48%,#eef8f2_100%)] px-6 py-8 text-slate-800 md:px-8 md:py-10">
+    <main className="min-h-screen bg-[#f4f1eb] px-6 py-8 text-[#3d3128] md:px-8 md:py-10">
       <div className="mx-auto max-w-6xl">
         <Header />
 
         <section className="mt-12">
-          <div className="rounded-[2rem] border border-white/70 bg-white/85 p-8 shadow-sm backdrop-blur">
-            <div className="inline-flex rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700">
+          <div className="rounded-[2rem] border border-[#e4dbcf] bg-[#fcfaf7] p-8 shadow-[0_10px_30px_rgba(61,49,40,0.06)]">
+            <div className="inline-flex rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-4 py-2 text-sm font-semibold text-[#7b6858]">
               COMMUNITY
             </div>
 
-            <h1 className="mt-4 text-4xl font-black text-slate-800">
+            <h1 className="mt-4 text-4xl font-black text-[#3d3128]">
               커뮤니티
             </h1>
 
-            <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-              완성작 자랑, 질문, 팁 공유, 같이 뜨기 모집까지
-              뜨개하는 사람들끼리 편하게 소통할 수 있는 공간이야.
+            <p className="mt-4 max-w-2xl leading-7 text-[#6f6257]">
+              완성작 자랑, 질문, 팁 공유, 같이 뜨기 모집까지 뜨개하는 사람들끼리
+              편하게 소통할 수 있는 공간이야.
             </p>
 
+            <div className="mt-6 flex flex-wrap gap-3">
+<Link
+  href="/community/write"
+  prefetch={false}
+  className="inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#788a73] hover:shadow-md"
+>
+  글쓰기
+</Link>
+            </div>
+
             <div className="mt-6">
-              {!isWriting ? (
-                <button
-                  onClick={handleOpenWrite}
-                  className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
-                >
-                  글쓰기
-                </button>
-              ) : (
-                <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
-                  <div className="grid gap-4 md:grid-cols-[180px_1fr]">
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        카테고리
-                      </label>
-                      <select
-                        value={writeCategory}
-                        onChange={(e) =>
-                          setWriteCategory(e.target.value as PostCategory)
-                        }
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400"
-                      >
-                        <option value="완성작">완성작</option>
-                        <option value="질문">질문</option>
-                        <option value="팁공유">팁공유</option>
-                        <option value="같이뜨기">같이뜨기</option>
-                      </select>
-                    </div>
+              <label
+                htmlFor="community-search"
+                className="mb-2 block text-sm font-semibold text-[#6f6257]"
+              >
+                게시글 검색
+              </label>
 
-                    <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        제목
-                      </label>
-                      <input
-                        type="text"
-                        value={writeTitle}
-                        onChange={(e) => setWriteTitle(e.target.value)}
-                        placeholder="제목을 입력해줘"
-                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400"
-                      />
-                    </div>
-                  </div>
+              <div className="flex flex-col gap-3 md:flex-row">
+                <input
+                  id="community-search"
+                  type="text"
+                  value={searchText}
+                  onChange={(e) => setSearchText(e.target.value)}
+                  placeholder="제목, 내용, 작성자, 태그로 검색해봐"
+                  className="w-full rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
+                />
 
-                  <div className="mt-4">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      내용
-                    </label>
-                    <textarea
-                      value={writeContent}
-                      onChange={(e) => setWriteContent(e.target.value)}
-                      placeholder="내용을 입력해줘"
-                      rows={5}
-                      className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-slate-400"
-                    />
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-3">
-                    <button
-                      onClick={handleSubmitPost}
-                      className="rounded-2xl bg-slate-800 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
-                    >
-                      등록하기
-                    </button>
-
-                    <button
-                      onClick={handleCancelWrite}
-                      className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-sm"
-                    >
-                      취소
-                    </button>
-                  </div>
-                </div>
-              )}
+                {searchText.trim() ? (
+                  <button
+                    type="button"
+                    onClick={() => setSearchText("")}
+                    className="rounded-2xl border border-[#ddd4c9] bg-white px-5 py-3 text-sm font-semibold text-[#6f6257] transition hover:-translate-y-0.5 hover:bg-[#f8f4ee] hover:shadow-sm"
+                  >
+                    검색 초기화
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
 
@@ -172,8 +159,8 @@ export default function CommunityPage() {
                 className={[
                   "rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition",
                   selectedCategory === item
-                    ? "bg-slate-800 text-white"
-                    : "border border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:shadow-md",
+                    ? "bg-[#8a9b84] text-white"
+                    : "border border-[#ddd4c9] bg-[#fcfaf7] text-[#6f6257] hover:-translate-y-0.5 hover:shadow-md",
                 ].join(" ")}
               >
                 {item}
@@ -181,38 +168,99 @@ export default function CommunityPage() {
             ))}
           </div>
 
+          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-[#8f8175]">
+              <span>
+                {searchText.trim()
+                  ? `"${searchText}" 검색 결과 ${filteredPosts.length}개`
+                  : `전체 게시글 ${filteredPosts.length}개`}
+              </span>
+
+              {selectedCategory !== "전체" ? (
+                <span className="rounded-full bg-[#eee4d8] px-3 py-1 text-xs font-semibold text-[#7b6858]">
+                  {selectedCategory}
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex items-center gap-2">
+              <label
+                htmlFor="community-sort"
+                className="text-sm font-semibold text-[#6f6257]"
+              >
+                정렬
+              </label>
+              <select
+                id="community-sort"
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm font-semibold text-[#3d3128] outline-none focus:border-[#8a9b84]"
+              >
+                <option value="latest">최신순</option>
+                <option value="popular">인기순</option>
+              </select>
+            </div>
+          </div>
+
           <div className="mt-8 space-y-4">
-            {filteredPosts.length > 0 ? (
+            {isLoading ? (
+              <div className="rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-14 text-center shadow-sm">
+                <p className="text-lg font-semibold text-[#6f6257]">
+                  글을 불러오는 중이야
+                </p>
+              </div>
+            ) : filteredPosts.length > 0 ? (
               filteredPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/community/${post.id}`}
-                  className="block rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
-                >
+<Link
+  key={post.id}
+  href={`/community/${post.id}`}
+  prefetch={false}
+  className="block rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-6 shadow-[0_8px_20px_rgba(61,49,40,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,49,40,0.08)]"
+>
                   <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-violet-100 px-3 py-1 text-xs font-semibold text-violet-700">
+                    <span className="rounded-full bg-[#d7e0d3] px-3 py-1 text-xs font-semibold text-[#52624d]">
                       {post.category}
                     </span>
-                    <span className="text-sm text-slate-400">@{post.author}</span>
+                    <span className="text-sm text-[#9b8b7f]">@{post.author}</span>
+                    <span className="text-sm text-[#9b8b7f]">
+                      {formatCommunityDate(post.createdAt)}
+                    </span>
+                    <span className="text-sm font-semibold text-[#8a9b84]">
+                      ❤ {post.likes}
+                    </span>
                   </div>
 
-                  <h2 className="mt-4 text-xl font-bold text-slate-800">
+                  <h2 className="mt-4 text-xl font-bold text-[#3d3128]">
                     {post.title}
                   </h2>
-                  <p className="mt-2 leading-7 text-slate-600">{post.preview}</p>
 
-                  <div className="mt-4 text-sm font-semibold text-slate-600">
+                  <p className="mt-2 leading-7 text-[#6f6257]">{post.preview}</p>
+
+                  {post.tags.length > 0 ? (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {post.tags.map((tag) => (
+                        <span
+                          key={`${post.id}-${tag}`}
+                          className="rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-3 py-1 text-xs font-medium text-[#6f6257]"
+                        >
+                          #{tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="mt-4 text-sm font-semibold text-[#8a9b84]">
                     글 보러가기 →
                   </div>
                 </Link>
               ))
             ) : (
-              <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-6 py-14 text-center shadow-sm">
-                <p className="text-lg font-semibold text-slate-700">
-                  아직 이 카테고리 글이 없어
+              <div className="rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-14 text-center shadow-sm">
+                <p className="text-lg font-semibold text-[#6f6257]">
+                  검색 결과가 없어
                 </p>
-                <p className="mt-2 text-sm text-slate-500">
-                  첫 글을 직접 남겨봐.
+                <p className="mt-2 text-sm text-[#9b8b7f]">
+                  다른 검색어를 넣어보거나 카테고리를 바꿔봐.
                 </p>
               </div>
             )}
