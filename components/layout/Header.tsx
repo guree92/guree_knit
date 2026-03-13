@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import AuthStatus from "@/components/auth/AuthStatus";
 
 const menus = [
   { href: "/", label: "홈" },
@@ -52,13 +53,8 @@ export default function Header() {
           })}
         </nav>
 
-        {/* Login Button */}
-        <Link
-          href="/login"
-          className="rounded-full px-5 py-2 text-sm font-semibold border border-[#e6ddd2] bg-[#f8f4ee] text-[#6f6258] transition hover:bg-[#eef3ec] hover:text-[#5d7460]"
-        >
-          로그인
-        </Link>
+        {/* 로그인 상태 */}
+        <AuthStatus />
 
       </div>
     </header>

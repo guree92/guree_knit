@@ -2,17 +2,51 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState("");
 
-  function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: FormEvent) {
     e.preventDefault();
 
-    // 나중에 supabase 로그인 연결
-    console.log("login", { email, password });
+    setMessage("");
+
+    if (!email.trim() || !password.trim()) {
+      setMessage("이메일과 비밀번호를 모두 입력해줘.");
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password,
+      });
+
+      if (error) {
+        setMessage("로그인에 실패했어. 이메일이나 비밀번호를 다시 확인해줘.");
+        return;
+      }
+
+      setMessage("로그인 성공!");
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error(error);
+      setMessage("로그인 중 오류가 발생했어.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -41,10 +75,11 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="guree92@icloud.com"
+                placeholder="E-mail"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="h-14 w-full rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc]"
+                disabled={loading}
+                className="h-14 w-full rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc] disabled:opacity-60"
               />
             </div>
 
@@ -63,31 +98,40 @@ export default function LoginPage() {
                   placeholder="비밀번호 입력"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="h-full flex-1 rounded-[1.2rem] bg-transparent px-5 text-base text-[#4b3f36] outline-none placeholder:text-[#b7aa9b]"
+                  disabled={loading}
+                  className="h-full flex-1 rounded-[1.2rem] bg-transparent px-5 text-base text-[#4b3f36] outline-none placeholder:text-[#b7aa9b] disabled:opacity-60"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="flex h-10 min-w-[76px] items-center justify-center rounded-full border border-[#cfc4b5] bg-[#f3eee6] px-4 text-sm font-bold tracking-[0.14em] text-[#7a8e78] transition hover:bg-[#ebe5db]"
+                  disabled={loading}
+                  className="flex h-10 min-w-[76px] items-center justify-center rounded-full border border-[#cfc4b5] bg-[#f3eee6] px-4 text-sm font-bold tracking-[0.14em] text-[#7a8e78] transition hover:bg-[#ebe5db] disabled:opacity-60"
                 >
                   {showPassword ? "HIDE" : "SHOW"}
                 </button>
               </div>
             </div>
 
+            {message ? (
+              <p className="rounded-[1.1rem] border border-[#e3d8cc] bg-[#f8f4ee] px-4 py-3 text-sm leading-6 text-[#6f6257]">
+                {message}
+              </p>
+            ) : null}
+
             <button
               type="submit"
-              className="mt-2 h-15 w-full rounded-full bg-[#8ea18c] text-base font-bold text-white shadow-[0_10px_24px_rgba(142,161,140,0.28)] transition hover:bg-[#7f937d]"
+              disabled={loading}
+              className="mt-2 h-15 w-full rounded-full bg-[#8ea18c] text-base font-bold text-white shadow-[0_10px_24px_rgba(142,161,140,0.28)] transition hover:bg-[#7f937d] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              로그인하기
+              {loading ? "로그인 중..." : "로그인하기"}
             </button>
 
-<Link
-  href="/terms"
-  className="flex h-14 w-full items-center justify-center rounded-full border border-[#d9d0c4] bg-white/70 text-base font-bold text-[#7d6d60] transition hover:bg-[#faf6f0]"
->
-  계정이 없어? 회원가입
-</Link>
+            <Link
+              href="/terms"
+              className="flex h-14 w-full items-center justify-center rounded-full border border-[#d9d0c4] bg-white/70 text-base font-bold text-[#7d6d60] transition hover:bg-[#faf6f0]"
+            >
+              계정이 없어? 회원가입
+            </Link>
           </form>
         </div>
       </div>
