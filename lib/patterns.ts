@@ -15,16 +15,19 @@ export type PatternItem = {
   like_count: number;
   created_at?: string;
   author_nickname?: string | null;
+  is_hidden?: boolean | null;
+  hidden_at?: string | null;
+};
+
+type PatternQueryOptions = {
+  includeHidden?: boolean;
 };
 
 export function getPatternImageUrl(imagePath: string) {
   if (!imagePath) return "";
 
   const supabase = createClient();
-
-  const { data } = supabase.storage
-    .from("pattern-images")
-    .getPublicUrl(imagePath);
+  const { data } = supabase.storage.from("pattern-images").getPublicUrl(imagePath);
 
   return data.publicUrl;
 }
@@ -32,76 +35,67 @@ export function getPatternImageUrl(imagePath: string) {
 async function attachNicknames(patterns: PatternItem[]): Promise<PatternItem[]> {
   const supabase = createClient();
 
-  const userIds = Array.from(
-    new Set(patterns.map((p) => p.user_id).filter(Boolean))
-  ) as string[];
+  const userIds = Array.from(new Set(patterns.map((p) => p.user_id).filter(Boolean))) as string[];
 
   if (userIds.length === 0) return patterns;
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("id, nickname")
-    .in("id", userIds);
+  const { data, error } = await supabase.from("profiles").select("id, nickname").in("id", userIds);
 
   if (error) {
-    console.error("닉네임 불러오기 실패", error);
+    console.error("닉네임을 불러오지 못했어요.", error);
     return patterns;
   }
 
-  const nicknameMap = new Map(
-    (data ?? []).map((p) => [p.id, p.nickname])
-  );
+  const nicknameMap = new Map((data ?? []).map((profile) => [profile.id, profile.nickname]));
 
   return patterns.map((pattern) => ({
     ...pattern,
-    author_nickname: pattern.user_id
-      ? nicknameMap.get(pattern.user_id) ?? null
-      : null,
+    author_nickname: pattern.user_id ? nicknameMap.get(pattern.user_id) ?? null : null,
   }));
 }
 
-export async function getPatterns(): Promise<PatternItem[]> {
+export async function getPatterns(options: PatternQueryOptions = {}): Promise<PatternItem[]> {
   const supabase = createClient();
+  let query = supabase.from("patterns").select("*");
 
-  const { data, error } = await supabase
-    .from("patterns")
-    .select("*")
-    .order("created_at", { ascending: false });
+  if (!options.includeHidden) {
+    query = query.eq("is_hidden", false);
+  }
+
+  const { data, error } = await query.order("created_at", { ascending: false });
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const patterns = (data ?? []) as PatternItem[];
-
-  return await attachNicknames(patterns);
+  return attachNicknames((data ?? []) as PatternItem[]);
 }
 
-export async function getPatternById(id: string): Promise<PatternItem | null> {
+export async function getPatternById(
+  id: string,
+  options: PatternQueryOptions = {}
+): Promise<PatternItem | null> {
   const supabase = createClient();
+  let query = supabase.from("patterns").select("*").eq("id", id);
 
-  const { data, error } = await supabase
-    .from("patterns")
-    .select("*")
-    .eq("id", id)
-    .single();
+  if (!options.includeHidden) {
+    query = query.eq("is_hidden", false);
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
     return null;
   }
 
-  const pattern = data as PatternItem;
-
-  const result = await attachNicknames([pattern]);
-
-  return result[0];
+  const [pattern] = await attachNicknames([data as PatternItem]);
+  return pattern;
 }
 
 export async function increasePatternLikeCount(
   id: string,
   currentLikeCount: number
 ): Promise<PatternItem> {
-
   const supabase = createClient();
 
   const { data, error } = await supabase
@@ -110,16 +104,13 @@ export async function increasePatternLikeCount(
       like_count: currentLikeCount + 1,
     })
     .eq("id", id)
-    .select()
+    .select("*")
     .single();
 
   if (error) {
     throw new Error(error.message);
   }
 
-  const pattern = data as PatternItem;
-
-  const result = await attachNicknames([pattern]);
-
-  return result[0];
+  const [pattern] = await attachNicknames([data as PatternItem]);
+  return pattern;
 }

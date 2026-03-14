@@ -31,7 +31,7 @@ export default function CommunityPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [pendingHideId, setPendingHideId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPosts() {
@@ -41,6 +41,7 @@ export default function CommunityPage() {
         supabase
           .from("community_posts")
           .select(`*, community_likes(count)`)
+          .eq("is_hidden", false)
           .order("created_at", { ascending: false }),
         fetch("/api/admin/status", { cache: "no-store" }),
       ]);
@@ -93,6 +94,15 @@ export default function CommunityPage() {
   const hasSearch = searchText.trim().length > 0;
   const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
   const safeCurrentPage = Math.min(currentPage, totalPages);
+  const todayPostCount = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+
+    return posts.filter((post) => {
+      const createdAt = new Date(post.createdAt);
+      return !Number.isNaN(createdAt.getTime()) && createdAt >= startOfToday;
+    }).length;
+  }, [posts]);
   const paginatedPosts = filteredPosts.slice(
     (safeCurrentPage - 1) * POSTS_PER_PAGE,
     safeCurrentPage * POSTS_PER_PAGE
@@ -116,26 +126,28 @@ export default function CommunityPage() {
     });
   }
 
-  async function handleDeletePost(postId: string) {
-    const shouldDelete = window.confirm("이 게시글을 삭제할까요?");
-    if (!shouldDelete) return;
+  async function handleHidePost(postId: string) {
+    const shouldHide = window.confirm("이 게시글을 숨김 처리할까요?");
+    if (!shouldHide) return;
 
-    setPendingDeleteId(postId);
+    setPendingHideId(postId);
 
     const response = await fetch(`/api/admin/community/posts/${postId}`, {
-      method: "DELETE",
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hidden: true }),
     });
 
     if (!response.ok) {
       const result = (await response.json().catch(() => null)) as { message?: string } | null;
-      alert(result?.message ?? "게시글 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.");
-      setPendingDeleteId(null);
+      alert(result?.message ?? "게시글 숨김 처리에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setPendingHideId(null);
       return;
     }
 
     setPosts((current) => current.filter((post) => post.id !== postId));
     router.refresh();
-    setPendingDeleteId(null);
+    setPendingHideId(null);
   }
 
   return (
@@ -166,8 +178,8 @@ export default function CommunityPage() {
               <strong className={styles.statValue}>{posts.length}</strong>
             </div>
             <div className={styles.statCard}>
-              <span className={styles.statLabel}>지금 보는 글</span>
-              <strong className={styles.statValue}>{filteredPosts.length}</strong>
+              <span className={styles.statLabel}>오늘 올라온 새글</span>
+              <strong className={styles.statValue}>{todayPostCount}</strong>
             </div>
             <div className={styles.statCard}>
               <span className={styles.statLabel}>정렬 방식</span>
@@ -312,11 +324,11 @@ export default function CommunityPage() {
                       <div className={styles.cardActions}>
                         <button
                           type="button"
-                          onClick={() => handleDeletePost(post.id)}
-                          disabled={pendingDeleteId === post.id}
+                          onClick={() => handleHidePost(post.id)}
+                          disabled={pendingHideId === post.id}
                           className={styles.dangerButton}
                         >
-                          {pendingDeleteId === post.id ? "삭제 중..." : "관리자 삭제"}
+                          {pendingHideId === post.id ? "숨김 중..." : "관리자 숨김"}
                         </button>
                       </div>
                     ) : null}

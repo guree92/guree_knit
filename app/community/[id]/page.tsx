@@ -81,7 +81,8 @@ export default function CommunityDetailPage({ params }: PageProps) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isLikePending, setIsLikePending] = useState(false);
-  const [isPostDeleting, setIsPostDeleting] = useState(false);
+  const [isPostModerating, setIsPostModerating] = useState(false);
+  const [isPostReportPending, setIsPostReportPending] = useState(false);
   const [newComment, setNewComment] = useState("");
   const [activeReplyId, setActiveReplyId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
@@ -122,15 +123,21 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
       setCurrentUserId(user?.id ?? null);
 
-      if (adminStatusResponse.ok) {
-        const adminStatus = (await adminStatusResponse.json()) as { isAdmin?: boolean };
-        setIsAdmin(Boolean(adminStatus.isAdmin));
-      } else {
-        setIsAdmin(false);
-      }
+      const nextIsAdmin = adminStatusResponse.ok
+        ? Boolean(((await adminStatusResponse.json()) as { isAdmin?: boolean }).isAdmin)
+        : false;
+      setIsAdmin(nextIsAdmin);
 
       if (postError || !postData) {
         console.error(postError);
+        setIsNotFound(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const mappedPost = mapCommunityPost(postData as CommunityPostRow);
+
+      if (mappedPost.isHidden && !nextIsAdmin) {
         setIsNotFound(true);
         setIsLoading(false);
         return;
@@ -157,7 +164,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
         setIsLiked(false);
       }
 
-      setPost(mapCommunityPost(postData as CommunityPostRow));
+      setPost(mappedPost);
       setComments(((commentRows ?? []) as CommunityCommentRow[]).map(mapCommunityComment));
       setIsNotFound(false);
       setIsLoading(false);
@@ -231,31 +238,82 @@ export default function CommunityDetailPage({ params }: PageProps) {
     setIsLikePending(false);
   }
 
-  async function handleDeletePost() {
-    if (!postId || isPostDeleting) return;
+  async function handlePostHiddenToggle(nextHidden: boolean) {
+    if (!postId || isPostModerating) return;
 
-    const user = await requireUser("게시글 삭제는 로그인 후 이용할 수 있어요.");
+    const user = await requireUser("게시글 숨김 처리는 로그인 후 이용할 수 있어요.");
     if (!user) return;
 
-    const shouldDelete = window.confirm("이 게시글을 삭제할까요?");
-    if (!shouldDelete) return;
+    const shouldProceed = window.confirm(
+      nextHidden ? "이 게시글을 숨김 처리할까요?" : "이 게시글의 숨김을 해제할까요?"
+    );
+    if (!shouldProceed) return;
 
-    setIsPostDeleting(true);
+    setIsPostModerating(true);
 
     const response = await fetch(`/api/admin/community/posts/${postId}`, {
-      method: "DELETE",
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ hidden: nextHidden }),
     });
 
     if (!response.ok) {
       const result = (await response.json().catch(() => null)) as { message?: string } | null;
-      alert(result?.message ?? "게시글 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.");
-      setIsPostDeleting(false);
+      alert(result?.message ?? "게시글 숨김 처리에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setIsPostModerating(false);
       return;
     }
 
-    alert("게시글을 삭제했어요.");
-    router.push("/community");
+    if (nextHidden) {
+      alert("게시글을 숨김 처리했어요.");
+      router.push("/community");
+    } else {
+      alert("게시글 숨김을 해제했어요.");
+      setPost((current) =>
+        current
+          ? {
+              ...current,
+              isHidden: false,
+              hiddenAt: null,
+            }
+          : current
+      );
+    }
+
     router.refresh();
+    setIsPostModerating(false);
+  }
+
+  async function handleReportPost() {
+    if (!post || !postId || isPostReportPending) return;
+
+    const user = await requireUser("게시글 신고는 로그인 후 이용할 수 있어요.");
+    if (!user) return;
+
+    const shouldReport = window.confirm("이 게시글을 신고할까요?");
+    if (!shouldReport) return;
+
+    setIsPostReportPending(true);
+
+    const { error } = await supabase.from("community_post_reports").insert({
+      post_id: postId,
+      reporter_user_id: user.id,
+      post_author_name: post.author,
+    });
+
+    if (error) {
+      console.error(error);
+      alert(
+        error.code === "23505"
+          ? "이미 신고한 게시글이에요."
+          : "게시글 신고 접수에 실패했어요. 잠시 후 다시 시도해 주세요."
+      );
+      setIsPostReportPending(false);
+      return;
+    }
+
+    alert("게시글 신고가 접수되었어요.");
+    setIsPostReportPending(false);
   }
 
   async function submitComment(content: string, parentId: string | null = null) {
@@ -459,7 +517,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
           <section className="mt-12 rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] p-10 text-center shadow-sm">
             <h1 className="text-2xl font-black text-[#3d3128]">게시글을 찾을 수 없어요</h1>
-            <p className="mt-3 text-[#6f6257]">요청하신 커뮤니티 글이 없거나 삭제되었어요.</p>
+            <p className="mt-3 text-[#6f6257]">요청하신 커뮤니티 글이 없거나 숨김 처리되었어요.</p>
             <Link
               href="/community"
               className="mt-6 inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#788a73]"
@@ -516,19 +574,34 @@ export default function CommunityDetailPage({ params }: PageProps) {
                   <span>{post.likes}</span>
                 </button>
 
+                {!isAdmin ? (
+                  <button
+                    type="button"
+                    onClick={handleReportPost}
+                    disabled={isPostReportPending}
+                    className="inline-flex items-center rounded-full border border-[#e0c7ba] bg-[#fff7f3] px-5 py-3 text-sm font-semibold text-[#b06c55] transition hover:bg-[#ffede4] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isPostReportPending ? "신고 중..." : "게시글 신고"}
+                  </button>
+                ) : null}
+
                 {isAdmin ? (
                   <button
                     type="button"
-                    onClick={handleDeletePost}
-                    disabled={isPostDeleting}
+                    onClick={() => handlePostHiddenToggle(!post.isHidden)}
+                    disabled={isPostModerating}
                     className="inline-flex items-center rounded-full border border-[#dfb0aa] bg-[#fff3f1] px-5 py-3 text-sm font-semibold text-[#b25a4f] transition hover:bg-[#ffe7e3] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {isPostDeleting ? "게시글 삭제 중..." : "게시글 삭제"}
+                    {isPostModerating ? "처리 중..." : post.isHidden ? "숨김 해제" : "게시글 숨김"}
                   </button>
                 ) : null}
               </div>
-              {!currentUserId ? (
-                <span className="text-sm text-[#9b8b7f]">로그인하면 좋아요를 누를 수 있어요.</span>
+              {post.isHidden && isAdmin ? (
+                <span className="text-sm text-[#b06c55]">현재 관리자에 의해 숨김 처리된 게시글이에요.</span>
+              ) : !currentUserId ? (
+                <span className="text-sm text-[#9b8b7f]">
+                  로그인하면 좋아요와 신고를 이용할 수 있어요.
+                </span>
               ) : null}
             </div>
           </div>
@@ -847,3 +920,4 @@ export default function CommunityDetailPage({ params }: PageProps) {
     </main>
   );
 }
+

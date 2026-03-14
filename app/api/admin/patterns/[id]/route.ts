@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -15,11 +15,11 @@ async function ensureAdmin() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { error: NextResponse.json({ message: "로그인이 필요해요." }, { status: 401 }) };
+    return { error: NextResponse.json({ message: "Login required." }, { status: 401 }) };
   }
 
   if (!process.env.ADMIN_EMAIL || user.email !== process.env.ADMIN_EMAIL) {
-    return { error: NextResponse.json({ message: "관리자만 숨김 처리할 수 있어요." }, { status: 403 }) };
+    return { error: NextResponse.json({ message: "Admin access required." }, { status: 403 }) };
   }
 
   return { user };
@@ -38,7 +38,7 @@ export async function PATCH(request: Request, context: RouteContext) {
   const adminSupabase = createAdminClient();
 
   const { error } = await adminSupabase
-    .from("community_posts")
+    .from("patterns")
     .update({
       is_hidden: hidden,
       hidden_at: hidden ? new Date().toISOString() : null,

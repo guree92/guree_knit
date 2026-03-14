@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -21,7 +21,7 @@ export default function CommunityWritePage() {
     const content = writeContent.trim();
 
     if (!title || !content) {
-      alert("제목과 내용을 모두 입력해줘.");
+      alert("제목과 내용을 모두 입력해 주세요.");
       return;
     }
 
@@ -56,9 +56,9 @@ export default function CommunityWritePage() {
       console.error(error);
 
       const message =
-        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어.";
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어요.";
 
-      alert(`글 등록에 실패했어: ${message}`);
+      alert(`글 등록에 실패했어요: ${message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -74,7 +74,7 @@ export default function CommunityWritePage() {
             href="/community"
             className="inline-flex text-sm font-semibold text-[#6f6257] transition hover:text-[#8a9b84]"
           >
-            ← 커뮤니티로
+            커뮤니티로 돌아가기
           </Link>
 
           <div className="mt-6 inline-flex rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-4 py-2 text-sm font-semibold text-[#7b6858]">
@@ -86,7 +86,7 @@ export default function CommunityWritePage() {
           </h1>
 
           <p className="mt-3 leading-7 text-[#6f6257]">
-            완성작 자랑, 질문, 팁 공유, 같이뜨기 모집 글을 자유롭게 남겨봐.
+            완성작 자랑, 질문, 정보공유, 같이뜨기 모집 글을 자유롭게 남겨보세요.
           </p>
 
           <div className="mt-8 grid gap-4 md:grid-cols-[180px_1fr]">
@@ -101,7 +101,7 @@ export default function CommunityWritePage() {
               >
                 <option value="완성작">완성작</option>
                 <option value="질문">질문</option>
-                <option value="팁공유">팁공유</option>
+                <option value="정보공유">정보공유</option>
                 <option value="같이뜨기">같이뜨기</option>
               </select>
             </div>
@@ -114,7 +114,7 @@ export default function CommunityWritePage() {
                 type="text"
                 value={writeTitle}
                 onChange={(e) => setWriteTitle(e.target.value)}
-                placeholder="제목을 입력해줘"
+                placeholder="제목을 입력해 주세요"
                 className="w-full rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
               />
             </div>
@@ -127,7 +127,7 @@ export default function CommunityWritePage() {
             <textarea
               value={writeContent}
               onChange={(e) => setWriteContent(e.target.value)}
-              placeholder="내용을 입력해줘"
+              placeholder="내용을 입력해 주세요"
               rows={10}
               className="w-full resize-none rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm leading-7 text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
             />
@@ -139,7 +139,7 @@ export default function CommunityWritePage() {
               disabled={isSubmitting}
               className="rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#788a73] hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isSubmitting ? "등록중..." : "등록하기"}
+              {isSubmitting ? "등록 중..." : "등록하기"}
             </button>
 
             <Link

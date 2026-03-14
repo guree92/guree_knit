@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./auth-status.module.css";
 
 type AuthUser = {
   email?: string | null;
@@ -12,6 +13,33 @@ type AuthUser = {
     name?: string;
   };
 };
+
+function UserIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
+      <path d="M5 20a7 7 0 0 1 14 0" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <path d="M16 17l5-5-5-5" />
+      <path d="M21 12H9" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3 5 6v6c0 4.5 2.9 7.9 7 9 4.1-1.1 7-4.5 7-9V6l-7-3Z" />
+    </svg>
+  );
+}
 
 export default function AuthStatus() {
   const supabase = createClient();
@@ -66,37 +94,43 @@ export default function AuthStatus() {
 
   if (!user) {
     return (
-      <Link
-        href="/login"
-        className="rounded-full border border-[#e6ddd2] bg-[#f8f4ee] px-5 py-2 text-sm font-semibold text-[#6f6258] transition hover:bg-[#eef3ec] hover:text-[#5d7460]"
-      >
-        로그인
-      </Link>
+      <div className={styles.root}>
+        <Link href="/login" className={styles.loginLink} aria-label="로그인">
+          <span className={styles.icon}><UserIcon /></span>
+          <span className={styles.label} data-collapsible-label>
+            로그인
+          </span>
+        </Link>
+      </div>
     );
   }
 
-  const displayName = user.user_metadata?.nickname ?? user.user_metadata?.name ?? user.email;
+  const displayName = user.user_metadata?.nickname ?? user.user_metadata?.name ?? user.email ?? "사용자";
+  const avatarSeed = displayName.trim().charAt(0).toUpperCase() || "U";
 
   return (
-    <div className="flex items-center gap-2">
+    <div className={styles.root}>
       {isAdmin ? (
-        <Link
-          href="/admin/reports"
-          className="rounded-full border border-[#d6cec2] bg-[#f6efe6] px-4 py-2 text-sm font-semibold text-[#7a6047] transition hover:bg-[#efe4d7]"
-        >
-          관리자 페이지
+        <Link href="/admin" className={styles.adminLink} aria-label="관리자 페이지">
+          <span className={styles.icon}><ShieldIcon /></span>
+          <span className={styles.label} data-collapsible-label>
+            관리자 페이지
+          </span>
         </Link>
       ) : null}
 
-      <span className="rounded-full bg-[#f3f6f3] px-4 py-2 text-sm font-semibold text-[#5d7460]">
-        {displayName}
-      </span>
+      <div className={styles.userBadge}>
+        <span className={`${styles.icon} ${styles.userAvatar}`}>{avatarSeed}</span>
+        <span className={styles.label} data-collapsible-label>
+          {displayName}
+        </span>
+      </div>
 
-      <button
-        onClick={handleLogout}
-        className="rounded-full border border-[#e6ddd2] bg-white px-4 py-2 text-sm font-semibold text-[#6f6258] transition hover:bg-[#f4f7f4]"
-      >
-        로그아웃
+      <button onClick={handleLogout} className={styles.logoutButton} aria-label="로그아웃">
+        <span className={styles.icon}><LogoutIcon /></span>
+        <span className={styles.label} data-collapsible-label>
+          로그아웃
+        </span>
       </button>
     </div>
   );

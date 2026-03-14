@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -14,8 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Knit.GUREE",
-  description:
-    "도안을 공유하고, 작품을 기록하고, 커뮤니티에서 소통할 수 있는 뜨개 전용 홈페이지",
+  description: "도안을 공유하고, 작품을 기록하고, 커뮤니티에서 소통하는 뜨개 아카이브 서비스",
 };
 
 export default function RootLayout({
@@ -25,9 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} bg-white text-[#453a31] antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>

@@ -19,7 +19,7 @@ async function ensureAdmin() {
   }
 
   if (!process.env.ADMIN_EMAIL || user.email !== process.env.ADMIN_EMAIL) {
-    return { error: NextResponse.json({ message: "관리자만 숨김 처리할 수 있어요." }, { status: 403 }) };
+    return { error: NextResponse.json({ message: "관리자만 처리할 수 있어요." }, { status: 403 }) };
   }
 
   return { user };
@@ -33,21 +33,28 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   const { id } = await context.params;
-  const body = (await request.json().catch(() => null)) as { hidden?: boolean } | null;
-  const hidden = Boolean(body?.hidden);
-  const adminSupabase = createAdminClient();
+  const body = (await request.json().catch(() => null)) as { isResolved?: boolean } | null;
 
-  const { error } = await adminSupabase
-    .from("community_posts")
-    .update({
-      is_hidden: hidden,
-      hidden_at: hidden ? new Date().toISOString() : null,
-    })
-    .eq("id", id);
-
-  if (error) {
-    return NextResponse.json({ message: error.message }, { status: 500 });
+  if (typeof body?.isResolved !== "boolean") {
+    return NextResponse.json({ message: "잘못된 요청이에요." }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, hidden });
+  const adminSupabase = createAdminClient();
+  const payload = {
+    is_resolved: body.isResolved,
+    resolved_at: body.isResolved ? new Date().toISOString() : null,
+  };
+
+  const { data, error } = await adminSupabase
+    .from("community_post_reports")
+    .update(payload)
+    .eq("id", id)
+    .select("id, is_resolved, resolved_at")
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ message: error?.message ?? "신고 상태 변경에 실패했어요." }, { status: 500 });
+  }
+
+  return NextResponse.json({ report: data });
 }

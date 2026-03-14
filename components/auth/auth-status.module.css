@@ -1,0 +1,168 @@
+﻿.root {
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  gap: 10px;
+}
+
+.loginLink,
+.adminLink,
+.logoutButton,
+.userBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  min-height: 54px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  background: transparent;
+  font-size: 0.92rem;
+  font-weight: 700;
+  text-decoration: none;
+  overflow: hidden;
+  transition:
+    width 160ms ease,
+    padding 160ms ease,
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease,
+    border-color 140ms ease;
+}
+
+.loginLink,
+.logoutButton {
+  color: var(--app-text-soft);
+}
+
+.adminLink {
+  color: #775f4d;
+}
+
+.userBadge {
+  color: var(--app-sage-deep);
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border-radius: 14px;
+  background: rgba(247, 242, 235, 0.92);
+  color: inherit;
+  transition: background-color 140ms ease, color 140ms ease, box-shadow 140ms ease;
+}
+
+.userAvatar {
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: white;
+  font-size: 0.74rem;
+  font-weight: 800;
+  box-shadow: 0 12px 22px rgba(111, 130, 107, 0.22);
+}
+
+.adminLink .icon {
+  background: linear-gradient(135deg, var(--app-beige) 0%, #f7efe5 100%);
+  color: #775f4d;
+  box-shadow: 0 10px 18px rgba(158, 128, 97, 0.14);
+}
+
+.label,
+.secondary {
+  max-width: 0;
+  overflow: hidden;
+  margin-left: 0;
+  opacity: 0;
+  transition: max-width 160ms ease, margin-left 160ms ease, opacity 140ms ease;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.secondary {
+  color: var(--app-text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.logoutButton {
+  cursor: pointer;
+}
+
+:global([data-sidebar-shell]:hover) .loginLink,
+:global([data-sidebar-shell]:hover) .logoutButton,
+:global([data-sidebar-shell]:hover) .userBadge,
+:global([data-sidebar-shell]:hover) .adminLink {
+  width: calc(100% - 28px);
+  justify-content: flex-start;
+  padding: 0 10px 0 8px;
+  border-color: var(--app-border);
+  box-shadow: 0 8px 18px rgba(91, 74, 60, 0.08);
+}
+
+:global([data-sidebar-shell]:hover) .loginLink,
+:global([data-sidebar-shell]:hover) .logoutButton {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+:global([data-sidebar-shell]:hover) .adminLink {
+  background: linear-gradient(135deg, var(--app-beige) 0%, #f7efe5 100%);
+}
+
+:global([data-sidebar-shell]:hover) .userBadge {
+  background: rgba(231, 238, 229, 0.88);
+}
+
+:global([data-sidebar-shell]:hover) .adminLink .icon {
+  background: rgba(255, 255, 255, 0.42);
+  color: inherit;
+  box-shadow: none;
+}
+
+:global([data-sidebar-shell]:hover) .label,
+:global([data-sidebar-shell]:hover) .secondary {
+  max-width: 140px;
+  margin-left: 14px;
+  opacity: 1;
+}
+
+@media (max-width: 900px) {
+  .root {
+    justify-items: stretch;
+  }
+
+  .label,
+  .secondary {
+    max-width: 200px;
+    margin-left: 12px;
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .loginLink,
+  .adminLink,
+  .logoutButton,
+  .userBadge {
+    width: 100%;
+    justify-content: flex-start;
+    padding: 0 10px;
+    border-color: var(--app-border);
+  }
+
+  .loginLink,
+  .logoutButton {
+    background: rgba(255, 255, 255, 0.92);
+  }
+
+  .adminLink {
+    background: linear-gradient(135deg, var(--app-beige) 0%, #f7efe5 100%);
+  }
+
+  .userBadge {
+    background: rgba(231, 238, 229, 0.88);
+  }
+}
