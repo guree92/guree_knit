@@ -1,7 +1,8 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Header from "@/components/layout/Header";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -11,188 +12,234 @@ import {
   type CommunityPost,
   type CommunityPostRow,
 } from "@/lib/community";
+import styles from "./community-page.module.css";
 
 type SortOption = "latest" | "popular";
 
+const POSTS_PER_PAGE = 6;
+
 export default function CommunityPage() {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const paginationRef = useRef<HTMLElement | null>(null);
 
   const [selectedCategory, setSelectedCategory] =
-    useState<(typeof communityCategories)[number]>("전체");
+    useState<(typeof communityCategories)[number]>(communityCategories[0]);
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [searchText, setSearchText] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("latest");
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchPosts();
-  }, []);
+    async function fetchPosts() {
+      setIsLoading(true);
 
-  async function fetchPosts() {
-    setIsLoading(true);
+      const [postsResponse, adminResponse] = await Promise.all([
+        supabase
+          .from("community_posts")
+          .select(`*, community_likes(count)`)
+          .order("created_at", { ascending: false }),
+        fetch("/api/admin/status", { cache: "no-store" }),
+      ]);
 
-    const { data, error } = await supabase
-      .from("community_posts")
-      .select(
-        `
-          *,
-          community_likes(count)
-        `
-      )
-      .order("created_at", { ascending: false });
+      if (postsResponse.error) {
+        console.error(postsResponse.error);
+        alert("커뮤니티 글을 불러오지 못했어요.");
+        setIsLoading(false);
+        return;
+      }
 
-    if (error) {
-      console.error(error);
-      alert("커뮤니티 글을 불러오지 못했어.");
+      if (adminResponse.ok) {
+        const result = (await adminResponse.json()) as { isAdmin?: boolean };
+        setIsAdmin(Boolean(result.isAdmin));
+      } else {
+        setIsAdmin(false);
+      }
+
+      const rows = (postsResponse.data ?? []) as CommunityPostRow[];
+      setPosts(rows.map(mapCommunityPost));
       setIsLoading(false);
-      return;
     }
 
-    const rows = (data ?? []) as CommunityPostRow[];
-    setPosts(rows.map(mapCommunityPost));
-    setIsLoading(false);
-  }
+    fetchPosts();
+  }, [supabase]);
 
   const filteredPosts = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
 
     const searched = posts.filter((post) => {
       const matchesCategory =
-        selectedCategory === "전체" || post.category === selectedCategory;
+        selectedCategory === communityCategories[0] || post.category === selectedCategory;
 
       if (!matchesCategory) return false;
       if (!keyword) return true;
 
-      const targetText = [
-        post.title,
-        post.content,
-        post.author,
-        ...(post.tags ?? []),
-      ]
-        .join(" ")
-        .toLowerCase();
-
+      const targetText = [post.title, post.content, post.author, ...post.tags].join(" ").toLowerCase();
       return targetText.includes(keyword);
     });
 
-    const sorted = [...searched].sort((a, b) => {
+    return [...searched].sort((a, b) => {
       if (sortOption === "popular") {
         return b.likes - a.likes;
       }
 
-      const aTime = new Date(a.createdAt).getTime();
-      const bTime = new Date(b.createdAt).getTime();
-
-      return bTime - aTime;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     });
-
-    return sorted;
   }, [posts, searchText, selectedCategory, sortOption]);
 
+  const hasSearch = searchText.trim().length > 0;
+  const totalPages = Math.max(1, Math.ceil(filteredPosts.length / POSTS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedPosts = filteredPosts.slice(
+    (safeCurrentPage - 1) * POSTS_PER_PAGE,
+    safeCurrentPage * POSTS_PER_PAGE
+  );
+
+  function moveToPage(nextPage: number) {
+    const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
+
+    if (normalizedPage === safeCurrentPage) return;
+
+    setCurrentPage(normalizedPage);
+
+    requestAnimationFrame(() => {
+      const node = paginationRef.current;
+      if (!node) return;
+
+      const { bottom } = node.getBoundingClientRect();
+      const targetY = Math.max(0, window.scrollY + bottom - window.innerHeight + 24);
+
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+    });
+  }
+
+  async function handleDeletePost(postId: string) {
+    const shouldDelete = window.confirm("이 게시글을 삭제할까요?");
+    if (!shouldDelete) return;
+
+    setPendingDeleteId(postId);
+
+    const response = await fetch(`/api/admin/community/posts/${postId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const result = (await response.json().catch(() => null)) as { message?: string } | null;
+      alert(result?.message ?? "게시글 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setPendingDeleteId(null);
+      return;
+    }
+
+    setPosts((current) => current.filter((post) => post.id !== postId));
+    router.refresh();
+    setPendingDeleteId(null);
+  }
+
   return (
-    <main className="min-h-screen bg-[#f4f1eb] px-6 py-8 text-[#3d3128] md:px-8 md:py-10">
-      <div className="mx-auto max-w-6xl">
+    <main className={styles.page}>
+      <div className={styles.shell}>
         <Header />
 
-        <section className="mt-12">
-          <div className="rounded-[2rem] border border-[#e4dbcf] bg-[#fcfaf7] p-8 shadow-[0_10px_30px_rgba(61,49,40,0.06)]">
-            <div className="inline-flex rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-4 py-2 text-sm font-semibold text-[#7b6858]">
-              COMMUNITY
+        <section className={styles.hero}>
+          <div className={styles.heroBadge}>Community Lounge</div>
+
+          <div className={styles.heroHeader}>
+            <div>
+              <h1 className={styles.heroTitle}>뜨개 커뮤니티</h1>
+              <p className={styles.heroDescription}>
+                완성작 자랑부터 질문, 정보 공유, 같이 뜨기 모집까지. 편하게 둘러보고
+                빠르게 찾아보는 커뮤니티 게시판이에요.
+              </p>
             </div>
 
-            <h1 className="mt-4 text-4xl font-black text-[#3d3128]">
-              커뮤니티
-            </h1>
-
-            <p className="mt-4 max-w-2xl leading-7 text-[#6f6257]">
-              완성작 자랑, 질문, 팁 공유, 같이 뜨기 모집까지 뜨개하는 사람들끼리
-              편하게 소통할 수 있는 공간이야.
-            </p>
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href="/community/write"
-                className="inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-[#788a73] hover:shadow-md"
-              >
-                글쓰기
-              </Link>
-            </div>
-
-            <div className="mt-6">
-              <label
-                htmlFor="community-search"
-                className="mb-2 block text-sm font-semibold text-[#6f6257]"
-              >
-                게시글 검색
-              </label>
-
-              <div className="flex flex-col gap-3 md:flex-row">
-                <input
-                  id="community-search"
-                  type="text"
-                  value={searchText}
-                  onChange={(e) => setSearchText(e.target.value)}
-                  placeholder="제목, 내용, 작성자, 태그로 검색해봐"
-                  className="w-full rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
-                />
-
-                {searchText.trim() ? (
-                  <button
-                    type="button"
-                    onClick={() => setSearchText("")}
-                    className="rounded-2xl border border-[#ddd4c9] bg-white px-5 py-3 text-sm font-semibold text-[#6f6257] transition hover:-translate-y-0.5 hover:bg-[#f8f4ee] hover:shadow-sm"
-                  >
-                    검색 초기화
-                  </button>
-                ) : null}
-              </div>
-            </div>
+            <Link href="/community/write" className={styles.primaryAction}>
+              글 쓰기
+            </Link>
           </div>
 
-          <div className="mt-8 flex flex-wrap gap-3">
-            {communityCategories.map((item) => (
-              <button
-                key={item}
-                onClick={() => setSelectedCategory(item)}
-                className={[
-                  "rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition",
-                  selectedCategory === item
-                    ? "bg-[#8a9b84] text-white"
-                    : "border border-[#ddd4c9] bg-[#fcfaf7] text-[#6f6257] hover:-translate-y-0.5 hover:shadow-md",
-                ].join(" ")}
-              >
-                {item}
-              </button>
-            ))}
+          <div className={styles.heroStats}>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>전체 글</span>
+              <strong className={styles.statValue}>{posts.length}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>지금 보는 글</span>
+              <strong className={styles.statValue}>{filteredPosts.length}</strong>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statLabel}>정렬 방식</span>
+              <strong className={styles.statValue}>
+                {sortOption === "latest" ? "최신순" : "인기순"}
+              </strong>
+            </div>
           </div>
+        </section>
 
-          <div className="mt-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div className="flex flex-wrap items-center gap-3 text-sm text-[#8f8175]">
-              <span>
-                {searchText.trim()
-                  ? `"${searchText}" 검색 결과 ${filteredPosts.length}개`
-                  : `전체 게시글 ${filteredPosts.length}개`}
-              </span>
+        <section className={styles.filterPanel}>
+          <div className={styles.searchRow}>
+            <label htmlFor="community-search" className={styles.searchLabel}>
+              게시글 검색
+            </label>
+            <div className={styles.searchBox}>
+              <input
+                id="community-search"
+                type="text"
+                value={searchText}
+                onChange={(event) => {
+                  setSearchText(event.target.value);
+                  setCurrentPage(1);
+                }}
+                placeholder="제목, 내용, 작성자, 태그로 검색해 보세요"
+                className={styles.searchInput}
+              />
 
-              {selectedCategory !== "전체" ? (
-                <span className="rounded-full bg-[#eee4d8] px-3 py-1 text-xs font-semibold text-[#7b6858]">
-                  {selectedCategory}
-                </span>
+              {hasSearch ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchText("");
+                    setCurrentPage(1);
+                  }}
+                  className={styles.clearButton}
+                >
+                  지우기
+                </button>
               ) : null}
             </div>
+          </div>
 
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="community-sort"
-                className="text-sm font-semibold text-[#6f6257]"
-              >
+          <div className={styles.toolbar}>
+            <div className={styles.categoryList}>
+              {communityCategories.map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(item);
+                    setCurrentPage(1);
+                  }}
+                  className={selectedCategory === item ? styles.categoryChipActive : styles.categoryChip}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.sortBox}>
+              <label htmlFor="community-sort" className={styles.sortLabel}>
                 정렬
               </label>
               <select
                 id="community-sort"
                 value={sortOption}
-                onChange={(e) => setSortOption(e.target.value as SortOption)}
-                className="rounded-2xl border border-[#ddd4c9] bg-white px-4 py-3 text-sm font-semibold text-[#3d3128] outline-none focus:border-[#8a9b84]"
+                onChange={(event) => {
+                  setSortOption(event.target.value as SortOption);
+                  setCurrentPage(1);
+                }}
+                className={styles.sortSelect}
               >
                 <option value="latest">최신순</option>
                 <option value="popular">인기순</option>
@@ -200,68 +247,160 @@ export default function CommunityPage() {
             </div>
           </div>
 
-          <div className="mt-8 space-y-4">
-            {isLoading ? (
-              <div className="rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-14 text-center shadow-sm">
-                <p className="text-lg font-semibold text-[#6f6257]">
-                  글을 불러오는 중이야
-                </p>
-              </div>
-            ) : filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/community/${post.id}`}
-                  className="block rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-6 shadow-[0_8px_20px_rgba(61,49,40,0.05)] transition hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(61,49,40,0.08)]"
-                >
-                  <div className="flex flex-wrap items-center gap-3">
-                    <span className="rounded-full bg-[#d7e0d3] px-3 py-1 text-xs font-semibold text-[#52624d]">
-                      {post.category}
-                    </span>
-                    <span className="text-sm text-[#9b8b7f]">@{post.author}</span>
-                    <span className="text-sm text-[#9b8b7f]">
-                      {formatCommunityDate(post.createdAt)}
-                    </span>
-                    <span className="text-sm font-semibold text-[#8a9b84]">
-                      ❤ {post.likes}
-                    </span>
-                  </div>
+          <div className={styles.resultBar}>
+            <div className={styles.resultText}>
+              {hasSearch ? (
+                <span>
+                  <strong>&quot;{searchText}&quot;</strong> 검색 결과 <strong>{filteredPosts.length}개</strong>
+                </span>
+              ) : (
+                <span>
+                  전체 게시글 <strong>{filteredPosts.length}개</strong>
+                </span>
+              )}
+            </div>
 
-                  <h2 className="mt-4 text-xl font-bold text-[#3d3128]">
-                    {post.title}
-                  </h2>
-
-                  <p className="mt-2 leading-7 text-[#6f6257]">{post.preview}</p>
-
-                  {post.tags.length > 0 ? (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {post.tags.map((tag) => (
-                        <span
-                          key={`${post.id}-${tag}`}
-                          className="rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-3 py-1 text-xs font-medium text-[#6f6257]"
-                        >
-                          #{tag}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  <div className="mt-4 text-sm font-semibold text-[#8a9b84]">
-                    글 보러가기 →
-                  </div>
-                </Link>
-              ))
+            {selectedCategory !== communityCategories[0] ? (
+              <span className={styles.resultChip}>{selectedCategory}</span>
             ) : (
-              <div className="rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-14 text-center shadow-sm">
-                <p className="text-lg font-semibold text-[#6f6257]">
-                  검색 결과가 없어
-                </p>
-                <p className="mt-2 text-sm text-[#9b8b7f]">
-                  다른 검색어를 넣어보거나 카테고리를 바꿔봐.
-                </p>
-              </div>
+              <span className={styles.resultHint}>카테고리를 선택하면 글을 더 빠르게 찾을 수 있어요.</span>
             )}
           </div>
+        </section>
+
+        <section className={styles.listSection}>
+          {isLoading ? (
+            <div className={styles.feedbackCard}>
+              <p className={styles.feedbackTitle}>글을 불러오는 중이에요.</p>
+              <p className={styles.feedbackDescription}>최신 글과 인기 글을 정리하고 있어요.</p>
+            </div>
+          ) : filteredPosts.length > 0 ? (
+            <>
+              <div className={styles.cardGrid}>
+                {paginatedPosts.map((post) => (
+                  <article key={post.id} className={styles.postCard}>
+                    <Link href={`/community/${post.id}`} className={styles.postCardLink}>
+                      <div className={styles.cardTop}>
+                        <span className={styles.categoryPill}>{post.category}</span>
+                        <div className={styles.cardTopMeta}>
+                          <span>{formatCommunityDate(post.createdAt)}</span>
+                          <span>@{post.author}</span>
+                          <span className={styles.likesPill}>♥ {post.likes}</span>
+                        </div>
+                      </div>
+
+                      <h2 className={styles.cardTitle}>{post.title}</h2>
+                      <p className={styles.cardPreview}>{post.preview}</p>
+
+                      <div className={styles.cardFooter}>
+                        {post.tags.length > 0 ? (
+                          <div className={styles.tagList}>
+                            {post.tags.map((tag) => (
+                              <span key={`${post.id}-${tag}`} className={styles.tag}>
+                                #{tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className={styles.tagSpacer} />
+                        )}
+                        <span className={styles.readMore}>자세히 보기</span>
+                      </div>
+                    </Link>
+
+                    {isAdmin ? (
+                      <div className={styles.cardActions}>
+                        <button
+                          type="button"
+                          onClick={() => handleDeletePost(post.id)}
+                          disabled={pendingDeleteId === post.id}
+                          className={styles.dangerButton}
+                        >
+                          {pendingDeleteId === post.id ? "삭제 중..." : "관리자 삭제"}
+                        </button>
+                      </div>
+                    ) : null}
+                  </article>
+                ))}
+              </div>
+
+              {totalPages > 1 ? (
+                <nav ref={paginationRef} className={styles.pagination} aria-label="커뮤니티 페이지 이동">
+                  <button
+                    type="button"
+                    onClick={() => moveToPage(safeCurrentPage - 1)}
+                    disabled={safeCurrentPage === 1}
+                    className={styles.pageNavButton}
+                  >
+                    이전
+                  </button>
+
+                  <div className={styles.pageNumberList}>
+                    {Array.from({ length: totalPages }, (_, index) => {
+                      const page = index + 1;
+
+                      return (
+                        <button
+                          key={page}
+                          type="button"
+                          onClick={() => moveToPage(page)}
+                          aria-current={safeCurrentPage === page ? "page" : undefined}
+                          className={safeCurrentPage === page ? styles.pageNumberActive : styles.pageNumber}
+                        >
+                          {page}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => moveToPage(safeCurrentPage + 1)}
+                    disabled={safeCurrentPage === totalPages}
+                    className={styles.pageNavButton}
+                  >
+                    다음
+                  </button>
+                </nav>
+              ) : null}
+            </>
+          ) : (
+            <div className={styles.feedbackCard}>
+              <p className={styles.feedbackTitle}>검색 결과가 없어요.</p>
+              <p className={styles.feedbackDescription}>
+                다른 검색어를 입력하거나 카테고리와 정렬 조건을 바꿔보세요.
+              </p>
+
+              {(hasSearch || selectedCategory !== communityCategories[0]) && (
+                <div className={styles.emptyActions}>
+                  {hasSearch ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchText("");
+                        setCurrentPage(1);
+                      }}
+                      className={styles.secondaryAction}
+                    >
+                      검색어 지우기
+                    </button>
+                  ) : null}
+                  {selectedCategory !== communityCategories[0] ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(communityCategories[0]);
+                        setCurrentPage(1);
+                      }}
+                      className={styles.secondaryAction}
+                    >
+                      전체 카테고리 보기
+                    </button>
+                  ) : null}
+                </div>
+              )}
+            </div>
+          )}
         </section>
       </div>
     </main>

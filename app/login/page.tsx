@@ -75,7 +75,7 @@ export default function LoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="guree92@icloud.com"
+                placeholder="knitter@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={loading}

@@ -43,7 +43,6 @@ export default function CommunityWritePage() {
         title,
         content,
         author_name: authorName,
-        user_id: user?.id ?? null,
         tags: [writeCategory, "new"],
       });
 
