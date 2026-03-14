@@ -1,0 +1,622 @@
+﻿.page {
+  min-height: calc(100vh - 48px);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) 320px;
+  gap: 18px;
+  min-height: calc(100vh - 48px);
+  padding: 0;
+}
+
+.mainColumn,
+.sideColumn {
+  display: grid;
+  gap: 18px;
+}
+
+.topBar,
+.heroPanel,
+.statCard,
+.popularSection,
+.dotMakerSection,
+.profileCard,
+.calendarCard {
+  border: 1px solid var(--app-border);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 244, 238, 0.92));
+  box-shadow: var(--app-shadow-soft);
+}
+
+.topBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 10px 14px;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  padding: 0 12px;
+  border: 1px solid #ece3d9;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.searchInput {
+  width: 100%;
+  height: 40px;
+  border: 0;
+  background: transparent;
+  color: var(--app-text);
+  outline: 0;
+}
+
+.searchInput::placeholder {
+  color: var(--app-text-muted);
+}
+
+.searchIcon {
+  color: var(--app-sage-deep);
+  font-size: 1rem;
+}
+
+.topActions {
+  display: flex;
+  gap: 10px;
+}
+
+.iconButton {
+  width: 38px;
+  height: 38px;
+  border: 1px solid #ebe2d7;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--app-sage-deep);
+}
+
+.heroPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) 0.9fr;
+  gap: 16px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(244, 240, 234, 0.96) 0%, rgba(229, 237, 228, 0.92) 100%);
+}
+
+.heroCopy {
+  padding-left: 12px;
+}
+
+.heroBadge {
+  display: inline-flex;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--app-text-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.heroTitleImage {
+  width: min(100%, 560px);
+  margin-top: 18px;
+}
+
+.heroTitleImageAsset {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.heroTitle {
+  margin: 14px 0 0;
+  font-size: clamp(2.1rem, 4vw, 3.5rem);
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+  color: #30251c;
+}
+
+.heroDescription {
+  margin: 18px 0 0;
+  max-width: 620px;
+  color: var(--app-text-soft);
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.heroActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 18px;
+  border-radius: 16px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.primaryButton {
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: white;
+  box-shadow: 0 14px 28px rgba(111, 130, 107, 0.22);
+}
+
+.secondaryButton {
+  border: 1px solid #e1d6ca;
+  background: rgba(255, 255, 255, 0.88);
+  color: var(--app-text);
+}
+
+.heroIllustration {
+  display: flex;
+  align-items: stretch;
+}
+
+.illustrationCard {
+  position: relative;
+  width: 100%;
+  min-height: 320px;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #94a48d 0%, #778874 60%, #6d7d68 100%);
+  overflow: hidden;
+}
+
+.yarnBall {
+  position: absolute;
+  right: 52px;
+  top: 52px;
+  width: 112px;
+  height: 112px;
+  border-radius: 999px;
+  background: radial-gradient(circle at 30% 30%, #f7efe5, #e6d4bf 72%);
+  box-shadow: 0 22px 40px rgba(61, 49, 40, 0.16);
+}
+
+.knittingNeedleOne,
+.knittingNeedleTwo {
+  position: absolute;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.knittingNeedleOne {
+  top: 124px;
+  right: 104px;
+  width: 132px;
+  transform: rotate(34deg);
+}
+
+.knittingNeedleTwo {
+  top: 148px;
+  right: 88px;
+  width: 118px;
+  transform: rotate(-18deg);
+}
+
+.floatingCard {
+  position: absolute;
+  left: 22px;
+  bottom: 22px;
+  max-width: 220px;
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  backdrop-filter: blur(10px);
+}
+
+.floatingCard span,
+.floatingCard p {
+  display: block;
+}
+
+.floatingCard span {
+  font-size: 0.78rem;
+  opacity: 0.76;
+}
+
+.floatingCard strong {
+  display: block;
+  margin-top: 10px;
+  font-size: 1.15rem;
+}
+
+.floatingCard p {
+  margin: 8px 0 0;
+  font-size: 0.84rem;
+  opacity: 0.84;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.statCard {
+  padding: 18px 20px;
+}
+
+.statLabel {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.statValue {
+  display: block;
+  margin-top: 10px;
+  color: #30251c;
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.statNote {
+  display: block;
+  margin-top: 8px;
+  color: var(--app-text-soft);
+  font-size: 0.84rem;
+}
+
+.sectionEyebrow {
+  margin: 0;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.sectionTitle {
+  margin: 10px 0 0;
+  color: #30251c;
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.contentRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.popularSection,
+.dotMakerSection {
+  padding: 22px;
+}
+
+.sectionIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid #e4d8cc;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: var(--app-text-soft);
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rankList {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.rankCard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 16px;
+  border: 1px solid #ede4d9;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.9);
+  color: inherit;
+  text-decoration: none;
+}
+
+.rankNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(138, 155, 132, 0.18), rgba(239, 228, 216, 0.85));
+  color: var(--app-sage-deep);
+  font-weight: 800;
+}
+
+.rankBody {
+  min-width: 0;
+}
+
+.rankTitle {
+  display: block;
+  color: #30251c;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.rankMeta {
+  margin: 6px 0 0;
+  color: var(--app-text-soft);
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.rankLikes {
+  color: var(--app-sage-deep);
+  font-size: 0.88rem;
+  font-weight: 800;
+}
+
+.makerDescription {
+  margin: 18px 0 0;
+  color: var(--app-text-soft);
+  line-height: 1.8;
+}
+
+.makerHighlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.makerPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(231, 238, 229, 0.88);
+  color: var(--app-sage-deep);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.makerAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  margin-top: 22px;
+  padding: 0 18px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: white;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 14px 28px rgba(111, 130, 107, 0.2);
+}
+
+.profileCard,
+.calendarCard {
+  padding: 18px;
+}
+
+.profileHeader,
+.calendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.profileHeader {
+  min-height: 54px;
+  padding: 0 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: white;
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.profileBody {
+  display: flex;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.profileAvatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #efe4d8 0%, #f7efe5 100%);
+  color: var(--app-sage-deep);
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.profileName {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.profileRole,
+.profileLocation {
+  margin: 6px 0 0;
+  color: var(--app-text-soft);
+}
+
+.profileMetaGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid #ede4d9;
+}
+
+.metaLabel {
+  display: block;
+  color: var(--app-text-muted);
+  font-size: 0.75rem;
+}
+
+.metaValue {
+  display: block;
+  margin-top: 8px;
+  font-size: 1.15rem;
+}
+
+.calendarHeader h2,
+.calendarHeader span {
+  margin: 0;
+}
+
+.calendarHeader h2 {
+  font-size: 1.05rem;
+}
+
+.calendarHeader span {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 12px;
+  background: rgba(239, 229, 216, 0.72);
+  color: var(--app-text-soft);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.calendarDays,
+.calendarNumbers {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 16px;
+  text-align: center;
+}
+
+.calendarDays span {
+  color: var(--app-text-muted);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.dayActive,
+.numberActive {
+  color: white !important;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  border-radius: 12px;
+}
+
+.calendarNumbers span {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-text-soft);
+  font-weight: 700;
+}
+
+.scheduleList {
+  display: grid;
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.scheduleItem {
+  display: grid;
+  grid-template-columns: 58px 10px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+}
+
+.scheduleTime {
+  color: var(--app-text-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.scheduleTitle {
+  color: var(--app-text-soft);
+  line-height: 1.45;
+}
+
+.dotSage,
+.dotBeige,
+.dotLine {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.dotSage {
+  background: var(--app-sage);
+}
+
+.dotBeige {
+  background: #d9b48f;
+}
+
+.dotLine {
+  background: #b9b1a6;
+}
+
+@media (max-width: 1180px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .sideColumn {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .page,
+  .dashboard {
+    min-height: auto;
+  }
+
+  .heroPanel,
+  .statsGrid,
+  .contentRow,
+  .sideColumn {
+    grid-template-columns: 1fr;
+  }
+
+  .heroPanel,
+  .contentRow {
+    display: grid;
+  }
+
+  .heroCopy {
+    padding-left: 0;
+  }
+}
