@@ -1473,10 +1473,47 @@
 
   .popularShowcaseList {
     grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .popularShowcaseCard {
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 10px;
   }
 
   .popularShowcaseThumb {
-    aspect-ratio: 1 / 0.92;
+    aspect-ratio: 1 / 1;
+    border-radius: 14px;
+  }
+
+  .popularShowcaseBody {
+    align-content: start;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  .popularShowcaseBody strong {
+    font-size: 0.96rem;
+    line-height: 1.3;
+    word-break: keep-all;
+  }
+
+  .popularShowcaseBody p {
+    font-size: 0.74rem;
+    line-height: 1.45;
+  }
+
+  .popularShowcaseBody span {
+    font-size: 0.76rem;
+  }
+
+  .popularShowcaseRank {
+    top: 6px;
+    left: 6px;
+    min-height: 22px;
+    font-size: 0.64rem;
   }
 
   .profileBody {

@@ -42,6 +42,21 @@ type Props = {
 export default function HomeMainCollectionsClient({ topPatterns, progressItems }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [favoritePatterns, setFavoritePatterns] = useState<FavoritePatternCard[]>([]);
+  const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(min-width: 641px) and (max-width: 900px)");
+    const syncViewport = () => setIsCompactTabletViewport(mediaQuery.matches);
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
 
   useEffect(() => {
     async function loadFavoritePatterns() {
@@ -90,7 +105,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         <div className={styles.sectionIntro}>
           <div>
             <p className={styles.sectionEyebrow}>POPULAR PATTERNS</p>
-            <h2 className={styles.sectionTitle}>인기 도안 Top 5</h2>
+            <h2 className={styles.sectionTitle}>인기 도안</h2>
           </div>
           <Link href="/patterns" className={styles.sectionLink}>
             전체 보기
@@ -98,7 +113,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         </div>
 
         <div className={styles.popularShowcaseList}>
-          {topPatterns.map((pattern, index) => {
+          {topPatterns.slice(0, isCompactTabletViewport ? 4 : 5).map((pattern, index) => {
             const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
 
             return (

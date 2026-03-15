@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,10 +7,12 @@ import Header from "@/components/layout/Header";
 import { patternCategories } from "@/data/patterns";
 import { createClient } from "@/lib/supabase/client";
 
+const needleTypeOptions = ["\uCF54\uBC14\uB298", "\uB300\uBC14\uB298"] as const;
+
 const levelOptions = ["초급", "중급", "고급"] as const;
-const categoryOptions = patternCategories.filter(
-  (item) => item !== "전체"
-) as Array<(typeof patternCategories)[number]>;
+const categoryOptions = patternCategories.slice(1) as Array<
+  (typeof patternCategories)[number]
+>;
 
 function makeId(text: string) {
   const trimmed = text.trim();
@@ -20,7 +22,15 @@ function makeId(text: string) {
   return trimmed
     .toLowerCase()
     .replace(/\s+/g, "-")
-    .replace(/[^\w-가-힣]/g, "");
+    .replace(/[^a-z0-9_-]/g, "");
+}
+
+function buildNeedleValue(
+  needleType: (typeof needleTypeOptions)[number],
+  needleSize: string
+) {
+  const trimmedSize = needleSize.trim();
+  return trimmedSize ? `${needleType} ${trimmedSize}\uD638` : needleType;
 }
 
 export default function NewPatternForm() {
@@ -30,10 +40,11 @@ export default function NewPatternForm() {
   const [title, setTitle] = useState("");
   const [level, setLevel] = useState<(typeof levelOptions)[number]>("초급");
   const [category, setCategory] =
-    useState<(typeof categoryOptions)[number]>("가방");
+    useState<(typeof categoryOptions)[number]>(categoryOptions[0]);
   const [description, setDescription] = useState("");
   const [yarn, setYarn] = useState("");
-  const [needle, setNeedle] = useState("");
+  const [needleType, setNeedleType] = useState<(typeof needleTypeOptions)[number]>(needleTypeOptions[0]);
+  const [needleSize, setNeedleSize] = useState("");
   const [width, setWidth] = useState("");
   const [height, setHeight] = useState("");
   const [gaugeStitches, setGaugeStitches] = useState("");
@@ -45,6 +56,10 @@ export default function NewPatternForm() {
   const [submitting, setSubmitting] = useState(false);
 
   const previewId = useMemo(() => makeId(title), [title]);
+  const needleText = useMemo(
+    () => buildNeedleValue(needleType, needleSize),
+    [needleSize, needleType]
+  );
 
   const sizeText =
     width.trim() || height.trim()
@@ -53,12 +68,16 @@ export default function NewPatternForm() {
 
   const gaugeText =
     gaugeStitches.trim() || gaugeRows.trim()
-      ? `${gaugeStitches.trim() || "0"}코 X ${gaugeRows.trim() || "0"}단`
+      ? `${gaugeStitches.trim() || "0"} x ${gaugeRows.trim() || "0"}`
       : "";
 
   const finalSizeText = [sizeText, gaugeText].filter(Boolean).join("\n");
 
   useEffect(() => {
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "";
+    }
+
     if (!imageFile) {
       setImagePreviewUrl("");
       return;
@@ -90,7 +109,7 @@ export default function NewPatternForm() {
     e.preventDefault();
 
     if (!title.trim()) {
-      alert("도안 제목을 입력해줘.");
+      alert("도안 제목을 입력해 주세요.");
       return;
     }
 
@@ -104,11 +123,11 @@ export default function NewPatternForm() {
       } = await supabase.auth.getUser();
 
       if (userError) {
-        console.error("유저 조회 오류", userError);
+        console.error("사용자 조회 오류", userError);
       }
 
       if (!user) {
-        alert("로그인 후 등록할 수 있어.");
+        alert("로그인 후에 도안을 등록할 수 있어요.");
         router.push("/login");
         return;
       }
@@ -143,7 +162,7 @@ export default function NewPatternForm() {
         category,
         description: description.trim(),
         yarn: yarn.trim(),
-        needle: needle.trim(),
+        needle: needleText,
         size: finalSizeText,
         tips: cleanedTips,
         image_path: imagePath,
@@ -160,7 +179,7 @@ export default function NewPatternForm() {
       console.error("도안 등록 실패", error);
 
       const message =
-        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어.";
+        error instanceof Error ? error.message : "알 수 없는 오류가 발생했어요.";
 
       alert(`도안 등록 실패: ${message}`);
     } finally {
@@ -182,7 +201,7 @@ export default function NewPatternForm() {
               href="/patterns"
               className="inline-flex text-sm font-semibold text-[#7b9274] transition hover:text-[#5f7759]"
             >
-              ← 도안 목록으로
+              도안 목록으로
             </Link>
 
             <div className="mt-6 inline-flex rounded-full border border-[#d9d0c6] bg-[#fdfaf6] px-4 py-2 text-sm font-semibold text-[#8f7a67]">
@@ -190,12 +209,12 @@ export default function NewPatternForm() {
             </div>
 
             <h1 className="mt-4 text-3xl font-black text-[#4a392f] md:text-4xl">
-              새 도안 등록
+              도안 등록
             </h1>
 
             <p className="mt-3 max-w-2xl leading-7 text-[#756457]">
-              기본 정보와 대표 이미지를 함께 등록해보자.
-              차분한 톤으로 미리보기까지 바로 확인할 수 있게 해뒀어.
+              기본 정보부터 이미지까지 차근히 입력하면, 오른쪽 미리보기에서
+              바로 확인할 수 있어요.
             </p>
 
             <div className="mt-8 grid gap-5">
@@ -207,7 +226,7 @@ export default function NewPatternForm() {
                   type="text"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="예: 봄 네트백"
+                  placeholder="예: 네트백 도안"
                   className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
                 />
               </label>
@@ -261,7 +280,7 @@ export default function NewPatternForm() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="이 도안이 어떤 작품인지, 어떤 느낌인지 적어줘."
+                  placeholder="어떤 작품인지, 어떤 재료가 필요한지 적어 주세요"
                   rows={5}
                   className="w-full resize-none rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm leading-6 text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
                 />
@@ -276,23 +295,45 @@ export default function NewPatternForm() {
                     type="text"
                     value={yarn}
                     onChange={(e) => setYarn(e.target.value)}
-                    placeholder="예: 코튼 혼방사"
+                    placeholder="예: 코튼 실"
                     className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
                   />
                 </label>
 
-                <label className="block">
-                  <span className="mb-2 block text-sm font-semibold text-[#5f5044]">
-                    바늘
-                  </span>
-                  <input
-                    type="text"
-                    value={needle}
-                    onChange={(e) => setNeedle(e.target.value)}
-                    placeholder="예: 코바늘 5호"
-                    className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
-                  />
-                </label>
+                <div className="grid gap-5 md:grid-cols-[0.95fr_1.05fr]">
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-[#5f5044]">
+                      바늘 종류
+                    </span>
+                    <select
+                      value={needleType}
+                      onChange={(e) =>
+                        setNeedleType(e.target.value as (typeof needleTypeOptions)[number])
+                      }
+                      className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
+                    >
+                      {needleTypeOptions.map((item) => (
+                        <option key={item} value={item}>
+                          {item}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-sm font-semibold text-[#5f5044]">
+                      호수
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={needleSize}
+                      onChange={(e) => setNeedleSize(e.target.value.replace(/[^\d]/g, ""))}
+                      placeholder="예: 5"
+                      className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
+                    />
+                  </label>
+                </div>
               </div>
 
               <div>
@@ -391,7 +432,7 @@ export default function NewPatternForm() {
                 </div>
 
                 <p className="mt-2 text-xs text-[#8b7b6e]">
-                  숫자만 입력하면 크기와 게이지 형식이 자동으로 만들어져.
+                  숫자만 입력하면 크기와 게이지 표기가 자동으로 정리돼요.
                 </p>
               </div>
 
@@ -406,7 +447,7 @@ export default function NewPatternForm() {
                       이미지 업로드
                     </span>
                     <span className="mt-2 text-xs text-[#8b7b6e]">
-                      JPG, PNG, WEBP 파일을 선택해줘.
+                      JPG, PNG, WEBP 파일을 선택해 주세요.
                     </span>
 
                     <input
@@ -442,7 +483,7 @@ export default function NewPatternForm() {
 
               <div>
                 <div className="mb-2 block text-sm font-semibold text-[#5f5044]">
-                  뜨개 팁
+                  한줄 팁
                 </div>
 
                 <div className="grid gap-3">
@@ -478,7 +519,7 @@ export default function NewPatternForm() {
 
               {submitted ? (
                 <div className="rounded-[1.4rem] border border-[#d5e0d2] bg-[#edf3ea] px-4 py-3 text-sm text-[#62785d]">
-                  도안이 정상 등록됐어.
+                  도안이 정상적으로 등록됐어요.
                 </div>
               ) : null}
             </div>
@@ -499,12 +540,12 @@ export default function NewPatternForm() {
                 </div>
 
                 <h3 className="mt-4 text-2xl font-black text-[#4a392f]">
-                  {title.trim() || "도안 제목이 여기에 보여"}
+                  {title.trim() || "도안 제목이 여기에 보여요"}
                 </h3>
 
                 <p className="mt-3 text-sm leading-6 text-[#77685d]">
                   {description.trim() ||
-                    "도안 설명을 입력하면 여기에 미리 보이게 할 수 있어."}
+                    "도안 설명을 입력하면 이곳에서 미리 확인할 수 있어요."}
                 </p>
 
                 <div className="mt-5 overflow-hidden rounded-[1.5rem] border border-[#ebe3d9] bg-white">
@@ -537,7 +578,7 @@ export default function NewPatternForm() {
                   <div className="flex justify-between gap-4 border-b border-[#eee5db] pb-2">
                     <span>바늘</span>
                     <span className="font-semibold text-[#4a392f]">
-                      {needle.trim() || "-"}
+                      {needleText || "-"}
                     </span>
                   </div>
 
@@ -567,18 +608,18 @@ export default function NewPatternForm() {
 
             <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-6 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
               <h2 className="text-xl font-black text-[#4a392f]">
-                이번 단계 목표
+                입력 가이드
               </h2>
 
               <ul className="mt-4 space-y-3 text-sm leading-6 text-[#756457]">
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  1. 대표 이미지 선택하면 오른쪽 미리보기에 바로 반영
+                  1. 이미지를 선택하면 오른쪽 미리보기에 바로 반영돼요.
                 </li>
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  2. 등록하면 Storage + DB 둘 다 저장
+                  2. 등록하면 이미지와 도안 정보가 함께 저장돼요.
                 </li>
                 <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                  3. 등록 직후 목록 페이지에서 새 도안이 보이는지 확인
+                  3. 등록 후 상세 페이지에서 내용을 바로 확인할 수 있어요.
                 </li>
               </ul>
             </div>
@@ -588,3 +629,4 @@ export default function NewPatternForm() {
     </main>
   );
 }
+

@@ -27,7 +27,7 @@ const menus: MenuItem[] = [
   },
   {
     href: "/patterns",
-    label: "도안",
+    label: "도안마루",
     meta: "Patterns",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -77,7 +77,7 @@ const menus: MenuItem[] = [
 export default function Header() {
   const pathname = usePathname();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [isCompactViewport, setIsCompactViewport] = useState(false);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -86,8 +86,15 @@ export default function Header() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const mediaQuery = window.matchMedia("(max-width: 900px)");
-    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+    const mediaQuery = window.matchMedia("(max-width: 1180px)");
+    const syncViewport = () => {
+      const matches = mediaQuery.matches;
+      setIsCompactViewport(matches);
+
+      if (!matches) {
+        setIsMobileMenuOpen(false);
+      }
+    };
 
     syncViewport();
     mediaQuery.addEventListener("change", syncViewport);
@@ -177,10 +184,10 @@ export default function Header() {
               );
             })}
           </nav>
-        </div>
+          </div>
 
         <div className={styles.bottomSection}>
-          <AuthStatus showUserBadge={!isMobileViewport} />
+          <AuthStatus showUserBadge={!isCompactViewport} />
         </div>
       </aside>
     </div>

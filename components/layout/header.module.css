@@ -218,11 +218,11 @@
   color: rgba(255, 255, 255, 0.82);
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .mobileMenuButton {
     position: fixed;
-    top: 16px;
-    right: 16px;
+    top: 18px;
+    left: 18px;
     z-index: 61;
     display: inline-flex;
     align-items: center;
@@ -262,15 +262,15 @@
 
   .sidebar {
     position: fixed;
-    top: 12px;
-    left: 12px;
-    bottom: 12px;
+    top: 18px;
+    left: 18px;
+    bottom: 18px;
     z-index: 60;
-    width: min(86vw, 360px);
+    width: min(360px, calc(100vw - 36px));
     min-height: auto;
     margin-bottom: 0;
-    border-radius: 24px;
-    padding: 14px 12px;
+    border-radius: 28px;
+    padding: 16px 14px;
     align-items: stretch;
     transform: translateX(calc(-100% - 20px));
     opacity: 0;
@@ -283,7 +283,7 @@
   }
 
   .sidebar:hover {
-    width: min(86vw, 360px);
+    width: min(360px, calc(100vw - 36px));
   }
 
   .sidebarOpen {
@@ -359,10 +359,27 @@
   }
 }
 
+@media (max-width: 900px) {
+  .mobileMenuButton {
+    top: 16px;
+    left: 16px;
+  }
+
+  .sidebar,
+  .sidebar:hover {
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    width: min(86vw, 360px);
+    border-radius: 24px;
+    padding: 14px 12px;
+  }
+}
+
 @media (max-width: 640px) {
   .mobileMenuButton {
     top: 12px;
-    right: 12px;
+    left: 12px;
     width: 44px;
     height: 44px;
     border-radius: 14px;
