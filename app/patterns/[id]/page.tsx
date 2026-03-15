@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
+import { isFavoritePattern, toggleFavoritePattern } from "@/lib/favorite-patterns";
 import { createClient } from "@/lib/supabase/client";
 import {
   getPatternById,
@@ -42,6 +43,7 @@ export default function PatternDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [liking, setLiking] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -93,6 +95,11 @@ export default function PatternDetailPage() {
 
     load();
   }, [params.id]);
+
+  useEffect(() => {
+    if (!resolvedId) return;
+    setIsFavorite(isFavoritePattern(resolvedId));
+  }, [resolvedId]);
 
   const isOwner = Boolean(pattern && currentUserId && pattern.user_id === currentUserId);
 
@@ -255,6 +262,13 @@ export default function PatternDetailPage() {
     setReporting(false);
   }
 
+  function handleFavoriteToggle() {
+    if (!pattern) return;
+
+    const nextIds = toggleFavoritePattern(pattern.id);
+    setIsFavorite(nextIds.includes(pattern.id));
+  }
+
   if (loading || !isAdminChecked) {
     return (
       <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
@@ -370,6 +384,21 @@ export default function PatternDetailPage() {
               >
                 <span>{liking ? "..." : "♥"}</span>
                 <span>좋아요 {pattern.like_count ?? 0}</span>
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleFavoriteToggle}
+                className={
+                  isFavorite
+                    ? "inline-flex items-center gap-2 rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-4 py-2 text-sm font-semibold text-[#5f7759] transition hover:bg-[#e5eee1]"
+                    : "inline-flex items-center gap-2 rounded-full border border-[#e4d7cb] bg-[#fffdf9] px-4 py-2 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f5efe8]"
+                }
+              >
+                <span>{isFavorite ? "★" : "☆"}</span>
+                <span>{isFavorite ? "찜한 도안에 저장됨" : "찜하기"}</span>
               </button>
             </div>
 

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { workItems } from "@/data/my-work";
 import styles from "./auth-status.module.css";
 
 type AuthUser = {
@@ -41,13 +42,29 @@ function ShieldIcon() {
   );
 }
 
-export default function AuthStatus() {
+type Props = {
+  compact?: boolean;
+  profileCard?: boolean;
+  showUserBadge?: boolean;
+};
+
+function escapeFilterValue(value: string) {
+  return value.replace(/[,()]/g, (char) => `\\${char}`);
+}
+
+export default function AuthStatus({
+  compact = false,
+  profileCard = false,
+  showUserBadge = true,
+}: Props) {
   const supabase = createClient();
   const router = useRouter();
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [patternCount, setPatternCount] = useState(0);
+  const [communityCount, setCommunityCount] = useState(0);
 
   useEffect(() => {
     async function loadUser() {
@@ -55,7 +72,15 @@ export default function AuthStatus() {
       setUser((data.user as AuthUser | null) ?? null);
 
       if (data.user) {
-        const response = await fetch("/api/admin/status", { cache: "no-store" });
+        const [response, profileResult, patternCountResult] = await Promise.all([
+          fetch("/api/admin/status", { cache: "no-store" }),
+          supabase.from("profiles").select("nickname").eq("id", data.user.id).maybeSingle(),
+          supabase
+            .from("patterns")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", data.user.id)
+            .eq("is_hidden", false),
+        ]);
 
         if (response.ok) {
           const result = (await response.json()) as { isAdmin?: boolean };
@@ -63,8 +88,39 @@ export default function AuthStatus() {
         } else {
           setIsAdmin(false);
         }
+
+        const candidateNames = Array.from(
+          new Set(
+            [
+              profileResult.data?.nickname,
+              data.user.user_metadata?.nickname as string | undefined,
+              data.user.user_metadata?.name as string | undefined,
+              data.user.email?.split("@")[0],
+            ].filter(Boolean)
+          )
+        ) as string[];
+
+        if (candidateNames.length > 0) {
+          const filters = candidateNames
+            .map((name) => `author_name.eq.${escapeFilterValue(name)}`)
+            .join(",");
+
+          const communityCountResult = await supabase
+            .from("community_posts")
+            .select("id", { count: "exact", head: true })
+            .eq("is_hidden", false)
+            .or(filters);
+
+          setCommunityCount(communityCountResult.count ?? 0);
+        } else {
+          setCommunityCount(0);
+        }
+
+        setPatternCount(patternCountResult.count ?? 0);
       } else {
         setIsAdmin(false);
+        setPatternCount(0);
+        setCommunityCount(0);
       }
 
       setLoading(false);
@@ -107,6 +163,49 @@ export default function AuthStatus() {
 
   const displayName = user.user_metadata?.nickname ?? user.user_metadata?.name ?? user.email ?? "사용자";
   const avatarSeed = displayName.trim().charAt(0).toUpperCase() || "U";
+  const workCount = user ? workItems.length : 0;
+
+  if (compact) {
+    return (
+      <div className={styles.root}>
+        <div className={styles.userBadge}>
+          <span className={`${styles.icon} ${styles.userAvatar}`}>{avatarSeed}</span>
+          <span className={styles.label} data-collapsible-label>
+            {displayName}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (profileCard) {
+    return (
+      <div className={styles.profileCard}>
+        <div className={styles.profileCardHeader}>MY PROFILE</div>
+        <div className={styles.profileCardBody}>
+          <span className={`${styles.profileAvatar} ${styles.userAvatar}`}>{avatarSeed}</span>
+          <div className={styles.profileCardIdentity}>
+            <strong className={styles.profileCardName}>{displayName}</strong>
+            <span className={styles.profileCardEmail}>{user.email ?? ""}</span>
+          </div>
+        </div>
+        <div className={styles.profileCardStats}>
+          <div>
+            <span className={styles.profileCardStatLabel}>도안</span>
+            <strong className={styles.profileCardStatValue}>{patternCount}</strong>
+          </div>
+          <div>
+            <span className={styles.profileCardStatLabel}>뜨개마당</span>
+            <strong className={styles.profileCardStatValue}>{communityCount}</strong>
+          </div>
+          <div>
+            <span className={styles.profileCardStatLabel}>기록</span>
+            <strong className={styles.profileCardStatValue}>{workCount}</strong>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.root}>
@@ -119,12 +218,14 @@ export default function AuthStatus() {
         </Link>
       ) : null}
 
-      <div className={styles.userBadge}>
-        <span className={`${styles.icon} ${styles.userAvatar}`}>{avatarSeed}</span>
-        <span className={styles.label} data-collapsible-label>
-          {displayName}
-        </span>
-      </div>
+      {showUserBadge ? (
+        <div className={styles.userBadge}>
+          <span className={`${styles.icon} ${styles.userAvatar}`}>{avatarSeed}</span>
+          <span className={styles.label} data-collapsible-label>
+            {displayName}
+          </span>
+        </div>
+      ) : null}
 
       <button onClick={handleLogout} className={styles.logoutButton} aria-label="로그아웃">
         <span className={styles.icon}><LogoutIcon /></span>

@@ -18,7 +18,7 @@ export default function HeroSection() {
 
         <p className="mt-5 max-w-[640px] text-base leading-8 text-[#786d63] md:text-lg">
           도안을 공유하고, 내가 뜬 작품을 예쁘게 저장하고, 서로의 완성작을
-          구경하고, 나중에는 판매까지 연결할 수 있는 뜨개 전용 커뮤니티를
+          구경하고, 나중에는 판매까지 연결할 수 있는 뜨개 전용 뜨개마당을
           만들고 있어.
         </p>
 
@@ -30,7 +30,7 @@ export default function HeroSection() {
             작품 기록
           </span>
           <span className="rounded-full border border-[#d9e4da] bg-[#eef4ee] px-3 py-1 text-sm font-medium text-[#6f856f]">
-            뜨개 커뮤니티
+            뜨개마당
           </span>
         </div>
 

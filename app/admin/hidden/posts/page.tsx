@@ -56,7 +56,7 @@ export default async function AdminHiddenPostsPage() {
                 숨김 게시글 관리
               </h1>
               <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[#756457] md:text-base">
-                관리자에 의해 숨김 처리된 커뮤니티 게시글을 확인하고, 필요하면 다시 복구할 수 있어요.
+                관리자에 의해 숨김 처리된 뜨개마당 게시글을 확인하고, 필요하면 다시 복구할 수 있어요.
               </p>
             </div>
 
@@ -78,3 +78,4 @@ export default async function AdminHiddenPostsPage() {
     </main>
   );
 }
+

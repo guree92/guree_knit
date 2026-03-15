@@ -48,7 +48,7 @@ export default function CommunityPage() {
 
       if (postsResponse.error) {
         console.error(postsResponse.error);
-        alert("커뮤니티 글을 불러오지 못했어요.");
+        alert("뜨개마당 글을 불러오지 못했어요.");
         setIsLoading(false);
         return;
       }
@@ -160,10 +160,10 @@ export default function CommunityPage() {
 
           <div className={styles.heroHeader}>
             <div>
-              <h1 className={styles.heroTitle}>뜨개 커뮤니티</h1>
+              <h1 className={styles.heroTitle}>뜨개마당</h1>
               <p className={styles.heroDescription}>
                 완성작 자랑부터 질문, 정보 공유, 같이 뜨기 모집까지. 편하게 둘러보고
-                빠르게 찾아보는 커뮤니티 게시판이에요.
+                빠르게 찾아보는 뜨개마당 게시판이에요.
               </p>
             </div>
 
@@ -337,7 +337,7 @@ export default function CommunityPage() {
               </div>
 
               {totalPages > 1 ? (
-                <nav ref={paginationRef} className={styles.pagination} aria-label="커뮤니티 페이지 이동">
+                <nav ref={paginationRef} className={styles.pagination} aria-label="뜨개마당 페이지 이동">
                   <button
                     type="button"
                     onClick={() => moveToPage(safeCurrentPage - 1)}
@@ -418,3 +418,4 @@ export default function CommunityPage() {
     </main>
   );
 }
+

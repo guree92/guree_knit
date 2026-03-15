@@ -517,12 +517,12 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
           <section className="mt-12 rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] p-10 text-center shadow-sm">
             <h1 className="text-2xl font-black text-[#3d3128]">게시글을 찾을 수 없어요</h1>
-            <p className="mt-3 text-[#6f6257]">요청하신 커뮤니티 글이 없거나 숨김 처리되었어요.</p>
+            <p className="mt-3 text-[#6f6257]">요청하신 뜨개마당 글이 없거나 숨김 처리되었어요.</p>
             <Link
               href="/community"
               className="mt-6 inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#788a73]"
             >
-              커뮤니티로 돌아가기
+              뜨개마당으로 돌아가기
             </Link>
           </section>
         </div>
@@ -540,7 +540,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
             href="/community"
             className="mb-6 inline-flex text-sm font-semibold text-[#6f6257] transition hover:text-[#8a9b84]"
           >
-            커뮤니티로 돌아가기
+            뜨개마당으로 돌아가기
           </Link>
 
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -911,7 +911,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
             ) : (
               <div className="rounded-[1.6rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-12 text-center shadow-sm">
                 <p className="text-lg font-semibold text-[#6f6257]">아직 댓글이 없어요</p>
-                <p className="mt-2 text-sm text-[#9b8b7f]">첫 댓글을 남겨 커뮤니티 대화를 시작해 보세요.</p>
+                <p className="mt-2 text-sm text-[#9b8b7f]">첫 댓글을 남겨 뜨개마당 대화를 시작해 보세요.</p>
               </div>
             )}
           </div>
@@ -920,4 +920,5 @@ export default function CommunityDetailPage({ params }: PageProps) {
     </main>
   );
 }
+
 

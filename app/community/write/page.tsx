@@ -74,7 +74,7 @@ export default function CommunityWritePage() {
             href="/community"
             className="inline-flex text-sm font-semibold text-[#6f6257] transition hover:text-[#8a9b84]"
           >
-            커뮤니티로 돌아가기
+            뜨개마당으로 돌아가기
           </Link>
 
           <div className="mt-6 inline-flex rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-4 py-2 text-sm font-semibold text-[#7b6858]">
@@ -154,3 +154,4 @@ export default function CommunityWritePage() {
     </main>
   );
 }
+

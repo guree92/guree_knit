@@ -1,6 +1,6 @@
 ﻿"use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthStatus from "@/components/auth/AuthStatus";
@@ -39,7 +39,7 @@ const menus: MenuItem[] = [
   },
   {
     href: "/community",
-    label: "커뮤니티",
+    label: "뜨개마당",
     meta: "Forum",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -76,10 +76,73 @@ const menus: MenuItem[] = [
 
 export default function Header() {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const mediaQuery = window.matchMedia("(max-width: 900px)");
+    const syncViewport = () => setIsMobileViewport(mediaQuery.matches);
+
+    syncViewport();
+    mediaQuery.addEventListener("change", syncViewport);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncViewport);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+
+    const previousOverflow = document.body.style.overflow;
+
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMobileMenuOpen]);
 
   return (
     <div className={styles.appFrame}>
-      <aside className={styles.sidebar} data-sidebar-shell aria-label="주요 메뉴">
+      <button
+        type="button"
+        className={styles.mobileMenuButton}
+        aria-label={isMobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
+        aria-expanded={isMobileMenuOpen}
+        aria-controls="global-navigation"
+        onClick={() => setIsMobileMenuOpen((current) => !current)}
+      >
+        <span className={styles.mobileMenuIcon} aria-hidden="true">
+          <span />
+          <span />
+          <span />
+        </span>
+      </button>
+
+      {isMobileMenuOpen ? (
+        <button
+          type="button"
+          className={styles.mobileBackdrop}
+          aria-label="메뉴 닫기"
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      ) : null}
+
+      <aside
+        id="global-navigation"
+        className={isMobileMenuOpen ? `${styles.sidebar} ${styles.sidebarOpen}` : styles.sidebar}
+        data-sidebar-shell
+        aria-label="주요 메뉴"
+      >
         <div className={styles.topSection}>
           <Link href="/" className={styles.brand}>
             <span className={styles.brandMark}>K</span>
@@ -87,6 +150,10 @@ export default function Header() {
               <strong className={styles.brandName}>Knit.GUREE</strong>
             </span>
           </Link>
+
+          <div className={styles.mobileProfile}>
+            <AuthStatus profileCard />
+          </div>
 
           <nav className={styles.nav}>
             {menus.map((menu) => {
@@ -101,6 +168,7 @@ export default function Header() {
                   href={menu.href}
                   className={isActive ? styles.navLinkActive : styles.navLink}
                   aria-label={menu.label}
+                  onClick={() => setIsMobileMenuOpen(false)}
                 >
                   <span className={styles.iconWrap}>{menu.icon}</span>
                   <span className={styles.navLabel}>{menu.label}</span>
@@ -112,7 +180,7 @@ export default function Header() {
         </div>
 
         <div className={styles.bottomSection}>
-          <AuthStatus />
+          <AuthStatus showUserBadge={!isMobileViewport} />
         </div>
       </aside>
     </div>

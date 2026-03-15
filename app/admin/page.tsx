@@ -159,7 +159,7 @@ export default async function AdminDashboardPage() {
             <p className="text-sm font-semibold text-[#8f7a67]">숨김 게시글 관리</p>
             <h2 className="mt-3 text-2xl font-black text-[#4a392f]">숨김 게시글 복구하기</h2>
             <p className="mt-3 text-sm leading-6 text-[#756457]">
-              숨김 처리된 커뮤니티 게시글을 모아 보고, 필요한 게시글은 다시 공개 상태로 복구할 수 있어요.
+              숨김 처리된 뜨개마당 게시글을 모아 보고, 필요한 게시글은 다시 공개 상태로 복구할 수 있어요.
             </p>
             <p className="mt-4 text-sm font-semibold text-[#6f8669]">현재 {hiddenPostCount}건 숨김</p>
           </Link>
@@ -180,3 +180,4 @@ export default async function AdminDashboardPage() {
     </main>
   );
 }
+

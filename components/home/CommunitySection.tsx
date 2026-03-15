@@ -9,7 +9,7 @@ export default function CommunitySection() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h3 className="text-3xl font-black tracking-[-0.02em] text-[#3f342c]">
-            최근 커뮤니티 글
+            최근 뜨개마당 글
           </h3>
           <p className="mt-2 text-[#75695f]">
             질문도 올리고, 완성작도 자랑하고, 뜨개 팁도 편하게 나눌 수 있어.
@@ -20,7 +20,7 @@ export default function CommunitySection() {
           href="/community"
           className="rounded-2xl bg-[#8ca08b] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#7d927d] hover:shadow-md"
         >
-          커뮤니티 전체 보기
+          뜨개마당 전체 보기
         </Link>
       </div>
 

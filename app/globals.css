@@ -16,7 +16,7 @@
   --app-beige: #efe4d8;
   --app-shadow: 0 24px 60px rgba(91, 74, 60, 0.1);
   --app-shadow-soft: 0 14px 34px rgba(91, 74, 60, 0.06);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-nps);
   --font-mono: var(--font-geist-mono);
   --sidebar-collapsed: 92px;
   --sidebar-expanded: 248px;
@@ -41,6 +41,7 @@ body {
     linear-gradient(180deg, #f6f3ee 0%, #eee8de 100%);
   color: var(--app-text);
   font-family: var(--font-sans), "Segoe UI", sans-serif;
+  line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -67,11 +68,12 @@ main {
 
 @media (max-width: 900px) {
   body {
-    padding: 16px;
+    padding: 8px 16px 16px;
   }
 
   main {
     min-height: auto;
   }
 }
+
 

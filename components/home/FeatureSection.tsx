@@ -12,7 +12,7 @@ const features = [
     badgeClass: "bg-[#eef4ee] text-[#6f856f]",
   },
   {
-    title: "커뮤니티",
+    title: "뜨개마당",
     desc: "완성작 자랑, 질문, 팁 공유, 같이 뜨기 모집까지 뜨개하는 사람들끼리 편하게 소통할 수 있어.",
     badge: "COMMUNITY",
     badgeClass: "bg-white text-[#7a6d61] border border-[#e8ddd0]",

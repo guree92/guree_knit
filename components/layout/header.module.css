@@ -2,6 +2,12 @@
   position: relative;
 }
 
+.mobileMenuButton,
+.mobileBackdrop,
+.mobileProfile {
+  display: none;
+}
+
 .sidebar {
   position: fixed;
   top: 18px;
@@ -213,18 +219,77 @@
 }
 
 @media (max-width: 900px) {
+  .mobileMenuButton {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 61;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    margin: 0;
+    border: 1px solid rgba(229, 221, 211, 0.98);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 14px 28px rgba(91, 74, 60, 0.12);
+    backdrop-filter: blur(16px);
+  }
+
+  .mobileMenuIcon {
+    display: inline-grid;
+    gap: 4px;
+  }
+
+  .mobileMenuIcon span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    border-radius: 999px;
+    background: #6e7e69;
+  }
+
+  .mobileBackdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 49;
+    display: block;
+    border: 0;
+    background: rgba(46, 38, 31, 0.28);
+    backdrop-filter: blur(4px);
+  }
+
   .sidebar {
-    position: static;
-    width: 100%;
-    min-height: 0;
-    margin-bottom: 14px;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    bottom: 12px;
+    z-index: 60;
+    width: min(86vw, 360px);
+    min-height: auto;
+    margin-bottom: 0;
     border-radius: 24px;
     padding: 14px 12px;
     align-items: stretch;
+    transform: translateX(calc(-100% - 20px));
+    opacity: 0;
+    visibility: hidden;
+    transition:
+      transform 180ms ease,
+      opacity 160ms ease,
+      visibility 160ms ease;
+    overflow-y: auto;
   }
 
   .sidebar:hover {
-    width: 100%;
+    width: min(86vw, 360px);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0);
+    opacity: 1;
+    visibility: visible;
   }
 
   .topSection,
@@ -234,8 +299,11 @@
   }
 
   .brand {
-    justify-content: flex-start;
-    padding: 6px 8px;
+    display: none;
+  }
+
+  .mobileProfile {
+    display: block;
   }
 
   .brandText,
@@ -250,7 +318,8 @@
   }
 
   .nav {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .navLink,
@@ -262,6 +331,10 @@
 
   .navLabel {
     font-size: 0.95rem;
+  }
+
+  .navMeta {
+    margin-left: 10px;
   }
 
   .navLink:hover,
@@ -287,7 +360,16 @@
 }
 
 @media (max-width: 640px) {
-  .nav {
-    grid-template-columns: 1fr;
+  .mobileMenuButton {
+    top: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+  }
+
+  .sidebar,
+  .sidebar:hover {
+    width: min(90vw, 340px);
   }
 }

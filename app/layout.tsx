@@ -1,10 +1,23 @@
 ﻿import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const npsFont = localFont({
+  src: [
+    {
+      path: "../public/fonts/NPSfont_regular.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "../public/fonts/NPSfont_bold.ttf",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-nps",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
@@ -14,7 +27,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Knit.GUREE",
-  description: "도안을 공유하고, 작품을 기록하고, 커뮤니티에서 소통하는 뜨개 아카이브 서비스",
+  description: "도안을 공유하고, 작품을 기록하고, 뜨개마당에서 소통하는 뜨개 아카이브 서비스",
 };
 
 export default function RootLayout({
@@ -24,7 +37,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ko">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${npsFont.className} ${npsFont.variable} ${geistMono.variable} antialiased`}>
         {children}
       </body>
     </html>
