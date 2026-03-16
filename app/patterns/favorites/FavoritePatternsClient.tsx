@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useMemo, useState } from "react";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import {
   FavoritePatternAuthError,
   toggleFavoritePattern,
@@ -44,6 +45,7 @@ export default function FavoritePatternsClient({
   const [items, setItems] = useState(initialItems);
   const [currentPage, setCurrentPage] = useState(initialPage);
   const [pendingId, setPendingId] = useState("");
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [pageSize, setPageSize] = useState(DEFAULT_FAVORITES_PAGE_SIZE);
 
   useEffect(() => {
@@ -113,8 +115,7 @@ export default function FavoritePatternsClient({
       }
     } catch (error) {
       if (error instanceof FavoritePatternAuthError) {
-        alert(error.message);
-        router.push("/login");
+        setIsLoginModalOpen(true);
         return;
       }
 
@@ -129,19 +130,23 @@ export default function FavoritePatternsClient({
 
   if (items.length === 0) {
     return (
-      <div className={styles.feedbackCard}>
-        <p className={styles.feedbackTitle}>{"\uc544\uc9c1 \ucc1c\ud55c \ub3c4\uc548\uc774 \uc5c6\uc5b4\uc694."}</p>
-        <div className={styles.feedbackActions}>
-          <Link href="/patterns" className={styles.primaryAction}>
-            {"\ub3c4\uc548 \ub458\ub7ec\ubcf4\uae30"}
-          </Link>
+      <>
+        <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
+        <div className={styles.feedbackCard}>
+          <p className={styles.feedbackTitle}>{"\uc544\uc9c1 \ucc1c\ud55c \ub3c4\uc548\uc774 \uc5c6\uc5b4\uc694."}</p>
+          <div className={styles.feedbackActions}>
+            <Link href="/patterns" className={styles.primaryAction}>
+              {"\ub3c4\uc548 \ub458\ub7ec\ubcf4\uae30"}
+            </Link>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
     <>
+      <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <div className={styles.popularShowcaseList}>
         {pagedItems.map((pattern) => {
           const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";

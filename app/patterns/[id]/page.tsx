@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import Header from "@/components/layout/Header";
 import {
   FavoritePatternAuthError,
@@ -49,6 +50,7 @@ export default function PatternDetailPage() {
   const [reporting, setReporting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoritePending, setFavoritePending] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -290,8 +292,7 @@ export default function PatternDetailPage() {
       setIsFavorite(result.isFavorite);
     } catch (error) {
       if (error instanceof FavoritePatternAuthError) {
-        alert(error.message);
-        router.push("/login");
+        setIsLoginModalOpen(true);
         return;
       }
 
@@ -342,6 +343,7 @@ export default function PatternDetailPage() {
 
   return (
     <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
+      <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <div className="mx-auto max-w-6xl">
         <Header />
 

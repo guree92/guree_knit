@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import Header from "@/components/layout/Header";
 import {
   FavoritePatternAuthError,
@@ -45,7 +45,6 @@ function formatPatternDate(value?: string) {
 }
 
 export default function PatternsPage() {
-  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const archivePaginationRef = useRef<HTMLDivElement | null>(null);
@@ -62,11 +61,13 @@ export default function PatternsPage() {
   const [keyword, setKeyword] = useState("");
   const [patternItems, setPatternItems] = useState<PatternItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
   const [favoritePatterns, setFavoritePatterns] = useState<FavoritePatternCard[]>([]);
   const [favoritePendingId, setFavoritePendingId] = useState("");
   const [isMobileFeaturedOpen, setIsMobileFeaturedOpen] = useState(true);
   const [isMobileFavoritesOpen, setIsMobileFavoritesOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const isCompactViewport = isMobileViewport || isMidTabletViewport;
   const isFavoriteMetaStackedViewport = isTabletViewport && !isMidTabletViewport;
 
@@ -105,12 +106,21 @@ export default function PatternsPage() {
       }
     }
 
+    async function loadAuthState() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setIsAuthenticated(Boolean(user));
+    }
+
     void loadFavoriteIds();
     void loadFavoritePatterns();
+    void loadAuthState();
 
     const handleFavoritesChanged = () => {
       void loadFavoriteIds();
       void loadFavoritePatterns();
+      void loadAuthState();
     };
 
     window.addEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
@@ -118,6 +128,7 @@ export default function PatternsPage() {
     const { data: listener } = supabase.auth.onAuthStateChange(() => {
       void loadFavoriteIds();
       void loadFavoritePatterns();
+      void loadAuthState();
     });
 
     return () => {
@@ -278,8 +289,7 @@ export default function PatternsPage() {
       );
     } catch (error) {
       if (error instanceof FavoritePatternAuthError) {
-        alert(error.message);
-        router.push("/login");
+        setIsLoginModalOpen(true);
         return;
       }
 
@@ -370,8 +380,8 @@ export default function PatternsPage() {
             </div>
           ) : (
             <div className={styles.sideFavoriteEmpty}>
-              <p>아직 찜한 도안이 없어요.</p>
-              <span>도안 상세나 목록에서 찜하기를 누르면 여기 모아볼 수 있어요.</span>
+              <p>{isAuthenticated ? "아직 찜한 도안이 없어요." : "로그인 후 도안을 찜해보세요"}</p>
+              {isAuthenticated ? <span>도안 상세나 목록에서 찜하기를 누르면 여기 모아볼 수 있어요.</span> : null}
             </div>
           )
         ) : null}
@@ -381,6 +391,7 @@ export default function PatternsPage() {
 
   return (
     <main className={styles.page}>
+      <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <div className={styles.shell}>
         <Header />
 

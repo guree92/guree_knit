@@ -1,0 +1,107 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top, rgba(138, 155, 132, 0.18), transparent 42%),
+    rgba(61, 49, 40, 0.32);
+  backdrop-filter: blur(12px);
+}
+
+.dialog {
+  width: min(100%, 420px);
+  border: 1px solid rgba(230, 221, 210, 0.82);
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(250, 247, 242, 0.96));
+  box-shadow: 0 18px 48px rgba(91, 74, 60, 0.12);
+  padding: 28px;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7f7063;
+}
+
+.eyebrow::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #8a9b84, #d3b694);
+  box-shadow: 0 0 0 4px rgba(138, 155, 132, 0.12);
+}
+
+.title {
+  margin: 10px 0 0;
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #34291f;
+}
+
+.description {
+  margin: 12px 0 0;
+  line-height: 1.6;
+  color: #6f6257;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.secondaryButton,
+.primaryButton {
+  border-radius: 999px;
+  padding: 11px 18px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+}
+
+.secondaryButton {
+  border: 1px solid #ddd4c9;
+  background: rgba(255, 255, 255, 0.92);
+  color: #6f6257;
+}
+
+.primaryButton {
+  border: none;
+  background: linear-gradient(135deg, #8a9b84, #71826c);
+  color: white;
+  box-shadow: 0 14px 26px rgba(111, 130, 107, 0.24);
+}
+
+.secondaryButton:hover,
+.primaryButton:hover {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 640px) {
+  .dialog {
+    border-radius: 24px;
+    padding: 24px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+  }
+
+  .secondaryButton,
+  .primaryButton {
+    width: 100%;
+  }
+}
