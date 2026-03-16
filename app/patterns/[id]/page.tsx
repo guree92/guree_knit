@@ -5,7 +5,11 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
-import { isFavoritePattern, toggleFavoritePattern } from "@/lib/favorite-patterns";
+import {
+  FavoritePatternAuthError,
+  isFavoritePattern,
+  toggleFavoritePattern,
+} from "@/lib/favorite-patterns";
 import { createClient } from "@/lib/supabase/client";
 import {
   getPatternById,
@@ -44,6 +48,7 @@ export default function PatternDetailPage() {
   const [liking, setLiking] = useState(false);
   const [reporting, setReporting] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [favoritePending, setFavoritePending] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -97,9 +102,22 @@ export default function PatternDetailPage() {
   }, [params.id]);
 
   useEffect(() => {
-    if (!resolvedId) return;
-    setIsFavorite(isFavoritePattern(resolvedId));
-  }, [resolvedId]);
+    async function loadFavoriteStatus() {
+      if (!resolvedId || !currentUserId) {
+        setIsFavorite(false);
+        return;
+      }
+
+      try {
+        setIsFavorite(await isFavoritePattern(resolvedId));
+      } catch (error) {
+        console.error("찜 상태를 불러오지 못했어요.", error);
+        setIsFavorite(false);
+      }
+    }
+
+    void loadFavoriteStatus();
+  }, [currentUserId, resolvedId]);
 
   const isOwner = Boolean(pattern && currentUserId && pattern.user_id === currentUserId);
 
@@ -262,11 +280,27 @@ export default function PatternDetailPage() {
     setReporting(false);
   }
 
-  function handleFavoriteToggle() {
-    if (!pattern) return;
+  async function handleFavoriteToggle() {
+    if (!pattern || favoritePending) return;
 
-    const nextIds = toggleFavoritePattern(pattern.id);
-    setIsFavorite(nextIds.includes(pattern.id));
+    setFavoritePending(true);
+
+    try {
+      const result = await toggleFavoritePattern(pattern.id);
+      setIsFavorite(result.isFavorite);
+    } catch (error) {
+      if (error instanceof FavoritePatternAuthError) {
+        alert(error.message);
+        router.push("/login");
+        return;
+      }
+
+      console.error("도안 찜 처리 실패", error);
+      const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했어요.";
+      alert(`도안 찜 처리에 실패했어요: ${message}`);
+    } finally {
+      setFavoritePending(false);
+    }
   }
 
   if (loading || !isAdminChecked) {
@@ -391,14 +425,17 @@ export default function PatternDetailPage() {
               <button
                 type="button"
                 onClick={handleFavoriteToggle}
+                disabled={favoritePending}
                 className={
                   isFavorite
                     ? "inline-flex items-center gap-2 rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-4 py-2 text-sm font-semibold text-[#5f7759] transition hover:bg-[#e5eee1]"
-                    : "inline-flex items-center gap-2 rounded-full border border-[#e4d7cb] bg-[#fffdf9] px-4 py-2 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f5efe8]"
+                    : "inline-flex items-center gap-2 rounded-full border border-[#e4d7cb] bg-[#fffdf9] px-4 py-2 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f5efe8] disabled:cursor-not-allowed disabled:opacity-60"
                 }
               >
-                <span>{isFavorite ? "★" : "☆"}</span>
-                <span>{isFavorite ? "찜한 도안에 저장됨" : "찜하기"}</span>
+                <span>{favoritePending ? "..." : isFavorite ? "★" : "☆"}</span>
+                <span>
+                  {favoritePending ? "저장 중..." : isFavorite ? "찜한 도안에 저장됨" : "찜하기"}
+                </span>
               </button>
             </div>
 
