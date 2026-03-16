@@ -38,6 +38,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
   const supabase = useMemo(() => createClient(), []);
   const [favoritePatterns, setFavoritePatterns] = useState<FavoritePatternCard[]>([]);
   const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -52,6 +53,26 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
       mediaQuery.removeEventListener("change", syncViewport);
     };
   }, []);
+
+  useEffect(() => {
+    async function syncAuthStatus() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      setIsLoggedIn(Boolean(user));
+    }
+
+    void syncAuthStatus();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session?.user));
+    });
+
+    return () => {
+      listener.subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   useEffect(() => {
     async function loadFavoritePatterns() {
@@ -141,20 +162,26 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
             </div>
           </div>
 
-          <div className={styles.progressFeatureList}>
-            {progressItems.map((item) => (
-              <article key={item.id} className={styles.progressFeatureItem}>
-                <div className={styles.progressFeatureTop}>
-                  <strong>{item.title}</strong>
-                  <span>{item.percent}%</span>
-                </div>
-                <div className={styles.progressFeatureBar}>
-                  <span className={styles.progressFeatureFill} style={{ width: `${item.percent}%` }} />
-                </div>
-                <p>{item.note}</p>
-              </article>
-            ))}
-          </div>
+          {isLoggedIn ? (
+            <div className={styles.progressFeatureList}>
+              {progressItems.map((item) => (
+                <article key={item.id} className={styles.progressFeatureItem}>
+                  <div className={styles.progressFeatureTop}>
+                    <strong>{item.title}</strong>
+                    <span>{item.percent}%</span>
+                  </div>
+                  <div className={styles.progressFeatureBar}>
+                    <span className={styles.progressFeatureFill} style={{ width: `${item.percent}%` }} />
+                  </div>
+                  <p>{item.note}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className={styles.favoriteFeatureEmpty}>
+              <p>로그인을 해주세요.</p>
+            </div>
+          )}
         </section>
 
         <section className={styles.favoriteFeatureCard}>
@@ -168,47 +195,55 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
             </Link>
           </div>
 
-          {favoritePatterns.length > 0 ? (
-            <div className={styles.favoriteFeatureList}>
-              {favoritePatterns.slice(0, 3).map((pattern) => {
-                const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
+          {isLoggedIn ? (
+            favoritePatterns.length > 0 ? (
+              <div className={styles.favoriteFeatureList}>
+                {favoritePatterns.slice(0, 3).map((pattern) => {
+                  const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
 
-                return (
-                  <Link
-                    key={pattern.id}
-                    href={`/patterns/${pattern.id}`}
-                    className={styles.favoriteFeatureItem}
-                  >
-                    <div className={styles.favoriteFeatureThumb}>
-                      {imageUrl ? (
-                        <Image
-                          src={imageUrl}
-                          alt={pattern.title}
-                          fill
-                          className={styles.favoriteFeatureImage}
-                          sizes="84px"
-                        />
-                      ) : (
-                        <div className={styles.favoriteFeatureFallback} />
-                      )}
-                    </div>
+                  return (
+                    <Link
+                      key={pattern.id}
+                      href={`/patterns/${pattern.id}`}
+                      className={styles.favoriteFeatureItem}
+                    >
+                      <div className={styles.favoriteFeatureThumb}>
+                        {imageUrl ? (
+                          <Image
+                            src={imageUrl}
+                            alt={pattern.title}
+                            fill
+                            className={styles.favoriteFeatureImage}
+                            sizes="84px"
+                          />
+                        ) : (
+                          <div className={styles.favoriteFeatureFallback} />
+                        )}
+                      </div>
 
-                    <div className={styles.favoriteFeatureBody}>
-                      <strong>{pattern.title}</strong>
-                      <p>
-                        {pattern.category ?? "기타"} · {pattern.level ?? "난이도 미정"}
-                      </p>
-                    </div>
+                      <div className={styles.favoriteFeatureBody}>
+                        <strong>{pattern.title}</strong>
+                        <p>
+                          {pattern.category ?? "기타"} · {pattern.level ?? "난이도 미정"}
+                        </p>
+                      </div>
 
-                    <span className={styles.favoriteFeatureLikes}>♥ {pattern.like_count ?? 0}</span>
-                  </Link>
-                );
-              })}
-            </div>
+                      <span className={styles.favoriteFeatureLikes}>♥ {pattern.like_count ?? 0}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className={styles.favoriteFeatureEmpty}>
+                <p>아직 찜한 도안이 없어요.</p>
+                <span>도안 상세에서 찜하기를 누르면 계정별로 여기에 모아볼 수 있어요.</span>
+              </div>
+            )
           ) : (
-            <div className={styles.favoriteFeatureEmpty}>
-              <p>아직 찜한 도안이 없어요.</p>
-              <span>도안 상세에서 찜하기를 누르면 계정별로 여기에 모아볼 수 있어요.</span>
+            <div className={styles.favoriteFeatureList}>
+              <div className={styles.favoriteFeatureEmpty}>
+                <p>로그인을 해주세요.</p>
+              </div>
             </div>
           )}
         </section>

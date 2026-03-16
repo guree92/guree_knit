@@ -14,7 +14,7 @@ export type FavoritePatternCard = {
 };
 
 export class FavoritePatternAuthError extends Error {
-  constructor(message = "로그인이 필요해요.") {
+  constructor(message = "먼저 로그인을 해주세요.") {
     super(message);
     this.name = "FavoritePatternAuthError";
   }
@@ -29,6 +29,13 @@ type SupabaseLikeError = {
   code?: string;
   message?: string;
 };
+
+function isMissingAuthSessionError(error: unknown) {
+  const candidate = error as SupabaseLikeError | null;
+  const message = candidate?.message ?? "";
+
+  return message.includes("Auth session missing");
+}
 
 function emitFavoritePatternsChanged() {
   if (typeof window === "undefined") return;
@@ -50,6 +57,10 @@ export async function getFavoritePatternIds() {
   } = await supabase.auth.getUser();
 
   if (userError) {
+    if (isMissingAuthSessionError(userError)) {
+      return [] as string[];
+    }
+
     throw new Error(userError.message);
   }
 
@@ -117,11 +128,15 @@ export async function toggleFavoritePattern(patternId: string) {
   } = await supabase.auth.getUser();
 
   if (userError) {
+    if (isMissingAuthSessionError(userError)) {
+      throw new FavoritePatternAuthError("먼저 로그인을 해주세요.");
+    }
+
     throw new Error(userError.message);
   }
 
   if (!user) {
-    throw new FavoritePatternAuthError("도안 찜하기는 로그인 후 이용할 수 있어요.");
+    throw new FavoritePatternAuthError("먼저 로그인을 해주세요.");
   }
 
   const { data: existingFavorite, error: selectError } = await supabase

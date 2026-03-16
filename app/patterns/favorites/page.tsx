@@ -38,9 +38,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
               <h1 className={styles.feedbackTitle}>
                 {"\ucc1c\ud55c \ub3c4\uc548\uc740 \ub85c\uadf8\uc778 \ud6c4 \ud655\uc778\ud560 \uc218 \uc788\uc5b4\uc694."}
               </h1>
-              <p className={styles.feedbackDescription}>
-                {"\uacc4\uc815\ub9c8\ub2e4 \uc800\uc7a5\ud55c \ub3c4\uc548\uc744 \ubaa8\uc544 \ubcf4\ub294 \uac1c\uc778 \uc544\uce74\uc774\ube0c\uc608\uc694."}
-              </p>
               <div className={styles.feedbackActions}>
                 <Link href="/login" className={styles.primaryAction}>
                   {"\ub85c\uadf8\uc778\ud558\uae30"}

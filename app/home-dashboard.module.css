@@ -486,6 +486,14 @@
   padding: 20px;
 }
 
+.favoriteFeatureCard .sideSectionHeader {
+  align-items: center;
+}
+
+.favoriteFeatureCard .sideSectionTitle {
+  margin-top: 4px;
+}
+
 .progressFeatureList,
 .favoriteFeatureList {
   display: grid;
