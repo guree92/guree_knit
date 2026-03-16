@@ -229,26 +229,13 @@
   opacity: 1;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1180px) {
   .root {
     justify-items: stretch;
   }
 
-  .profileCard {
-    padding: 12px 14px 14px;
-    border-radius: 22px;
-  }
-
   .profileCardHeader {
     display: none;
-  }
-
-  .label,
-  .secondary {
-    max-width: 200px;
-    margin-left: 12px;
-    opacity: 1;
-    pointer-events: auto;
   }
 
   .loginLink,
@@ -259,6 +246,14 @@
     justify-content: flex-start;
     padding: 0 10px;
     border-color: var(--app-border);
+  }
+
+  .label,
+  .secondary {
+    max-width: 200px;
+    margin-left: 12px;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .loginLink,
@@ -272,5 +267,16 @@
 
   .userBadge {
     background: rgba(231, 238, 229, 0.88);
+  }
+}
+
+@media (max-width: 900px) {
+  .root {
+    justify-items: stretch;
+  }
+
+  .profileCard {
+    padding: 12px 14px 14px;
+    border-radius: 22px;
   }
 }
