@@ -4,7 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFavoritePatternIds } from "@/lib/favorite-patterns";
+import {
+  FAVORITE_PATTERNS_CHANGED_EVENT,
+  getFavoritePatterns,
+  type FavoritePatternCard,
+} from "@/lib/favorite-patterns";
 import { getPatternImageUrl } from "@/lib/patterns";
 import styles from "@/app/home-dashboard.module.css";
 
@@ -23,15 +27,6 @@ export type MainPatternCard = {
   like_count: number | null;
   image_path: string | null;
   author_nickname?: string | null;
-};
-
-type FavoritePatternCard = {
-  id: string;
-  title: string;
-  category: string | null;
-  level: string | null;
-  like_count: number | null;
-  image_path: string | null;
 };
 
 type Props = {
@@ -60,29 +55,13 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
 
   useEffect(() => {
     async function loadFavoritePatterns() {
-      const favoriteIds = getFavoritePatternIds();
-
-      if (favoriteIds.length === 0) {
-        setFavoritePatterns([]);
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("patterns")
-        .select("id, title, category, level, like_count, image_path")
-        .in("id", favoriteIds)
-        .eq("is_hidden", false);
-
-      if (error) {
+      try {
+        const rows = await getFavoritePatterns();
+        setFavoritePatterns(rows);
+      } catch (error) {
         console.error("찜한 도안을 불러오지 못했어요.", error);
         setFavoritePatterns([]);
-        return;
       }
-
-      const rows = ((data ?? []) as FavoritePatternCard[]) ?? [];
-      const order = new Map(favoriteIds.map((id, index) => [id, index]));
-      rows.sort((left, right) => (order.get(left.id) ?? 0) - (order.get(right.id) ?? 0));
-      setFavoritePatterns(rows);
     }
 
     function handleFavoritesChanged() {
@@ -90,12 +69,15 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
     }
 
     void loadFavoritePatterns();
-    window.addEventListener("favorite-patterns-changed", handleFavoritesChanged);
-    window.addEventListener("storage", handleFavoritesChanged);
+    window.addEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void loadFavoritePatterns();
+    });
 
     return () => {
-      window.removeEventListener("favorite-patterns-changed", handleFavoritesChanged);
-      window.removeEventListener("storage", handleFavoritesChanged);
+      window.removeEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
+      listener.subscription.unsubscribe();
     };
   }, [supabase]);
 
@@ -181,8 +163,8 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
               <p className={styles.sideSectionEyebrow}>FAVORITES</p>
               <h2 className={styles.sideSectionTitle}>찜한 도안</h2>
             </div>
-            <Link href="/patterns" className={styles.sideSectionLink}>
-              도안 보기
+            <Link href="/patterns/favorites" className={styles.sideSectionLink}>
+              전체 보기
             </Link>
           </div>
 
@@ -226,7 +208,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
           ) : (
             <div className={styles.favoriteFeatureEmpty}>
               <p>아직 찜한 도안이 없어요.</p>
-              <span>도안 상세에서 `찜하기`를 누르면 여기에 모아볼 수 있어요.</span>
+              <span>도안 상세에서 찜하기를 누르면 계정별로 여기에 모아볼 수 있어요.</span>
             </div>
           )}
         </section>
