@@ -1,7 +1,7 @@
 .page {
   min-height: calc(100vh - 48px);
   margin-top: -6px;
-  padding: 0 24px 56px;
+  padding: 0 24px 0;
   background: transparent;
   color: #3d3128;
 }
@@ -32,6 +32,13 @@
 
 .sideColumn {
   min-width: 0;
+  position: sticky;
+  top: 18px;
+  align-self: start;
+}
+
+.sideColumn > .sidePanel + .sidePanel {
+  margin-top: 10px;
 }
 
 .mobileSearchPanel {
@@ -39,6 +46,14 @@
 }
 
 .desktopSearchPanel {
+  display: block;
+}
+
+.mobileFavoritePanel {
+  display: none;
+}
+
+.desktopFavoritePanel {
   display: block;
 }
 
@@ -90,6 +105,37 @@
   background: linear-gradient(135deg, #8a9b84, #71826c);
   color: white;
   box-shadow: 0 14px 26px rgba(111, 130, 107, 0.24);
+}
+
+.heroActions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.secondaryLinkAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
+  padding: 13px 18px;
+  border: 1px solid #ddd4c9;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #6f6257;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.secondaryLinkAction:hover {
+  transform: translateY(-2px);
 }
 
 .primaryAction:hover {
@@ -180,9 +226,56 @@
 }
 
 .primaryAction {
-  grid-column: 2;
-  grid-row: 1 / span 2;
   align-self: center;
+}
+
+.patternCardLink {
+  display: grid;
+  gap: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.favoriteButton,
+.favoriteButtonActive {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.favoriteButton {
+  border: 1px solid #ddd4c9;
+  background: white;
+  color: #6f6257;
+}
+
+.favoriteButtonActive {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, #8a9b84, #70806b);
+  color: white;
+  box-shadow: 0 10px 18px rgba(111, 130, 107, 0.18);
+}
+
+.favoriteButton:hover,
+.favoriteButtonActive:hover {
+  transform: translateY(-1px);
+}
+
+.favoriteButton:disabled,
+.favoriteButtonActive:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 .categoryList {
@@ -243,6 +336,10 @@
   padding: 18px;
 }
 
+.sectionBlockCollapsed .sectionHeading {
+  margin-bottom: 0;
+}
+
 .sectionHeading {
   display: flex;
   align-items: flex-end;
@@ -251,18 +348,23 @@
   margin-bottom: 12px;
 }
 
+.sectionTitleRow {
+  display: grid;
+  gap: 6px;
+}
+
+.sectionTitleInline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .sectionTitle {
   margin: 6px 0 0;
   color: #372c22;
   font-size: 1.32rem;
   font-weight: 800;
   letter-spacing: -0.03em;
-}
-
-.sectionMeta {
-  color: #8f8175;
-  font-size: 0.8rem;
-  font-weight: 700;
 }
 
 .popularShowcaseList {
@@ -339,10 +441,33 @@
 }
 
 .popularShowcaseBody {
+  position: relative;
   display: grid;
   gap: 4px;
   min-height: 100%;
-  padding-bottom: 6px;
+  padding-bottom: 2px;
+}
+
+.patternCardMetaBlock {
+  position: relative;
+  padding-right: 92px;
+}
+
+.patternCardMetaBlock p {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patternCardMetaBlock .favoriteButton,
+.patternCardMetaBlock .favoriteButtonActive {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 0.76rem;
 }
 
 .popularShowcaseBody strong {
@@ -382,8 +507,7 @@
 }
 
 .sidePanel {
-  position: sticky;
-  top: 18px;
+  position: static;
   padding: 16px;
 }
 
@@ -456,6 +580,146 @@
   font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+}
+
+.sideFavoriteHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.sideFavoriteActions,
+.sectionHeadingActions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.desktopFeaturedSpacer {
+  min-width: 1px;
+}
+
+.mobileSectionToggleRow {
+  display: none;
+}
+
+.sideFavoriteTitle {
+  margin: 6px 0 0;
+  color: #372c22;
+  font-size: 1.32rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.sideFavoriteLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e4d8cc;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #75685c;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mobileToggleButton {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #e4d8cc;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #75685c;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sideFavoriteList {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.sideFavoriteItem,
+.sideFavoriteEmpty {
+  border: 1px solid #ede4d9;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.88);
+}
+
+.sideFavoriteItem {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  color: inherit;
+  text-decoration: none;
+}
+
+.sideFavoriteThumb {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: linear-gradient(145deg, #f1ede4, #e2e8de);
+}
+
+.sideFavoriteImage {
+  object-fit: cover;
+}
+
+.sideFavoriteFallback {
+  width: 100%;
+  height: 100%;
+  background:
+    radial-gradient(circle at top right, rgba(231, 238, 229, 0.72), transparent 32%),
+    linear-gradient(145deg, #f1ede4, #e2e8de);
+}
+
+.sideFavoriteBody {
+  min-width: 0;
+}
+
+.sideFavoriteBody strong {
+  color: #30251c;
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.sideFavoriteBody p,
+.sideFavoriteEmpty span {
+  margin: 10px 0 0;
+  color: #75685c;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.sideFavoriteLikes {
+  color: #6f806a;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sideFavoriteEmpty {
+  margin-top: 18px;
+  padding: 14px 16px;
+}
+
+.sideFavoriteEmpty p {
+  margin: 0;
+  color: #30251c;
+  font-size: 0.94rem;
+  font-weight: 700;
 }
 
 .feedbackCard {
@@ -558,16 +822,114 @@
     position: static;
   }
 
+  .sideColumn {
+    position: static;
+    top: auto;
+  }
+
+}
+
+@media (min-width: 1181px) and (max-width: 1450px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 236px;
+    gap: 12px;
+  }
+
+  .hero {
+    padding: 18px 22px;
+  }
+
+  .heroActions {
+    gap: 8px;
+  }
+
+  .secondaryLinkAction,
+  .primaryAction {
+    min-width: 112px;
+    padding: 12px 16px;
+    font-size: 0.84rem;
+  }
+
+  .sectionBlock,
+  .sidePanel {
+    padding: 16px;
+  }
+
+  .popularShowcaseList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .popularShowcaseCard {
+    padding: 9px;
+  }
+
+  .popularShowcaseBody strong {
+    font-size: 0.86rem;
+  }
+
+  .popularShowcaseBody p {
+    font-size: 0.66rem;
+    line-height: 1.38;
+  }
+
+  .patternCardMetaBlock {
+    padding-right: 74px;
+  }
+
+  .patternCardMetaBlock .favoriteButton,
+  .patternCardMetaBlock .favoriteButtonActive {
+    min-height: 32px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
+  .sideFavoriteItem {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .sideFavoriteThumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .sideFavoriteLikes {
+    grid-column: 2;
+    justify-self: start;
+  }
+}
+
+@media (min-width: 1451px) and (max-width: 1720px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 264px;
+    gap: 12px;
+  }
+
+  .sectionBlock,
+  .sidePanel {
+    padding: 16px;
+  }
+
+  .popularShowcaseList {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
 }
 
 @media (max-width: 1180px) and (min-width: 921px) {
   .page {
-    padding: 0 18px 48px;
+    padding: 0 18px 0;
   }
 
   .workspace {
     grid-template-columns: minmax(0, 1fr) 248px;
     gap: 12px;
+  }
+
+  .sideColumn {
+    position: sticky;
+    top: 18px;
+    align-self: start;
   }
 
   .hero {
@@ -588,12 +950,52 @@
     gap: 12px;
   }
 
+  .popularShowcaseCard {
+    padding: 9px;
+  }
+
+  .patternCardLink {
+    gap: 10px;
+  }
+
+  .popularShowcaseThumb {
+    border-radius: 13px;
+  }
+
   .popularShowcaseBody strong {
     font-size: 0.86rem;
+    line-height: 1.28;
   }
 
   .popularShowcaseBody p {
+    font-size: 0.64rem;
+    line-height: 1.35;
+  }
+
+  .patternCardMetaBlock {
+    padding-right: 64px;
+  }
+
+  .patternCardMetaBlock .favoriteButton,
+  .patternCardMetaBlock .favoriteButtonActive {
+    min-height: 30px;
+    padding: 0 8px;
     font-size: 0.68rem;
+  }
+
+  .sideFavoriteBody {
+    display: grid;
+    gap: 2px;
+  }
+
+  .sideFavoriteBody p {
+    display: grid;
+    gap: 1px;
+    margin-top: 0;
+  }
+
+  .sideFavoriteBody p span {
+    display: block;
   }
 
   .archivePagination {
@@ -603,7 +1005,7 @@
 
 @media (max-width: 920px) {
   .page {
-    padding: 0 16px 44px;
+    padding: 0 16px 0;
   }
 
   .workspace {
@@ -617,14 +1019,29 @@
 
   .sideColumn {
     order: -1;
+    display: none;
   }
 
   .sidePanel {
     padding: 14px 16px;
   }
 
+  .mobileSearchPanel {
+    display: block;
+    padding: 12px 14px;
+    border: 1px solid rgba(230, 221, 210, 0.82);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(250, 247, 242, 0.94));
+    box-shadow: 0 6px 16px rgba(91, 74, 60, 0.025);
+  }
+
   .sideSearchPanel {
     gap: 8px;
+  }
+
+  .sideFavoriteHeader,
+  .sideFavoriteActions {
+    align-items: center;
   }
 
   .sideSearchBox {
@@ -664,10 +1081,13 @@
   }
 
   .popularShowcaseCard {
+    padding: 10px;
+  }
+
+  .patternCardLink {
     grid-template-columns: 108px minmax(0, 1fr);
     gap: 12px;
     align-items: start;
-    padding: 10px;
   }
 
   .popularShowcaseThumb {
@@ -696,6 +1116,34 @@
     font-size: 0.76rem;
   }
 
+  .patternCardMetaBlock {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding-right: 0;
+  }
+
+  .patternCardMetaBlock p {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .patternCardMetaBlock .favoriteButton,
+  .patternCardMetaBlock .favoriteButtonActive {
+    position: static;
+    top: auto;
+    right: auto;
+    transform: none;
+    flex-shrink: 0;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
   .archivePagination {
     flex-wrap: wrap;
     gap: 10px;
@@ -705,11 +1153,24 @@
     flex-wrap: wrap;
     justify-content: center;
   }
+
+  .mobileFavoritePanel {
+    display: block;
+  }
+
+  .desktopSearchPanel,
+  .desktopFavoritePanel {
+    display: none;
+  }
+
+  .mobileToggleButton {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 720px) {
   .page {
-    padding: 0 12px 36px;
+    padding: 0 12px 0;
   }
 
   .workspace {
@@ -746,10 +1207,18 @@
     display: contents;
   }
 
+  .heroActions {
+    gap: 8px;
+  }
+
+  .secondaryLinkAction,
   .primaryAction {
     min-width: 112px;
     padding: 11px 14px;
     font-size: 0.84rem;
+  }
+
+  .heroActions {
     grid-column: 2;
     grid-row: 1 / span 2;
     align-self: center;
@@ -758,6 +1227,14 @@
   .sectionHeading {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .sectionTitleInline {
+    justify-content: space-between;
+  }
+
+  .mobileSectionToggleRow {
+    display: none;
   }
 
   .heroIntro {
@@ -769,6 +1246,14 @@
   .archiveSortGroup {
     justify-content: flex-start;
     gap: 6px;
+  }
+
+  .mobileToggleButton {
+    display: inline-flex;
+  }
+
+  .desktopFeaturedSpacer {
+    display: none;
   }
 
   .archiveSortButton,
@@ -784,6 +1269,34 @@
     gap: 10px;
   }
 
+  .patternCardMetaBlock {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding-right: 0;
+  }
+
+  .patternCardMetaBlock p {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .patternCardMetaBlock .favoriteButton,
+  .patternCardMetaBlock .favoriteButtonActive {
+    position: static;
+    top: auto;
+    right: auto;
+    transform: none;
+    flex-shrink: 0;
+    min-height: 30px;
+    padding: 0 10px;
+    font-size: 0.72rem;
+  }
+
   .sectionBlock,
   .sidePanel {
     padding: 14px;
@@ -795,6 +1308,11 @@
   }
 
   .sectionTitle {
+    margin-top: 4px;
+    font-size: 1.14rem;
+  }
+
+  .sideFavoriteTitle {
     margin-top: 4px;
     font-size: 1.14rem;
   }
@@ -840,6 +1358,14 @@
 
   .sideSearchMeta {
     font-size: 0.74rem;
+  }
+
+  .sideFavoriteHeader {
+    align-items: center;
+  }
+
+  .sideFavoriteActions {
+    margin-left: auto;
   }
 
   .archivePagination {
@@ -889,7 +1415,7 @@
 
 @media (max-width: 520px) {
   .page {
-    padding: 0 10px 30px;
+    padding: 0 10px 0;
   }
 
   .hero {
@@ -906,6 +1432,15 @@
     font-size: clamp(1.72rem, 10vw, 2.25rem);
   }
 
+  .heroActions {
+    width: 100%;
+    grid-column: 1;
+    grid-row: 3;
+    justify-content: flex-start;
+    margin-top: 12px;
+  }
+
+  .secondaryLinkAction,
   .primaryAction {
     min-width: 104px;
     padding: 10px 12px;
@@ -913,9 +1448,19 @@
   }
 
   .popularShowcaseCard {
+    padding: 9px;
+  }
+
+  .patternCardLink {
     grid-template-columns: 92px minmax(0, 1fr);
     gap: 10px;
-    padding: 9px;
+  }
+
+  .patternCardMetaBlock .favoriteButton,
+  .patternCardMetaBlock .favoriteButtonActive {
+    min-height: 28px;
+    padding: 0 9px;
+    font-size: 0.68rem;
   }
 
   .popularShowcaseThumb {
@@ -948,6 +1493,10 @@
     font-size: 1.06rem;
   }
 
+  .sideFavoriteTitle {
+    font-size: 1.06rem;
+  }
+
   .archiveSortButton,
   .archiveSortButtonActive,
   .categoryChip,
@@ -963,5 +1512,19 @@
     width: 30px;
     height: 30px;
     font-size: 0.9rem;
+  }
+
+  .sideFavoriteItem {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+
+  .sideFavoriteThumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .sideFavoriteLikes {
+    grid-column: 2;
+    justify-self: start;
   }
 }

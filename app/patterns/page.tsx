@@ -3,17 +3,31 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
+import {
+  FavoritePatternAuthError,
+  FAVORITE_PATTERNS_CHANGED_EVENT,
+  getFavoritePatterns,
+  getFavoritePatternIds,
+  type FavoritePatternCard,
+  toggleFavoritePattern,
+} from "@/lib/favorite-patterns";
 import { getPatternImageUrl, getPatterns, type PatternItem } from "@/lib/patterns";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./patterns-page.module.css";
 
 const needleFilters = ["전체", "코바늘", "대바늘"] as const;
-const archiveSortOptions = ["latest", "popular"] as const;
+type ArchiveSort = "latest" | "popular";
 const MOBILE_ARCHIVE_PAGE_SIZE = 5;
 const MID_TABLET_ARCHIVE_PAGE_SIZE = 8;
+const NARROW_DESKTOP_ARCHIVE_PAGE_SIZE = 6;
+const MID_DESKTOP_ARCHIVE_PAGE_SIZE = 8;
 const DEFAULT_ARCHIVE_PAGE_SIZE = 10;
-const TABLET_ARCHIVE_PAGE_SIZE = 9;
+const TABLET_ARCHIVE_PAGE_SIZE = 6;
 const DEFAULT_FEATURED_COUNT = 5;
+const NARROW_DESKTOP_FEATURED_COUNT = 3;
+const MID_DESKTOP_FEATURED_COUNT = 4;
 const TABLET_FEATURED_COUNT = 3;
 const MID_TABLET_FEATURED_COUNT = 4;
 
@@ -31,20 +45,30 @@ function formatPatternDate(value?: string) {
 }
 
 export default function PatternsPage() {
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
   const archivePaginationRef = useRef<HTMLDivElement | null>(null);
   const hasMountedArchivePageRef = useRef(false);
   const [isMobileViewport, setIsMobileViewport] = useState(false);
   const [isMidTabletViewport, setIsMidTabletViewport] = useState(false);
+  const [isNarrowDesktopViewport, setIsNarrowDesktopViewport] = useState(false);
+  const [isMidDesktopViewport, setIsMidDesktopViewport] = useState(false);
   const [isTabletViewport, setIsTabletViewport] = useState(false);
   const [selectedNeedleFilter, setSelectedNeedleFilter] =
     useState<(typeof needleFilters)[number]>(needleFilters[0]);
-  const [archiveSort, setArchiveSort] =
-    useState<(typeof archiveSortOptions)[number]>("latest");
+  const [archiveSort, setArchiveSort] = useState<ArchiveSort>("latest");
   const [archivePage, setArchivePage] = useState(1);
   const [keyword, setKeyword] = useState("");
   const [patternItems, setPatternItems] = useState<PatternItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [favoritePatterns, setFavoritePatterns] = useState<FavoritePatternCard[]>([]);
+  const [favoritePendingId, setFavoritePendingId] = useState("");
+  const [isMobileFeaturedOpen, setIsMobileFeaturedOpen] = useState(true);
+  const [isMobileFavoritesOpen, setIsMobileFavoritesOpen] = useState(false);
+  const isCompactViewport = isMobileViewport || isMidTabletViewport;
+  const isFavoriteMetaStackedViewport = isTabletViewport && !isMidTabletViewport;
 
   useEffect(() => {
     async function loadPatterns() {
@@ -63,25 +87,73 @@ export default function PatternsPage() {
   }, []);
 
   useEffect(() => {
+    async function loadFavoriteIds() {
+      try {
+        setFavoriteIds(await getFavoritePatternIds());
+      } catch (error) {
+        console.error("찜한 도안을 불러오지 못했어요.", error);
+        setFavoriteIds([]);
+      }
+    }
+
+    async function loadFavoritePatterns() {
+      try {
+        setFavoritePatterns(await getFavoritePatterns());
+      } catch (error) {
+        console.error("찜한 도안 패널을 불러오지 못했어요.", error);
+        setFavoritePatterns([]);
+      }
+    }
+
+    void loadFavoriteIds();
+    void loadFavoritePatterns();
+
+    const handleFavoritesChanged = () => {
+      void loadFavoriteIds();
+      void loadFavoritePatterns();
+    };
+
+    window.addEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
+
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      void loadFavoriteIds();
+      void loadFavoritePatterns();
+    });
+
+    return () => {
+      window.removeEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
+      listener.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  useEffect(() => {
     if (typeof window === "undefined") return;
 
     const mobileMediaQuery = window.matchMedia("(max-width: 720px)");
     const midTabletMediaQuery = window.matchMedia("(min-width: 721px) and (max-width: 920px)");
+    const narrowDesktopMediaQuery = window.matchMedia("(min-width: 1181px) and (max-width: 1450px)");
+    const midDesktopMediaQuery = window.matchMedia("(min-width: 1451px) and (max-width: 1720px)");
     const mediaQuery = window.matchMedia("(min-width: 721px) and (max-width: 1180px)");
     const syncViewport = () => {
       setIsMobileViewport(mobileMediaQuery.matches);
       setIsMidTabletViewport(midTabletMediaQuery.matches);
+      setIsNarrowDesktopViewport(narrowDesktopMediaQuery.matches);
+      setIsMidDesktopViewport(midDesktopMediaQuery.matches);
       setIsTabletViewport(mediaQuery.matches);
     };
 
     syncViewport();
     mobileMediaQuery.addEventListener("change", syncViewport);
     midTabletMediaQuery.addEventListener("change", syncViewport);
+    narrowDesktopMediaQuery.addEventListener("change", syncViewport);
+    midDesktopMediaQuery.addEventListener("change", syncViewport);
     mediaQuery.addEventListener("change", syncViewport);
 
     return () => {
       mobileMediaQuery.removeEventListener("change", syncViewport);
       midTabletMediaQuery.removeEventListener("change", syncViewport);
+      narrowDesktopMediaQuery.removeEventListener("change", syncViewport);
+      midDesktopMediaQuery.removeEventListener("change", syncViewport);
       mediaQuery.removeEventListener("change", syncViewport);
     };
   }, []);
@@ -123,11 +195,21 @@ export default function PatternsPage() {
           0,
           isMidTabletViewport
             ? MID_TABLET_FEATURED_COUNT
+            : isNarrowDesktopViewport
+              ? NARROW_DESKTOP_FEATURED_COUNT
+            : isMidDesktopViewport
+              ? MID_DESKTOP_FEATURED_COUNT
             : isTabletViewport
               ? TABLET_FEATURED_COUNT
               : DEFAULT_FEATURED_COUNT
         ),
-    [isMidTabletViewport, isTabletViewport, patternItems]
+    [
+      isNarrowDesktopViewport,
+      isMidDesktopViewport,
+      isMidTabletViewport,
+      isTabletViewport,
+      patternItems,
+    ]
   );
   const archivePatterns = useMemo(() => {
     const items = [...filteredPatterns];
@@ -148,6 +230,10 @@ export default function PatternsPage() {
     ? MOBILE_ARCHIVE_PAGE_SIZE
     : isMidTabletViewport
       ? MID_TABLET_ARCHIVE_PAGE_SIZE
+    : isNarrowDesktopViewport
+      ? NARROW_DESKTOP_ARCHIVE_PAGE_SIZE
+    : isMidDesktopViewport
+      ? MID_DESKTOP_ARCHIVE_PAGE_SIZE
     : isTabletViewport
       ? TABLET_ARCHIVE_PAGE_SIZE
       : DEFAULT_ARCHIVE_PAGE_SIZE;
@@ -180,6 +266,119 @@ export default function PatternsPage() {
     });
   }, [archivePage]);
 
+  async function handleFavoriteToggle(patternId: string) {
+    if (!patternId || favoritePendingId) return;
+
+    setFavoritePendingId(patternId);
+
+    try {
+      const result = await toggleFavoritePattern(patternId);
+      setFavoriteIds((current) =>
+        result.isFavorite ? [patternId, ...current.filter((id) => id !== patternId)] : current.filter((id) => id !== patternId)
+      );
+    } catch (error) {
+      if (error instanceof FavoritePatternAuthError) {
+        alert(error.message);
+        router.push("/login");
+        return;
+      }
+
+      console.error("도안 찜 처리에 실패했어요.", error);
+      const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했어요.";
+      alert(`도안 찜 처리에 실패했어요: ${message}`);
+    } finally {
+      setFavoritePendingId("");
+    }
+  }
+
+  function renderFavoritePanel(mobile = false) {
+    const shouldShowContent = !mobile || isMobileFavoritesOpen;
+    const panelClassName = mobile
+      ? `${styles.sidePanel} ${styles.mobileFavoritePanel}`
+      : `${styles.sidePanel} ${styles.desktopFavoritePanel}`;
+    const showToggleButton = mobile;
+
+    return (
+      <section className={panelClassName}>
+        <div className={styles.sideFavoriteHeader}>
+          <div>
+            <p className={styles.sectionEyebrow}>Favorites</p>
+            <h2 className={styles.sideFavoriteTitle}>찜한 도안</h2>
+          </div>
+
+          <div className={styles.sideFavoriteActions}>
+            <Link href="/patterns/favorites" className={styles.sideFavoriteLink}>
+              전체 보기
+            </Link>
+            {showToggleButton ? (
+              <button
+                type="button"
+                onClick={() => setIsMobileFavoritesOpen((current) => !current)}
+                className={styles.mobileToggleButton}
+                aria-expanded={shouldShowContent}
+              >
+                {shouldShowContent ? "접기" : "펼치기"}
+              </button>
+            ) : null}
+          </div>
+        </div>
+
+        {shouldShowContent ? (
+          favoritePatterns.length > 0 ? (
+            <div className={styles.sideFavoriteList}>
+              {favoritePatterns.slice(0, 3).map((pattern) => {
+                const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
+
+                return (
+                  <Link
+                    key={pattern.id}
+                    href={`/patterns/${pattern.id}`}
+                    className={styles.sideFavoriteItem}
+                  >
+                    <div className={styles.sideFavoriteThumb}>
+                      {imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={pattern.title}
+                          fill
+                          className={styles.sideFavoriteImage}
+                          sizes="84px"
+                        />
+                      ) : (
+                        <div className={styles.sideFavoriteFallback} />
+                      )}
+                    </div>
+
+                    <div className={styles.sideFavoriteBody}>
+                      <strong>{pattern.title}</strong>
+                      <p>
+                        {isFavoriteMetaStackedViewport ? (
+                          <>
+                            <span>{pattern.category ?? "기타"}</span>
+                            <span>{pattern.level ?? "난이도 미정"}</span>
+                          </>
+                        ) : (
+                          `${pattern.category ?? "기타"} · ${pattern.level ?? "난이도 미정"}`
+                        )}
+                      </p>
+                    </div>
+
+                    <span className={styles.sideFavoriteLikes}>♥ {pattern.like_count ?? 0}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ) : (
+            <div className={styles.sideFavoriteEmpty}>
+              <p>아직 찜한 도안이 없어요.</p>
+              <span>도안 상세나 목록에서 찜하기를 누르면 여기 모아볼 수 있어요.</span>
+            </div>
+          )
+        ) : null}
+      </section>
+    );
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -190,9 +389,14 @@ export default function PatternsPage() {
             <section className={styles.hero}>
               <div className={styles.heroTop}>
                 <div className={styles.heroBadge}>Pattern Archive</div>
-                <Link href="/patterns/new" className={styles.primaryAction}>
-                  도안 등록
-                </Link>
+                <div className={styles.heroActions}>
+                  <Link href="/patterns/favorites" className={styles.secondaryLinkAction}>
+                    찜한 도안
+                  </Link>
+                  <Link href="/patterns/new" className={styles.primaryAction}>
+                    도안 등록
+                  </Link>
+                </div>
               </div>
 
               <div className={styles.heroIntro}>
@@ -224,64 +428,117 @@ export default function PatternsPage() {
               </div>
             </section>
 
-            <section className={styles.sectionBlock}>
+            {isCompactViewport ? renderFavoritePanel(true) : null}
+
+            <section
+              className={
+                isCompactViewport && !isMobileFeaturedOpen
+                  ? `${styles.sectionBlock} ${styles.sectionBlockCollapsed}`
+                  : styles.sectionBlock
+              }
+            >
               <div className={styles.sectionHeading}>
-                <div>
+                <div className={styles.sectionTitleRow}>
                   <p className={styles.sectionEyebrow}>Featured</p>
-                  <h2 className={styles.sectionTitle}>인기 도안</h2>
+                  <div className={styles.sectionTitleInline}>
+                    <h2 className={styles.sectionTitle}>인기 도안</h2>
+                    <button
+                      type="button"
+                      onClick={() => setIsMobileFeaturedOpen((current) => !current)}
+                      className={styles.mobileToggleButton}
+                      aria-expanded={isMobileFeaturedOpen}
+                    >
+                      {isMobileFeaturedOpen ? "접기" : "펼치기"}
+                    </button>
+                  </div>
                 </div>
-                <span className={styles.sectionMeta}>전체 도안 기준</span>
+                <div className={styles.desktopFeaturedSpacer} aria-hidden="true" />
+              </div>
+              <div className={styles.mobileSectionToggleRow}>
+                <div className={styles.sectionHeadingActions}>
+                  <button
+                    type="button"
+                    onClick={() => setIsMobileFeaturedOpen((current) => !current)}
+                    className={styles.mobileToggleButton}
+                    aria-expanded={isMobileFeaturedOpen}
+                  >
+                    {isMobileFeaturedOpen ? "접기" : "펼치기"}
+                  </button>
+                </div>
               </div>
 
-              {loading ? (
-                <div className={styles.feedbackCard}>
-                  <p className={styles.feedbackTitle}>도안을 불러오는 중이에요.</p>
-                  <p className={styles.feedbackDescription}>추천 도안을 정리하고 있어요.</p>
-                </div>
-              ) : featuredPatterns.length > 0 ? (
-                <div className={styles.popularShowcaseList}>
-                  {featuredPatterns.map((card, index) => {
-                    const imageUrl = getPatternImageUrl(card.image_path);
+              {!isCompactViewport || isMobileFeaturedOpen ? (
+                loading ? (
+                  <div className={styles.feedbackCard}>
+                    <p className={styles.feedbackTitle}>도안을 불러오는 중이에요.</p>
+                    <p className={styles.feedbackDescription}>추천 도안을 정리하고 있어요.</p>
+                  </div>
+                ) : featuredPatterns.length > 0 ? (
+                  <div className={styles.popularShowcaseList}>
+                    {featuredPatterns.map((card, index) => {
+                      const imageUrl = getPatternImageUrl(card.image_path);
 
-                    return (
-                      <Link
-                        key={card.id}
-                        href={`/patterns/${card.id}`}
-                        className={styles.popularShowcaseCard}
-                      >
-                        <div className={styles.popularShowcaseThumb}>
-                          <span className={styles.popularShowcaseRank}>{index + 1}</span>
-                          {imageUrl ? (
-                            <Image
-                              src={imageUrl}
-                              alt={card.title}
-                              fill
-                              className={styles.popularShowcaseImage}
-                              sizes="(max-width: 920px) 50vw, (max-width: 1200px) 25vw, 18vw"
-                            />
-                          ) : (
-                            <div className={styles.popularShowcaseFallback} />
-                          )}
-                        </div>
+                      return (
+                        <article key={card.id} className={styles.popularShowcaseCard}>
+                          <Link href={`/patterns/${card.id}`} className={styles.patternCardLink}>
+                            <div className={styles.popularShowcaseThumb}>
+                              <span className={styles.popularShowcaseRank}>{index + 1}</span>
+                              {imageUrl ? (
+                                <Image
+                                  src={imageUrl}
+                                  alt={card.title}
+                                  fill
+                                  className={styles.popularShowcaseImage}
+                                  sizes="(max-width: 920px) 50vw, (max-width: 1200px) 25vw, 18vw"
+                                />
+                              ) : (
+                                <div className={styles.popularShowcaseFallback} />
+                              )}
+                            </div>
 
-                        <div className={styles.popularShowcaseBody}>
-                          <strong>{card.title}</strong>
-                          <p>
-                            {card.category ?? "기타"} · {card.level ?? "난이도 미정"} · @
-                            {card.author_nickname ?? "닉네임 없음"}
-                          </p>
-                          <span>♥ {card.like_count ?? 0}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className={styles.feedbackCard}>
-                  <p className={styles.feedbackTitle}>보여줄 추천 도안이 아직 없어요.</p>
-                  <p className={styles.feedbackDescription}>검색 조건을 바꾸거나 새 도안을 등록해 보세요.</p>
-                </div>
-              )}
+                            <div className={styles.popularShowcaseBody}>
+                              <strong>{card.title}</strong>
+                              <div className={styles.patternCardMetaBlock}>
+                                <p>
+                                  {card.category ?? "기타"} · {card.level ?? "난이도 미정"} · @
+                                  {card.author_nickname ?? "닉네임 없음"}
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.preventDefault();
+                                    void handleFavoriteToggle(card.id);
+                                  }}
+                                  disabled={favoritePendingId === card.id}
+                                  className={
+                                    favoriteIds.includes(card.id)
+                                      ? styles.favoriteButtonActive
+                                      : styles.favoriteButton
+                                  }
+                                >
+                                  {favoritePendingId === card.id
+                                    ? "저장 중..."
+                                    : favoriteIds.includes(card.id)
+                                      ? "찜"
+                                      : "찜하기"}
+                                </button>
+                              </div>
+                              <span>♥ {card.like_count ?? 0}</span>
+                            </div>
+                          </Link>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className={styles.feedbackCard}>
+                    <p className={styles.feedbackTitle}>보여줄 추천 도안이 아직 없어요.</p>
+                    <p className={styles.feedbackDescription}>
+                      검색 조건을 바꾸거나 새 도안을 등록해 보세요.
+                    </p>
+                  </div>
+                )
+              ) : null}
             </section>
 
             <section className={styles.sectionBlock}>
@@ -335,8 +592,9 @@ export default function PatternsPage() {
                     const absoluteIndex = (archivePage - 1) * archivePageSize + index;
 
                     return (
-                      <Link key={card.id} href={`/patterns/${card.id}`} className={styles.popularShowcaseCard}>
-                        <div className={styles.popularShowcaseThumb}>
+                      <article key={card.id} className={styles.popularShowcaseCard}>
+                        <Link href={`/patterns/${card.id}`} className={styles.patternCardLink}>
+                          <div className={styles.popularShowcaseThumb}>
                           {archiveSort === "popular" ? (
                             <span className={styles.popularShowcaseRankMuted}>{`#${absoluteIndex + 1}`}</span>
                           ) : null}
@@ -351,22 +609,44 @@ export default function PatternsPage() {
                           ) : (
                             <div className={styles.popularShowcaseFallback} />
                           )}
-                        </div>
-
-                        <div className={styles.popularShowcaseBody}>
-                          <strong>{card.title}</strong>
-                          <p>
-                            {card.category ?? "기타"} · {card.level ?? "난이도 미정"} · @
-                            {card.author_nickname ?? "닉네임 없음"}
-                          </p>
-                          <div className={styles.archiveCardMetaRow}>
-                            <span>♥ {card.like_count ?? 0}</span>
                           </div>
-                          <span className={styles.archiveCardDate}>
-                            {formatPatternDate(card.created_at)}
-                          </span>
-                        </div>
-                      </Link>
+
+                          <div className={styles.popularShowcaseBody}>
+                            <strong>{card.title}</strong>
+                            <div className={styles.patternCardMetaBlock}>
+                              <p>
+                                {card.category ?? "기타"} · {card.level ?? "난이도 미정"} · @
+                                {card.author_nickname ?? "닉네임 없음"}
+                              </p>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.preventDefault();
+                                  void handleFavoriteToggle(card.id);
+                                }}
+                                disabled={favoritePendingId === card.id}
+                                className={
+                                  favoriteIds.includes(card.id)
+                                    ? styles.favoriteButtonActive
+                                    : styles.favoriteButton
+                                }
+                              >
+                                {favoritePendingId === card.id
+                                  ? "저장 중..."
+                                  : favoriteIds.includes(card.id)
+                                    ? "찜"
+                                    : "찜하기"}
+                              </button>
+                            </div>
+                            <div className={styles.archiveCardMetaRow}>
+                              <span>♥ {card.like_count ?? 0}</span>
+                            </div>
+                            <span className={styles.archiveCardDate}>
+                              {formatPatternDate(card.created_at)}
+                            </span>
+                          </div>
+                        </Link>
+                      </article>
                     );
                   })}
                 </div>
@@ -460,6 +740,8 @@ export default function PatternsPage() {
                 </div>
               </div>
             </section>
+
+            {!isCompactViewport ? renderFavoritePanel() : null}
           </aside>
         </section>
       </div>
