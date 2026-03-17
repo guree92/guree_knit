@@ -4,7 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
+import PatternDetailEditor from "@/components/patterns/PatternDetailEditor";
 import { patternCategories } from "@/data/patterns";
+import {
+  normalizeDetailRows,
+  type DetailRow,
+  type NeedleType,
+} from "@/lib/pattern-detail";
 import { createClient } from "@/lib/supabase/client";
 import { getPatternById, getPatternImageUrl } from "@/lib/patterns";
 
@@ -81,7 +87,8 @@ export default function EditPatternPage({ params }: PageProps) {
   const [height, setHeight] = useState("");
   const [gaugeStitches, setGaugeStitches] = useState("");
   const [gaugeRows, setGaugeRows] = useState("");
-  const [tips, setTips] = useState(["", "", ""]);
+  const [detailRows, setDetailRows] = useState<DetailRow[]>([]);
+  const [detailContent, setDetailContent] = useState("");
 
   const [existingImagePath, setExistingImagePath] = useState("");
   const [existingImageUrl, setExistingImageUrl] = useState("");
@@ -174,9 +181,8 @@ export default function EditPatternPage({ params }: PageProps) {
         setGaugeStitches(parsedSize.gaugeStitches);
         setGaugeRows(parsedSize.gaugeRows);
 
-        const paddedTips = [...(pattern.tips || [])];
-        while (paddedTips.length < 3) paddedTips.push("");
-        setTips(paddedTips.slice(0, 3));
+        setDetailRows(normalizeDetailRows(pattern.detail_rows, pattern.detail_content));
+        setDetailContent(pattern.detail_content || "");
 
         setExistingImagePath(pattern.image_path || "");
         setExistingImageUrl(
@@ -206,10 +212,6 @@ export default function EditPatternPage({ params }: PageProps) {
       URL.revokeObjectURL(objectUrl);
     };
   }, [imageFile]);
-
-  function updateTip(index: number, value: string) {
-    setTips((prev) => prev.map((tip, i) => (i === index ? value : tip)));
-  }
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] ?? null;
@@ -249,7 +251,6 @@ export default function EditPatternPage({ params }: PageProps) {
     setSubmitting(true);
 
     try {
-      const cleanedTips = tips.map((tip) => tip.trim()).filter(Boolean);
       let finalImagePath = existingImagePath;
 
       const shouldDeleteOldImage =
@@ -295,10 +296,11 @@ export default function EditPatternPage({ params }: PageProps) {
           level,
           category,
           description: description.trim(),
+          detail_content: detailContent.trim(),
+          detail_rows: detailRows,
           yarn: yarn.trim(),
           needle: needleText,
           size: finalSizeText,
-          tips: cleanedTips,
           image_path: finalImagePath,
         })
         .eq("id", patternId)
@@ -689,22 +691,16 @@ export default function EditPatternPage({ params }: PageProps) {
               </div>
 
               <div>
-                <div className="mb-2 block text-sm font-semibold text-[#5f5044]">
-                  한줄 팁
-                </div>
-
-                <div className="grid gap-3">
-                  {tips.map((tip, index) => (
-                    <input
-                      key={index}
-                      type="text"
-                      value={tip}
-                      onChange={(e) => updateTip(index, e.target.value)}
-                      placeholder={`팁 ${index + 1}`}
-                      className="w-full rounded-[1.4rem] border border-[#ddd3c8] bg-[#fffdf9] px-4 py-3 text-sm text-[#4b3a2f] outline-none transition placeholder:text-[#aa9a8c] focus:border-[#9aaa97] focus:ring-4 focus:ring-[#dfe7db]"
-                    />
-                  ))}
-                </div>
+                <span className="mb-2 block text-sm font-semibold text-[#5f5044]">
+                  도안 세부 내용
+                </span>
+                <PatternDetailEditor
+                  needleType={needleType as NeedleType}
+                  rows={detailRows}
+                  onChange={setDetailRows}
+                  textValue={detailContent}
+                  onTextValueChange={setDetailContent}
+                />
               </div>
 
               <div className="mt-2 flex flex-wrap gap-3">

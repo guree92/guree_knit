@@ -11,6 +11,7 @@ import {
   isFavoritePattern,
   toggleFavoritePattern,
 } from "@/lib/favorite-patterns";
+import { normalizeDetailRows } from "@/lib/pattern-detail";
 import { createClient } from "@/lib/supabase/client";
 import {
   getPatternById,
@@ -340,6 +341,9 @@ export default function PatternDetailPage() {
 
   const imageUrl = getPatternImageUrl(pattern.image_path);
   const parsedSize = parsePatternSize(pattern.size || "");
+  const detailRows = normalizeDetailRows(pattern.detail_rows, pattern.detail_content).filter(
+    (row) => row.instruction
+  );
 
   return (
     <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
@@ -520,24 +524,27 @@ export default function PatternDetailPage() {
             </div>
 
             <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-6 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-              <h2 className="text-xl font-black text-[#4a392f]">제작 팁</h2>
+              <h2 className="text-xl font-black text-[#4a392f]">도안 세부 내용</h2>
 
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-[#756457]">
-                {pattern.tips.length > 0 ? (
-                  pattern.tips.map((tip, index) => (
-                    <li
-                      key={`${tip}-${index}`}
-                      className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3"
+              {detailRows.length > 0 ? (
+                <div className="mt-4 space-y-3">
+                  {detailRows.map((row) => (
+                    <div
+                      key={row.id}
+                      className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-4"
                     >
-                      {tip}
-                    </li>
-                  ))
-                ) : (
-                  <li className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-3">
-                    등록된 팁이 아직 없어요.
-                  </li>
-                )}
-              </ul>
+                      <p className="text-sm font-black text-[#4a392f]">{row.rowNumber}단</p>
+                      <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#756457]">
+                        {row.instruction || "-"}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-4 text-sm leading-7 text-[#756457] whitespace-pre-wrap">
+                  등록된 세부 내용이 아직 없어요.
+                </div>
+              )}
             </div>
           </div>
         </section>

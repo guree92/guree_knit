@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/client";
+import type { DetailRow } from "@/lib/pattern-detail";
 
 export type PatternItem = {
   id: string;
@@ -7,10 +8,21 @@ export type PatternItem = {
   level: "초급" | "중급" | "고급";
   category: string;
   description: string;
+  detail_content?: string | null;
+  detail_rows?: DetailRow[] | null;
+  tags?: string[];
+  duration?: string | null;
+  total_yarn_amount?: string | null;
   yarn: string;
   needle: string;
   size: string;
-  tips: string[];
+  copyright_source?: "본인" | "무료배포" | null;
+  copyright_hobby_only?: boolean | null;
+  copyright_color_variation?: boolean | null;
+  copyright_size_variation?: boolean | null;
+  copyright_commercial_use?: boolean | null;
+  copyright_redistribution?: boolean | null;
+  copyright_modification_resale?: boolean | null;
   image_path: string;
   like_count: number;
   created_at?: string;
