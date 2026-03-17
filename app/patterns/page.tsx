@@ -317,9 +317,11 @@ export default function PatternsPage() {
           </div>
 
           <div className={styles.sideFavoriteActions}>
-            <Link href="/patterns/favorites" className={styles.sideFavoriteLink}>
-              전체 보기
-            </Link>
+            {isAuthenticated ? (
+              <Link href="/patterns/favorites" className={styles.sideFavoriteLink}>
+                전체 보기
+              </Link>
+            ) : null}
             {showToggleButton ? (
               <button
                 type="button"

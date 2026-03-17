@@ -9,7 +9,7 @@ export default async function NewPatternPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/login");
+    redirect("/login?returnTo=%2Fpatterns%2Fnew");
   }
 
   return <NewPatternForm />;

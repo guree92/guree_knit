@@ -2,11 +2,19 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+
+function getSafeReturnTo(value: string | null) {
+  if (!value) return "/";
+  if (!value.startsWith("/")) return "/";
+  if (value.startsWith("//")) return "/";
+  return value;
+}
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
@@ -39,7 +47,7 @@ export default function LoginPage() {
       }
 
       setMessage("로그인 성공!");
-      router.push("/");
+      router.push(getSafeReturnTo(searchParams.get("returnTo")));
       router.refresh();
     } catch (error) {
       console.error(error);

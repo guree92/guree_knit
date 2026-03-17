@@ -22,6 +22,7 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const requestedPage = Number.parseInt(resolvedSearchParams?.page ?? "1", 10);
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const returnTo = page === 1 ? "/patterns/favorites" : `/patterns/favorites?page=${page}`;
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -39,7 +40,10 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
                 {"\ucc1c\ud55c \ub3c4\uc548\uc740 \ub85c\uadf8\uc778 \ud6c4 \ud655\uc778\ud560 \uc218 \uc788\uc5b4\uc694."}
               </h1>
               <div className={styles.feedbackActions}>
-                <Link href="/login" className={styles.primaryAction}>
+                <Link
+                  href={`/login?returnTo=${encodeURIComponent(returnTo)}`}
+                  className={styles.primaryAction}
+                >
                   {"\ub85c\uadf8\uc778\ud558\uae30"}
                 </Link>
                 <Link href="/patterns" className={styles.secondaryLinkAction}>
