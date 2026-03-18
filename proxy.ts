@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
+export const runtime = "edge";
+
 export async function proxy(request: NextRequest) {
   const response = NextResponse.next({
     request,
