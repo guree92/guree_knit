@@ -16,9 +16,21 @@ import { createClient } from "@/lib/supabase/client";
 import {
   getPatternById,
   getPatternImageUrl,
-  increasePatternLikeCount,
+  isPatternLiked,
+  PatternLikeAuthError,
+  togglePatternLike,
   type PatternItem,
 } from "@/lib/patterns";
+import styles from "./pattern-detail-page.module.css";
+
+const copyrightPolicyRows = [
+  { key: "copyright_hobby_only", label: "취미 제작" },
+  { key: "copyright_color_variation", label: "색상 변형" },
+  { key: "copyright_size_variation", label: "사이즈 변형" },
+  { key: "copyright_commercial_use", label: "상업적 사용" },
+  { key: "copyright_redistribution", label: "도안 재배포" },
+  { key: "copyright_modification_resale", label: "수정본 판매" },
+] as const;
 
 function parsePatternSize(sizeText: string) {
   const widthMatch = sizeText.match(/가로\s*(\d+)/);
@@ -49,6 +61,7 @@ export default function PatternDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [liking, setLiking] = useState(false);
   const [reporting, setReporting] = useState(false);
+  const [isLiked, setIsLiked] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
   const [favoritePending, setFavoritePending] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -103,6 +116,24 @@ export default function PatternDetailPage() {
 
     load();
   }, [params.id]);
+
+  useEffect(() => {
+    async function loadLikeStatus() {
+      if (!resolvedId || !currentUserId) {
+        setIsLiked(false);
+        return;
+      }
+
+      try {
+        setIsLiked(await isPatternLiked(resolvedId));
+      } catch (error) {
+        console.error("좋아요 상태를 불러오지 못했어요.", error);
+        setIsLiked(false);
+      }
+    }
+
+    void loadLikeStatus();
+  }, [currentUserId, resolvedId]);
 
   useEffect(() => {
     async function loadFavoriteStatus() {
@@ -236,9 +267,15 @@ export default function PatternDetailPage() {
     setLiking(true);
 
     try {
-      const updated = await increasePatternLikeCount(pattern.id, pattern.like_count ?? 0);
-      setPattern(updated);
+      const result = await togglePatternLike(pattern.id);
+      setIsLiked(result.isLiked);
+      setPattern(result.pattern);
     } catch (error) {
+      if (error instanceof PatternLikeAuthError) {
+        setIsLoginModalOpen(true);
+        return;
+      }
+
       console.error("좋아요 실패", error);
       const message = error instanceof Error ? error.message : "알 수 없는 오류가 발생했어요.";
       alert(`좋아요 처리에 실패했어요: ${message}`);
@@ -307,11 +344,14 @@ export default function PatternDetailPage() {
 
   if (loading || !isAdminChecked) {
     return (
-      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
-        <div className="mx-auto max-w-6xl">
+      <main className={styles.page}>
+        <div className={styles.shell}>
           <Header />
-          <section className="mt-12 rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-10 text-center shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-            <p className="text-[#8f7f73]">도안을 불러오는 중이에요...</p>
+          <section className={styles.sectionCard}>
+            <div className={styles.emptyState}>
+              <p className={styles.emptyStateTitle}>도안을 불러오는 중이에요</p>
+              <p className={styles.emptyStateDescription}>조금만 기다리면 상세 정보를 보여드릴게요.</p>
+            </div>
           </section>
         </div>
       </main>
@@ -320,19 +360,19 @@ export default function PatternDetailPage() {
 
   if (!pattern || (pattern.is_hidden && !isAdmin)) {
     return (
-      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
-        <div className="mx-auto max-w-6xl">
+      <main className={styles.page}>
+        <div className={styles.shell}>
           <Header />
-
-          <section className="mt-12 rounded-[2.25rem] border border-dashed border-[#d9cec2] bg-[#f8f4ee] p-10 text-center shadow-sm">
-            <h1 className="text-2xl font-black text-[#4a392f]">도안을 찾을 수 없어요</h1>
-            <p className="mt-3 text-[#756457]">요청하신 도안 정보를 찾지 못했어요. ({resolvedId})</p>
-            <Link
-              href="/patterns"
-              className="mt-6 inline-flex rounded-[1.3rem] bg-[#96a792] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(150,167,146,0.28)] transition hover:bg-[#879a83]"
-            >
-              도안 목록으로 돌아가기
-            </Link>
+          <section className={styles.sectionCard}>
+            <div className={styles.emptyState}>
+              <p className={styles.emptyStateTitle}>도안을 찾을 수 없어요</p>
+              <p className={styles.emptyStateDescription}>
+                요청하신 도안 정보를 찾지 못했어요. ({resolvedId})
+              </p>
+              <Link href="/patterns" className={styles.actionButton}>
+                도안 목록으로 돌아가기
+              </Link>
+            </div>
           </section>
         </div>
       </main>
@@ -344,210 +384,299 @@ export default function PatternDetailPage() {
   const detailRows = normalizeDetailRows(pattern.detail_rows, pattern.detail_content).filter(
     (row) => row.instruction
   );
+  const previewPolicies = copyrightPolicyRows.map((policy) => ({
+    label: policy.label,
+    allowed: Boolean(pattern[policy.key]),
+  }));
+  const overviewRows = [
+    { label: "난이도", value: pattern.level },
+    { label: "카테고리", value: pattern.category },
+    {
+      label: "태그",
+      value: pattern.tags?.length ? pattern.tags.map((tag) => `#${tag}`).join(", ") : "-",
+    },
+    { label: "설명 길이", value: `${pattern.description?.trim().length ?? 0}자` },
+  ];
+  const prepRows = [
+    { label: "사용 실", value: pattern.yarn || "-" },
+    { label: "바늘", value: pattern.needle || "-" },
+    { label: "총량", value: pattern.total_yarn_amount || "-" },
+    { label: "소요 시간", value: pattern.duration || "-" },
+    { label: "완성 크기", value: parsedSize.sizeText || "-" },
+    { label: "게이지", value: parsedSize.gaugeText || "-" },
+  ];
+  const previewRows = [
+    ...prepRows,
+    { label: "원작자", value: pattern.copyright_source || "-" },
+  ];
 
   return (
-    <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
+    <main className={styles.page}>
       <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
-      <div className="mx-auto max-w-6xl">
+      <div className={styles.shell}>
         <Header />
+        <div className={styles.workspace}>
+          <div className={styles.mainColumn}>
+            <section className={`${styles.hero} ${styles.heroCompact}`}>
+              <div className={styles.heroBody}>
+                <span className={styles.eyebrow}>Pattern Studio</span>
+                <h1 className={styles.heroTitle}>{pattern.title}</h1>
 
-        <section className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-8 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-              <Link
-                href="/patterns"
-                className="inline-flex text-sm font-semibold text-[#7b9274] transition hover:text-[#5f7759]"
-              >
-                도안 목록으로
-              </Link>
+                <div className={styles.heroMeta}>
+                  <span className={`${styles.pill} ${styles.pillLevel}`}>{pattern.level}</span>
+                  <span className={`${styles.pill} ${styles.pillCategory}`}>{pattern.category}</span>
+                  <span className={`${styles.pill} ${styles.pillMuted}`}>
+                    작성자 {pattern.author_nickname ?? "닉네임 없음"}
+                  </span>
+                  {pattern.is_hidden && isAdmin ? (
+                    <span className={`${styles.pill} ${styles.pillMuted}`}>관리자 숨김 상태</span>
+                  ) : null}
+                </div>
 
-              <div className="flex flex-wrap gap-2">
-                {!isOwner && !isAdmin ? (
+                <div className={`${styles.actionRow} ${styles.heroActionRow}`}>
                   <button
                     type="button"
-                    onClick={handleReport}
-                    disabled={reporting}
-                    className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#e7c9c4] bg-[#fff4f2] px-4 py-2.5 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeae6] disabled:cursor-not-allowed disabled:opacity-60"
+                    onClick={handleLike}
+                    disabled={liking}
+                    aria-pressed={isLiked}
+                    className={`${styles.likeButton} ${isLiked ? `${styles.likeButtonActive} ${styles.buttonActive}` : ""}`}
                   >
-                    {reporting ? "신고 중..." : "도안 신고"}
+                    <span className={styles.buttonIcon}>{liking ? "..." : isLiked ? "♥" : "♡"}</span>
+                    좋아요 {pattern.like_count ?? 0}
                   </button>
-                ) : null}
+                  <button
+                    type="button"
+                    onClick={handleFavoriteToggle}
+                    disabled={favoritePending}
+                    className={`${styles.favoriteButton} ${isFavorite ? styles.buttonActive : ""}`}
+                  >
+                    <span className={styles.buttonIcon}>
+                      {favoritePending ? "..." : isFavorite ? "★" : "☆"}
+                    </span>
+                    {favoritePending ? "저장 중..." : "찜하기"}
+                  </button>
+                </div>
+              </div>
 
-                {isOwner ? (
-                  <>
-                    <Link
-                      href={`/patterns/${pattern.id}/edit`}
-                      className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#d8cec2] bg-[#fffdf9] px-4 py-2.5 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f3ede6]"
-                    >
-                      수정하기
-                    </Link>
-
+              <div className={styles.heroActions}>
+                <div className={styles.actionRow}>
+                  {isOwner ? (
+                    <>
+                      <Link href={`/patterns/${pattern.id}/edit`} className={styles.ghostButton}>
+                        수정하기
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        disabled={deleting}
+                        className={styles.dangerButton}
+                      >
+                        {deleting ? "삭제 중..." : "삭제하기"}
+                      </button>
+                    </>
+                  ) : null}
+                  {!isOwner && !isAdmin ? (
                     <button
                       type="button"
-                      onClick={handleDelete}
-                      disabled={deleting}
-                      className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#e7c9c4] bg-[#fff4f2] px-4 py-2.5 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeae6] disabled:cursor-not-allowed disabled:opacity-60"
+                      onClick={handleReport}
+                      disabled={reporting}
+                      className={styles.dangerButton}
                     >
-                      {deleting ? "삭제 중..." : "삭제하기"}
+                      {reporting ? "신고 중..." : "도안 신고"}
                     </button>
-                  </>
-                ) : null}
-
-                {isAdmin && !isOwner ? (
-                  <button
-                    type="button"
-                    onClick={() => handleAdminHiddenToggle(!pattern.is_hidden)}
-                    disabled={deleting}
-                    className="inline-flex items-center justify-center rounded-[1.15rem] border border-[#e7c9c4] bg-[#fff4f2] px-4 py-2.5 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeae6] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {deleting ? "처리 중..." : pattern.is_hidden ? "숨김 해제" : "관리자 숨김"}
-                  </button>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-3 py-1 font-semibold text-[#6f8669]">
-                  {pattern.level}
-                </span>
-                <span className="rounded-full border border-[#e4d7cb] bg-[#f6eee6] px-3 py-1 font-semibold text-[#8b725d]">
-                  {pattern.category}
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleLike}
-                disabled={liking}
-                className="inline-flex items-center gap-2 rounded-full border border-[#ead8d2] bg-[#fff7f5] px-4 py-2 text-sm font-semibold text-[#b05b52] transition hover:bg-[#fdeeea] disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <span>{liking ? "..." : "♥"}</span>
-                <span>좋아요 {pattern.like_count ?? 0}</span>
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleFavoriteToggle}
-                disabled={favoritePending}
-                className={
-                  isFavorite
-                    ? "inline-flex items-center gap-2 rounded-full border border-[#d7ddd2] bg-[#edf3ea] px-4 py-2 text-sm font-semibold text-[#5f7759] transition hover:bg-[#e5eee1]"
-                    : "inline-flex items-center gap-2 rounded-full border border-[#e4d7cb] bg-[#fffdf9] px-4 py-2 text-sm font-semibold text-[#6f6054] transition hover:bg-[#f5efe8] disabled:cursor-not-allowed disabled:opacity-60"
-                }
-              >
-                <span>{favoritePending ? "..." : isFavorite ? "★" : "☆"}</span>
-                <span>
-                  {favoritePending ? "저장 중..." : isFavorite ? "찜한 도안에 저장됨" : "찜하기"}
-                </span>
-              </button>
-            </div>
-
-            <h1 className="mt-4 text-4xl font-black leading-tight text-[#4a392f]">{pattern.title}</h1>
-
-            <p className="mt-3 text-sm font-medium text-[#8b7b6e]">
-              작성자 · {pattern.author_nickname ?? "닉네임 없음"}
-            </p>
-
-            {pattern.is_hidden && isAdmin ? (
-              <p className="mt-2 text-sm text-[#b06c55]">현재 관리자에 의해 숨김 처리된 도안이에요.</p>
-            ) : !currentUserId && !isOwner ? (
-              <p className="mt-2 text-sm text-[#9b8b7f]">신고는 로그인 후 이용할 수 있어요.</p>
-            ) : null}
-
-            <p className="mt-4 max-w-2xl leading-7 text-[#756457]">{pattern.description}</p>
-
-            <div className="mt-8 overflow-hidden rounded-[2rem] border border-[#e7ddd1] bg-[#fffdf9]">
-              {imageUrl ? (
-                <div className="relative h-72 w-full">
-                  <Image
-                    src={imageUrl}
-                    alt={pattern.title}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 1024px) 100vw, 60vw"
-                  />
-                </div>
-              ) : (
-                <div className="h-72 bg-[linear-gradient(135deg,#f3ede4_0%,#e4ebe2_55%,#f8f4ee_100%)]" />
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-5">
-            <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-6 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-              <h2 className="text-xl font-black text-[#4a392f]">기본 정보</h2>
-
-              <div className="mt-4 rounded-[1.6rem] border border-[#e7ddd1] bg-[#fffdf9] p-4 text-sm text-[#756457]">
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] pb-3">
-                  <span>난이도</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.level}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>카테고리</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.category}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>작성자</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.author_nickname ?? "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>사용 실</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.yarn || "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>바늘</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.needle || "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>좋아요</span>
-                  <span className="font-semibold text-[#4a392f]">{pattern.like_count ?? 0}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 border-b border-[#eee5db] py-3">
-                  <span>완성 크기</span>
-                  <span className="font-semibold text-[#4a392f]">{parsedSize.sizeText || "-"}</span>
-                </div>
-
-                <div className="flex justify-between gap-4 pt-3">
-                  <span>게이지</span>
-                  <span className="font-semibold text-[#4a392f]">{parsedSize.gaugeText || "-"}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="rounded-[2.25rem] border border-[#e6ddd2] bg-[#f8f4ee] p-6 shadow-[0_10px_30px_rgba(91,74,60,0.06)]">
-              <h2 className="text-xl font-black text-[#4a392f]">도안 세부 내용</h2>
-
-              {detailRows.length > 0 ? (
-                <div className="mt-4 space-y-3">
-                  {detailRows.map((row) => (
-                    <div
-                      key={row.id}
-                      className="rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-4"
+                  ) : null}
+                  {isAdmin && !isOwner ? (
+                    <button
+                      type="button"
+                      onClick={() => handleAdminHiddenToggle(!pattern.is_hidden)}
+                      disabled={deleting}
+                      className={styles.dangerButton}
                     >
-                      <p className="text-sm font-black text-[#4a392f]">{row.rowNumber}단</p>
-                      <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[#756457]">
-                        {row.instruction || "-"}
-                      </p>
+                      {deleting ? "처리 중..." : pattern.is_hidden ? "숨김 해제" : "관리자 숨김"}
+                    </button>
+                  ) : null}
+                  <Link href="/patterns" className={styles.secondaryAction}>
+                    목록으로
+                  </Link>
+                </div>
+              </div>
+            </section>
+
+            <section className={`${styles.sectionCard} ${styles.introCard}`}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.eyebrow}>Story</span>
+                <h2 className={styles.sectionTitle}>도안 소개</h2>
+              </div>
+
+              <div className={styles.compactIntroGrid}>
+                <div className={styles.introMain}>
+                  <div className={styles.imageStage}>
+                    <div className={styles.imageWrap}>
+                      {imageUrl ? (
+                        <Image
+                          src={imageUrl}
+                          alt={pattern.title}
+                          fill
+                          sizes="(max-width: 920px) 100vw, 46vw"
+                        />
+                      ) : (
+                        <div className={styles.imageFallback} />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.descriptionCard}>
+                    <p className={styles.descriptionText}>
+                      {pattern.description || "설명이 아직 등록되지 않았어요."}
+                    </p>
+                  </div>
+                </div>
+
+                <div className={styles.introSide}>
+                  <div className={styles.infoStack}>
+                    <section className={styles.sectionCard}>
+                      <div className={styles.sectionHeader}>
+                        <span className={styles.eyebrow}>Story</span>
+                        <h3 className={styles.sectionTitle}>도안 소개</h3>
+                      </div>
+                      <div className={styles.summaryList}>
+                        {overviewRows.map((row) => (
+                          <div key={row.label} className={styles.summaryRow}>
+                            <span>{row.label}</span>
+                            <span className={styles.summaryValue}>{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className={styles.sectionCard}>
+                      <div className={styles.sectionHeader}>
+                        <span className={styles.eyebrow}>Material</span>
+                        <h3 className={styles.sectionTitle}>제작 준비</h3>
+                      </div>
+                      <div className={styles.prepGrid}>
+                        {prepRows.map((row) => (
+                          <div key={`compact-${row.label}`} className={styles.summaryRow}>
+                            <span>{row.label}</span>
+                            <span className={styles.summaryValue}>{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className={styles.sectionCard}>
+                      <div className={styles.sectionHeader}>
+                        <span className={styles.eyebrow}>Policy</span>
+                        <h3 className={styles.sectionTitle}>이용 범위</h3>
+                      </div>
+                      <div className={styles.policyGrid}>
+                        <div className={styles.summaryRow}>
+                          <span>원작자</span>
+                          <span className={styles.summaryValue}>{pattern.copyright_source || "-"}</span>
+                        </div>
+                        {previewPolicies.map((policy) => (
+                          <div key={`compact-policy-${policy.label}`} className={styles.policyRow}>
+                            <span className={styles.fieldLabel}>{policy.label}</span>
+                            <span
+                              className={`${styles.policyState} ${
+                                policy.allowed ? styles.policyAllowed : styles.policyDenied
+                              }`}
+                            >
+                              {policy.allowed ? "O" : "X"}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.sheetCard}`}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.eyebrow}>Pattern Sheet</span>
+                <h2 className={styles.sectionTitle}>도안 세부 내용</h2>
+              </div>
+
+              {detailRows.length ? (
+                <div className={styles.detailList}>
+                  {detailRows.map((row) => (
+                    <div key={row.id} className={styles.detailItem}>
+                      <div className={styles.detailMeta}>
+                        <span className={styles.detailIndex}>{row.rowNumber}단</span>
+                        <span className={styles.detailPreview}>
+                          {row.instruction.length > 28
+                            ? `${row.instruction.slice(0, 28)}...`
+                            : row.instruction}
+                        </span>
+                      </div>
+                      <p className={styles.detailText}>{row.instruction || "-"}</p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <div className="mt-4 rounded-[1.3rem] border border-[#e7ddd1] bg-[#fffdf9] px-4 py-4 text-sm leading-7 text-[#756457] whitespace-pre-wrap">
-                  등록된 세부 내용이 아직 없어요.
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyStateTitle}>등록된 세부 내용이 아직 없어요</p>
+                  <p className={styles.emptyStateDescription}>
+                    작성자가 아직 행별 설명을 입력하지 않았거나, 공개된 상세 내용이 없어요.
+                  </p>
                 </div>
               )}
-            </div>
+            </section>
+
           </div>
-        </section>
+
+          <aside className={styles.sideColumn}>
+            <section className={`${styles.sectionCard} ${styles.previewCard}`}>
+              <div className={styles.previewHead}>
+                <span className={styles.eyebrow}>Preview</span>
+                <div className={styles.previewImage}>
+                  {imageUrl ? (
+                    <Image src={imageUrl} alt={`${pattern.title} 미리보기`} fill sizes="320px" />
+                  ) : (
+                    <div className={styles.previewFallback} />
+                  )}
+                </div>
+                <div>
+                  <h3 className={styles.previewTitle}>{pattern.title}</h3>
+                  <p className={styles.previewDescription}>
+                    {pattern.description || "설명이 아직 등록되지 않았어요."}
+                  </p>
+                </div>
+              </div>
+
+              <div className={styles.summaryList}>
+                {previewRows.map((row) => (
+                  <div key={`preview-${row.label}`} className={styles.summaryRow}>
+                    <span>{row.label}</span>
+                    <span className={styles.summaryValue}>{row.value}</span>
+                  </div>
+                ))}
+
+                <div className={`${styles.summaryRow} ${styles.summaryRowTop}`}>
+                  <span>허용 범위</span>
+                  <div className={styles.policyList}>
+                    {previewPolicies.map((policy) => (
+                      <div key={`preview-policy-${policy.label}`} className={styles.policyItem}>
+                        <span>{policy.label}</span>
+                        <span
+                          className={
+                            policy.allowed
+                              ? styles.summaryPolicyValueAllowed
+                              : styles.summaryPolicyValueDenied
+                          }
+                        >
+                          {policy.allowed ? "O" : "X"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </section>
+          </aside>
+        </div>
       </div>
     </main>
   );

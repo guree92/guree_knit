@@ -35,6 +35,25 @@ type PatternQueryOptions = {
   includeHidden?: boolean;
 };
 
+type SupabaseLikeError = {
+  code?: string;
+  message?: string;
+};
+
+export class PatternLikeAuthError extends Error {
+  constructor(message = "좋아요를 누르려면 로그인이 필요해요.") {
+    super(message);
+    this.name = "PatternLikeAuthError";
+  }
+}
+
+function isMissingAuthSessionError(error: unknown) {
+  const candidate = error as SupabaseLikeError | null;
+  const message = candidate?.message ?? "";
+
+  return message.includes("Auth session missing");
+}
+
 export function getPatternImageUrl(imagePath: string) {
   if (!imagePath) return "";
 
@@ -104,18 +123,103 @@ export async function getPatternById(
   return pattern;
 }
 
-export async function increasePatternLikeCount(
-  id: string,
-  currentLikeCount: number
-): Promise<PatternItem> {
+export async function isPatternLiked(patternId: string) {
+  if (!patternId) return false;
+
   const supabase = createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    if (isMissingAuthSessionError(userError)) {
+      return false;
+    }
+
+    throw new Error(userError.message);
+  }
+
+  if (!user) return false;
+
+  const { data, error } = await supabase
+    .from("pattern_likes")
+    .select("pattern_id")
+    .eq("pattern_id", patternId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return Boolean(data);
+}
+
+export async function togglePatternLike(patternId: string) {
+  const supabase = createClient();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError) {
+    if (isMissingAuthSessionError(userError)) {
+      throw new PatternLikeAuthError();
+    }
+
+    throw new Error(userError.message);
+  }
+
+  if (!user) {
+    throw new PatternLikeAuthError();
+  }
+
+  const { data: existingLike, error: selectError } = await supabase
+    .from("pattern_likes")
+    .select("pattern_id")
+    .eq("pattern_id", patternId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (selectError) {
+    throw new Error(selectError.message);
+  }
+
+  const nextLiked = !existingLike;
+
+  const { error: mutationError } = nextLiked
+    ? await supabase.from("pattern_likes").insert({
+        pattern_id: patternId,
+        user_id: user.id,
+      })
+    : await supabase
+        .from("pattern_likes")
+        .delete()
+        .eq("pattern_id", patternId)
+        .eq("user_id", user.id);
+
+  if (mutationError) {
+    throw new Error(mutationError.message);
+  }
+
+  const { count, error: countError } = await supabase
+    .from("pattern_likes")
+    .select("*", { count: "exact", head: true })
+    .eq("pattern_id", patternId);
+
+  if (countError) {
+    throw new Error(countError.message);
+  }
+
+  const nextLikeCount = count ?? 0;
 
   const { data, error } = await supabase
     .from("patterns")
     .update({
-      like_count: currentLikeCount + 1,
+      like_count: nextLikeCount,
     })
-    .eq("id", id)
+    .eq("id", patternId)
     .select("*")
     .single();
 
@@ -124,5 +228,8 @@ export async function increasePatternLikeCount(
   }
 
   const [pattern] = await attachNicknames([data as PatternItem]);
-  return pattern;
+  return {
+    isLiked: nextLiked,
+    pattern,
+  };
 }
