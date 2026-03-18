@@ -122,11 +122,12 @@ export default function NewPatternForm() {
     () => [sizeText, gaugeText].filter(Boolean).join("\n"),
     [gaugeText, sizeText]
   );
-  const activePolicies = useMemo(
+  const previewPolicies = useMemo(
     () =>
-      copyrightRules
-        .filter((rule) => copyrightSettings[rule.key] === "o")
-        .map((rule) => rule.label),
+      copyrightRules.map((rule) => ({
+        label: rule.label,
+        value: copyrightSettings[rule.key].toUpperCase(),
+      })),
     [copyrightSettings]
   );
 
@@ -759,11 +760,16 @@ export default function NewPatternForm() {
                     <span>원작자</span>
                     <span className={styles.summaryValue}>{copyrightSettings.source}</span>
                   </div>
-                  <div className={styles.summaryRow}>
+                  <div className={`${styles.summaryRow} ${styles.summaryRowTop}`}>
                     <span>허용 범위</span>
-                    <span className={styles.summaryValue}>
-                      {activePolicies.length ? activePolicies.join(", ") : "없음"}
-                    </span>
+                    <div className={styles.summaryPolicyList}>
+                      {previewPolicies.map((policy) => (
+                        <div key={policy.label} className={styles.summaryPolicyItem}>
+                          <span>{policy.label}</span>
+                          <span className={styles.summaryValue}>{policy.value}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
