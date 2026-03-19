@@ -11,25 +11,25 @@ export const communityExtraFieldConfig: Record<
   PostCategory,
   Array<{ key: string; label: string; placeholder: string }>
 > = {
-  "완성작": [
-    { key: "patternName", label: "사용 도안", placeholder: "예: 봄 네트백 도안" },
-    { key: "usedYarn", label: "사용 실", placeholder: "예: 코튼사 2볼" },
-    { key: "usedNeedle", label: "사용 바늘", placeholder: "예: 코바늘 5호" },
+  "\uC644\uC131\uC791": [
+    { key: "patternName", label: "\uC0AC\uC6A9 \uB3C4\uC548", placeholder: "\uC608: \uBC84\uC9C8 \uC2A4\uD018\uC5B4 \uB3C4\uC548" },
+    { key: "usedYarn", label: "\uC0AC\uC6A9 \uC2E4", placeholder: "\uC608: \uCF54\uD2BC\uC0AC 2\uBCFC" },
+    { key: "usedNeedle", label: "\uC0AC\uC6A9 \uBC14\uB298", placeholder: "\uC608: \uCF54\uBC14\uB298 5\uD638" },
   ],
-  "질문": [
-    { key: "usedYarn", label: "사용 실", placeholder: "예: 울 1합" },
-    { key: "usedNeedle", label: "사용 바늘", placeholder: "예: 대바늘 4mm" },
-    { key: "stuckPoint", label: "막힌 부분", placeholder: "어느 단, 어떤 부분에서 막혔는지 적어 주세요" },
+  "\uC9C8\uBB38": [
+    { key: "usedYarn", label: "\uC0AC\uC6A9 \uC2E4", placeholder: "\uC608: \uC6B8\uC0AC 1\uAC00\uB2E5" },
+    { key: "usedNeedle", label: "\uC0AC\uC6A9 \uBC14\uB298", placeholder: "\uC608: \uB300\uBC14\uB298 4mm" },
+    { key: "stuckPoint", label: "\uB9C9\uD78C \uBD80\uBD84", placeholder: "\uC5B4\uB5A4 \uBD80\uBD84\uC5D0\uC11C \uD5F7\uAC08\uB9AC\uB294\uC9C0 \uC801\uC5B4 \uC8FC\uC138\uC694" },
   ],
-  "정보공유": [
-    { key: "sourceName", label: "출처/참고", placeholder: "예: 유튜브 채널, 블로그, 책 이름" },
-    { key: "summary", label: "핵심 요약", placeholder: "한 줄로 무엇을 공유하는지 적어 주세요" },
-    { key: "recommendedFor", label: "추천 대상", placeholder: "예: 코바늘 입문자, 대바늘 초급자" },
+  "\uC815\uBCF4\uACF5\uC720": [
+    { key: "sourceName", label: "\uCD9C\uCC98/\uCC38\uACE0", placeholder: "\uC608: \uC720\uD29C\uBE0C \uCC44\uB110, \uBE14\uB85C\uADF8 \uC774\uB984" },
+    { key: "summary", label: "\uD575\uC2EC \uC694\uC57D", placeholder: "\uBB34\uC5C7\uC744 \uACF5\uC720\uD558\uB294\uC9C0 \uC9E7\uAC8C \uC801\uC5B4 \uC8FC\uC138\uC694" },
+    { key: "recommendedFor", label: "\uCD94\uCC9C \uB300\uC0C1", placeholder: "\uC608: \uCF54\uBC14\uB298 \uC785\uBB38\uC790, \uB300\uBC14\uB298 \uCD08\uAE09\uC790" },
   ],
-  "같이뜨기": [
-    { key: "recruitUntil", label: "모집 기간", placeholder: "예: 4월 10일까지" },
-    { key: "meetingType", label: "진행 방식", placeholder: "예: 오픈채팅, 댓글, 오프라인 모임" },
-    { key: "schedule", label: "일정/주기", placeholder: "예: 매주 토요일 저녁 8시" },
+  "\uAC19\uC774\uB728\uAE30": [
+    { key: "recruitUntil", label: "\uBAA8\uC9D1 \uAE30\uAC04", placeholder: "\uC608: 4\uC6D4 10\uC77C\uAE4C\uC9C0" },
+    { key: "meetingType", label: "\uC9C4\uD589 \uBC29\uC2DD", placeholder: "\uC608: \uC624\uD508\uCC44\uD305, \uC815\uAE30, \uC624\uD504\uB77C\uC778 \uBAA8\uC784" },
+    { key: "schedule", label: "\uC77C\uC815/\uC8FC\uAE30", placeholder: "\uC608: \uB9E4\uC8FC \uD1A0\uC694\uC77C \uC800\uB141 8\uC2DC" },
   ],
 };
 
