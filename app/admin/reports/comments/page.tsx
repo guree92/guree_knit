@@ -1,6 +1,6 @@
 ﻿import Header from "@/components/layout/Header";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, getAdminEnvError } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import AdminReportsClient from "../AdminReportsClient";
 
@@ -44,8 +44,9 @@ export default async function AdminReportsPage() {
   }
 
   const adminEmail = process.env.ADMIN_EMAIL;
+  const adminEnvError = getAdminEnvError();
 
-  if (!adminEmail) {
+  if (!adminEmail || adminEnvError) {
     return (
       <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
         <div className="mx-auto max-w-5xl">
@@ -55,6 +56,7 @@ export default async function AdminReportsPage() {
             <p className="mt-3 text-[#756457]">
               `.env.local`에 `ADMIN_EMAIL`을 추가하면 신고 관리 페이지를 사용할 수 있어요.
             </p>
+            {adminEnvError ? <p className="mt-3 text-sm text-[#756457]">{adminEnvError}</p> : null}
           </section>
         </div>
       </main>

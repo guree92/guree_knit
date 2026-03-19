@@ -1,6 +1,6 @@
 ﻿import Header from "@/components/layout/Header";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, getAdminEnvError } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import AdminPatternReportsClient from "./AdminPatternReportsClient";
 
@@ -37,6 +37,22 @@ export default async function AdminPatternReportsPage() {
 
   if (!process.env.ADMIN_EMAIL || user.email !== process.env.ADMIN_EMAIL) {
     redirect("/admin");
+  }
+
+  const adminEnvError = getAdminEnvError();
+
+  if (adminEnvError) {
+    return (
+      <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
+        <div className="mx-auto max-w-5xl">
+          <Header />
+          <section className="mt-12 rounded-[2.25rem] border border-dashed border-[#d9cec2] bg-[#f8f4ee] p-10 text-center shadow-sm">
+            <h1 className="text-2xl font-black text-[#4a392f]">Admin configuration required</h1>
+            <p className="mt-3 text-[#756457]">{adminEnvError}</p>
+          </section>
+        </div>
+      </main>
+    );
   }
 
   const adminSupabase = createAdminClient();

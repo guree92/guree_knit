@@ -4,6 +4,11 @@
   "name": "gureeknit",
   "compatibility_date": "2026-03-10",
   "compatibility_flags": ["nodejs_compat"],
+  "vars": {
+    "NEXT_PUBLIC_SUPABASE_URL": "https://lorhxmbbrkaqhoxjkxet.supabase.co",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imxvcmh4bWJicmthcWhveGpreGV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzNzQyMjAsImV4cCI6MjA4ODk1MDIyMH0.PGLkugzwcsj4fRnJrGn4olUWN21slqkvvrc2GL5M2pQ",
+    "ADMIN_EMAIL": "guree92@icloud.com"
+  },
 
   "assets": {
     "directory": ".open-next/assets",
@@ -12,7 +17,8 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "gureeknit"
+      "service": "gureeknit",
+      "environment": "production"
     }
   ],
   "images": {

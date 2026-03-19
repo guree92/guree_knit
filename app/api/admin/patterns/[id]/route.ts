@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, getAdminEnvError } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = {
@@ -30,6 +30,12 @@ export async function PATCH(request: Request, context: RouteContext) {
 
   if ("error" in auth) {
     return auth.error;
+  }
+
+  const adminEnvError = getAdminEnvError();
+
+  if (adminEnvError) {
+    return NextResponse.json({ message: adminEnvError }, { status: 500 });
   }
 
   const { id } = await context.params;

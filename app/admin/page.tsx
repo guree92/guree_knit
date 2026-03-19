@@ -1,7 +1,7 @@
 ﻿import Link from "next/link";
 import { redirect } from "next/navigation";
 import Header from "@/components/layout/Header";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { createAdminClient, getAdminEnvError } from "@/lib/supabase/admin";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
 export default async function AdminDashboardPage() {
@@ -15,8 +15,9 @@ export default async function AdminDashboardPage() {
   }
 
   const adminEmail = process.env.ADMIN_EMAIL;
+  const adminEnvError = getAdminEnvError();
 
-  if (!adminEmail) {
+  if (!adminEmail || adminEnvError) {
     return (
       <main className="min-h-screen bg-[#fcfaf6] px-6 py-8 text-[#4b3a2f] md:px-8 md:py-10">
         <div className="mx-auto max-w-6xl">
@@ -26,6 +27,7 @@ export default async function AdminDashboardPage() {
             <p className="mt-3 text-[#756457]">
               `.env.local`에 `ADMIN_EMAIL`을 추가하면 관리자 페이지를 사용할 수 있어요.
             </p>
+            {adminEnvError ? <p className="mt-3 text-sm text-[#756457]">{adminEnvError}</p> : null}
           </section>
         </div>
       </main>
