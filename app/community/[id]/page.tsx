@@ -88,7 +88,6 @@ function getCategoryToneClass(category: CommunityPost["category"]) {
     case "질문":
       return styles.categoryQuestion;
     case "정보공유":
-    case "팁공유":
       return styles.categoryInfo;
     case "같이뜨기":
       return styles.categoryTogether;
