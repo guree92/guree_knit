@@ -21,6 +21,13 @@
       "environment": "production"
     }
   ],
+  "routes": [
+    {
+      "pattern": "knit.guree.me",
+      "zone_name": "guree.me",
+      "custom_domain": true
+    }
+  ],
   "images": {
     "binding": "IMAGES"
   },
