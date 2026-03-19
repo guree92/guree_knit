@@ -1,4 +1,10 @@
-﻿export const communityCategories = [
+﻿import {
+  getCommunityImageUrl,
+  normalizeExtraFields,
+  parseCommunityPostContent,
+} from "@/lib/community-post-content";
+
+export const communityCategories = [
   "전체",
   "완성작",
   "질문",
@@ -33,6 +39,7 @@ export type CommunityPost = {
   title: string;
   author: string;
   authorEmail: string | null;
+  ownerName: string | null;
   preview: string;
   content: string;
   tags: string[];
@@ -40,6 +47,9 @@ export type CommunityPost = {
   likes: number;
   isHidden: boolean;
   hiddenAt: string | null;
+  imagePath: string | null;
+  imageUrl: string;
+  extraFields: Record<string, string>;
 };
 
 export function makePreview(content: string, maxLength = 120) {
@@ -51,19 +61,25 @@ export function makePreview(content: string, maxLength = 120) {
 }
 
 export function mapCommunityPost(row: CommunityPostRow): CommunityPost {
+  const parsed = parseCommunityPostContent(row.content ?? "");
+
   return {
     id: row.id,
     category: row.category,
     title: row.title,
     author: row.author_name ?? "익명",
-    authorEmail: row.author_email ?? null,
-    preview: makePreview(row.content ?? ""),
-    content: row.content ?? "",
+    authorEmail: parsed.meta.ownerEmail ?? row.author_email ?? null,
+    ownerName: parsed.meta.ownerName ?? null,
+    preview: makePreview(parsed.body),
+    content: parsed.body,
     tags: row.tags ?? [],
     createdAt: row.created_at ?? "",
     likes: row.community_likes?.[0]?.count ?? 0,
     isHidden: Boolean(row.is_hidden),
     hiddenAt: row.hidden_at ?? null,
+    imagePath: parsed.meta.imagePath ?? null,
+    imageUrl: getCommunityImageUrl(parsed.meta.imagePath),
+    extraFields: normalizeExtraFields(row.category, parsed.meta.extraFields),
   };
 }
 

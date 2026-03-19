@@ -1,9 +1,11 @@
 ﻿"use client";
 
+import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
+import { communityExtraFieldConfig } from "@/lib/community-post-content";
 import { createClient } from "@/lib/supabase/client";
 import {
   formatCommunityDate,
@@ -11,12 +13,7 @@ import {
   type CommunityPost,
   type CommunityPostRow,
 } from "@/lib/community";
-
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
+import styles from "./community-detail-page.module.css";
 
 type CommunityLikeRow = {
   post_id: string;
@@ -68,7 +65,25 @@ function formatCommentDate(value: string) {
   }).format(date);
 }
 
-export default function CommunityDetailPage({ params }: PageProps) {
+function canManagePost(
+  post: CommunityPost | null,
+  userEmail: string | null,
+  userNames: string[]
+) {
+  if (!post) return false;
+
+  const normalizedEmail = userEmail?.trim().toLowerCase() ?? "";
+
+  if (post.authorEmail && normalizedEmail && post.authorEmail.trim().toLowerCase() === normalizedEmail) {
+    return true;
+  }
+
+  return userNames.includes(post.ownerName?.trim() || post.author.trim());
+}
+
+export default function CommunityDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = params.id;
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -78,6 +93,8 @@ export default function CommunityDetailPage({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isNotFound, setIsNotFound] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [currentUserNames, setCurrentUserNames] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [isLikePending, setIsLikePending] = useState(false);
@@ -96,7 +113,12 @@ export default function CommunityDetailPage({ params }: PageProps) {
     async function fetchDetail() {
       setIsLoading(true);
 
-      const { id } = await params;
+      if (!id || typeof id !== "string") {
+        setIsNotFound(true);
+        setIsLoading(false);
+        return;
+      }
+
       setPostId(id);
 
       const [
@@ -122,6 +144,20 @@ export default function CommunityDetailPage({ params }: PageProps) {
       ]);
 
       setCurrentUserId(user?.id ?? null);
+      setCurrentUserEmail(user?.email ?? null);
+      setCurrentUserNames(
+        Array.from(
+          new Set(
+            [
+              user?.user_metadata?.nickname as string | undefined,
+              user?.user_metadata?.name as string | undefined,
+              user?.email?.split("@")[0],
+            ]
+              .map((item) => item?.trim())
+              .filter(Boolean)
+          )
+        ) as string[]
+      );
 
       const nextIsAdmin = adminStatusResponse.ok
         ? Boolean(((await adminStatusResponse.json()) as { isAdmin?: boolean }).isAdmin)
@@ -170,8 +206,8 @@ export default function CommunityDetailPage({ params }: PageProps) {
       setIsLoading(false);
     }
 
-    fetchDetail();
-  }, [params, supabase]);
+    void fetchDetail();
+  }, [id, supabase]);
 
   const commentsByParent = useMemo(() => {
     return comments.reduce<Record<string, CommunityComment[]>>((acc, comment) => {
@@ -183,6 +219,10 @@ export default function CommunityDetailPage({ params }: PageProps) {
   }, [comments]);
 
   const rootComments = commentsByParent.root ?? [];
+  const isPostOwner = canManagePost(post, currentUserEmail, currentUserNames);
+  const detailFieldLabels = post
+    ? Object.fromEntries(communityExtraFieldConfig[post.category].map((field) => [field.key, field.label]))
+    : {};
 
   async function requireUser(actionMessage: string) {
     const {
@@ -314,6 +354,45 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
     alert("게시글 신고가 접수되었어요.");
     setIsPostReportPending(false);
+  }
+
+  async function handleDeletePost() {
+    if (!post || !postId || isPostModerating) return;
+
+    const user = await requireUser("게시글 삭제는 로그인 후 이용할 수 있어요.");
+    if (!user) return;
+
+    if (!canManagePost(post, user.email ?? null, [
+      user.user_metadata?.nickname as string | undefined,
+      user.user_metadata?.name as string | undefined,
+      user.email?.split("@")[0],
+    ].filter(Boolean) as string[])) {
+      alert("작성자만 게시글을 삭제할 수 있어요.");
+      return;
+    }
+
+    const shouldDelete = window.confirm("이 게시글을 삭제할까요?");
+    if (!shouldDelete) return;
+
+    setIsPostModerating(true);
+
+    const deleteQuery = supabase.from("community_posts").delete().eq("id", postId);
+
+    const { error } = post.authorEmail
+      ? await deleteQuery
+      : await deleteQuery.eq("author_name", post.author);
+
+    if (error) {
+      console.error(error);
+      alert("게시글 삭제에 실패했어요. 잠시 후 다시 시도해 주세요.");
+      setIsPostModerating(false);
+      return;
+    }
+
+    alert("게시글을 삭제했어요.");
+    router.push("/community");
+    router.refresh();
+    setIsPostModerating(false);
   }
 
   async function submitComment(content: string, parentId: string | null = null) {
@@ -497,12 +576,12 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
   if (isLoading) {
     return (
-      <main className="min-h-screen bg-[#f4f1eb] px-6 py-8 text-[#3d3128] md:px-8 md:py-10">
-        <div className="mx-auto max-w-4xl">
+      <main className={styles.page}>
+        <div className={styles.shell}>
           <Header />
 
-          <section className="mt-12 rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-8 shadow-[0_10px_30px_rgba(61,49,40,0.06)]">
-            <p className="text-[#6f6257]">게시글을 불러오는 중이에요...</p>
+          <section className={styles.feedbackCard}>
+            <p className={styles.sectionDescription}>게시글을 불러오는 중이에요...</p>
           </section>
         </div>
       </main>
@@ -511,16 +590,16 @@ export default function CommunityDetailPage({ params }: PageProps) {
 
   if (isNotFound || !post) {
     return (
-      <main className="min-h-screen bg-[#f4f1eb] px-6 py-8 text-[#3d3128] md:px-8 md:py-10">
-        <div className="mx-auto max-w-4xl">
+      <main className={styles.page}>
+        <div className={styles.shell}>
           <Header />
 
-          <section className="mt-12 rounded-[2rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] p-10 text-center shadow-sm">
-            <h1 className="text-2xl font-black text-[#3d3128]">게시글을 찾을 수 없어요</h1>
-            <p className="mt-3 text-[#6f6257]">요청하신 뜨개마당 글이 없거나 숨김 처리되었어요.</p>
+          <section className={styles.feedbackCard}>
+            <h1 className={styles.sectionTitle}>게시글을 찾을 수 없어요</h1>
+            <p className={styles.sectionDescription}>요청하신 뜨개마당 글이 없거나 숨김 처리되었어요.</p>
             <Link
               href="/community"
-              className="mt-6 inline-flex rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#788a73]"
+              className={styles.submitButton}
             >
               뜨개마당으로 돌아가기
             </Link>
@@ -531,55 +610,66 @@ export default function CommunityDetailPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f1eb] px-6 py-8 text-[#3d3128] md:px-8 md:py-10">
-      <div className="mx-auto max-w-4xl">
+    <main className={styles.page}>
+      <div className={styles.shell}>
         <Header />
 
-        <section className="mt-12 rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-8 shadow-[0_10px_30px_rgba(61,49,40,0.06)]">
+        <section className={styles.sectionCard}>
           <Link
             href="/community"
-            className="mb-6 inline-flex text-sm font-semibold text-[#6f6257] transition hover:text-[#8a9b84]"
+            className={styles.backLink}
           >
             뜨개마당으로 돌아가기
           </Link>
 
-          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-[#d7e0d3] px-3 py-1 text-xs font-semibold text-[#52624d]">{post.category}</span>
-                <span className="text-sm text-[#9b8b7f]">@{post.author}</span>
-                <span className="text-sm text-[#9b8b7f]">{formatCommunityDate(post.createdAt)}</span>
+          <div className={styles.heroHeader}>
+            <div>
+              <div className={styles.metaRow}>
+                <span className={styles.metaPill}>{post.category}</span>
+                <span className={styles.metaText}>@{post.author}</span>
+                <span className={styles.metaText}>{formatCommunityDate(post.createdAt)}</span>
               </div>
 
-              <h1 className="mt-4 text-3xl font-black text-[#3d3128] md:text-4xl">{post.title}</h1>
+              <h1 className={styles.title}>{post.title}</h1>
             </div>
 
-            <div className="flex flex-col items-start gap-2 md:items-end">
-              <div className="flex flex-wrap items-center gap-2">
+            <div className={styles.actionColumn}>
+              <div className={styles.buttonRow}>
                 <button
                   type="button"
                   onClick={handleLikeToggle}
                   disabled={isLikePending}
                   aria-pressed={isLiked}
-                  className={[
-                    "inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-semibold transition",
-                    isLiked
-                      ? "border-[#d17b7b] bg-[#fff1f1] text-[#b45353]"
-                      : "border-[#ddd4c9] bg-white text-[#6f6257] hover:bg-[#f8f4ee]",
-                    isLikePending ? "cursor-wait opacity-70" : "hover:-translate-y-0.5 hover:shadow-sm",
-                  ].join(" ")}
+                  className={isLiked ? styles.actionButtonSoft : styles.actionButton}
                 >
                   <span aria-hidden="true">{isLiked ? "♥" : "♡"}</span>
                   <span>{isLiked ? "좋아요 취소" : "좋아요"}</span>
                   <span>{post.likes}</span>
                 </button>
 
-                {!isAdmin ? (
+                {isPostOwner ? (
+                  <>
+                    <Link
+                      href={`/community/${post.id}/edit`}
+                      className={styles.actionButton}
+                    >
+                      게시글 수정
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={handleDeletePost}
+                      disabled={isPostModerating}
+                      className={styles.actionButtonDanger}
+                    >
+                      {isPostModerating ? "삭제 중..." : "게시글 삭제"}
+                    </button>
+                  </>
+                ) : !isAdmin ? (
                   <button
                     type="button"
                     onClick={handleReportPost}
                     disabled={isPostReportPending}
-                    className="inline-flex items-center rounded-full border border-[#e0c7ba] bg-[#fff7f3] px-5 py-3 text-sm font-semibold text-[#b06c55] transition hover:bg-[#ffede4] disabled:cursor-not-allowed disabled:opacity-60"
+                    className={styles.actionButtonDanger}
                   >
                     {isPostReportPending ? "신고 중..." : "게시글 신고"}
                   </button>
@@ -590,33 +680,58 @@ export default function CommunityDetailPage({ params }: PageProps) {
                     type="button"
                     onClick={() => handlePostHiddenToggle(!post.isHidden)}
                     disabled={isPostModerating}
-                    className="inline-flex items-center rounded-full border border-[#dfb0aa] bg-[#fff3f1] px-5 py-3 text-sm font-semibold text-[#b25a4f] transition hover:bg-[#ffe7e3] disabled:cursor-not-allowed disabled:opacity-60"
+                    className={styles.actionButtonDanger}
                   >
                     {isPostModerating ? "처리 중..." : post.isHidden ? "숨김 해제" : "게시글 숨김"}
                   </button>
                 ) : null}
               </div>
               {post.isHidden && isAdmin ? (
-                <span className="text-sm text-[#b06c55]">현재 관리자에 의해 숨김 처리된 게시글이에요.</span>
+                <span className={styles.hintText}>현재 관리자에 의해 숨김 처리된 게시글이에요.</span>
               ) : !currentUserId ? (
-                <span className="text-sm text-[#9b8b7f]">
+                <span className={styles.hintText}>
                   로그인하면 좋아요와 신고를 이용할 수 있어요.
                 </span>
               ) : null}
             </div>
           </div>
 
-          <div className="mt-6 whitespace-pre-wrap rounded-[1.5rem] bg-[#f8f4ee] p-6 leading-8 text-[#5f5349]">
+          {post.imageUrl ? (
+            <div className={styles.mediaCard}>
+              <div className={styles.mediaFrame}>
+                <Image
+                  src={post.imageUrl}
+                  alt={`${post.title} 첨부 이미지`}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 960px"
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {Object.values(post.extraFields).some((value) => value.trim()) ? (
+            <div className={styles.detailGrid}>
+              {Object.entries(post.extraFields).map(([key, value]) =>
+                value.trim() ? (
+                  <div key={key} className={styles.detailCard}>
+                    <p className={styles.detailLabel}>
+                      {detailFieldLabels[key] ?? key}
+                    </p>
+                    <p className={styles.detailValue}>{value}</p>
+                  </div>
+                ) : null
+              )}
+            </div>
+          ) : null}
+
+          <div className={styles.contentCard}>
             {post.content}
           </div>
 
           {post.tags.length > 0 ? (
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className={styles.tagList}>
               {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-full border border-[#ddd1c3] bg-[#eee4d8] px-3 py-1 text-xs font-medium text-[#6f6257]"
-                >
+                <span key={tag} className={styles.tag}>
                   #{tag}
                 </span>
               ))}
@@ -624,43 +739,42 @@ export default function CommunityDetailPage({ params }: PageProps) {
           ) : null}
         </section>
 
-        <section className="mt-6 rounded-[2rem] border border-[#e4dbcf] bg-[#fffdfa] p-8 shadow-[0_10px_30px_rgba(61,49,40,0.05)]">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <h2 className="text-2xl font-black text-[#3d3128]">댓글</h2>
-              <p className="mt-2 text-sm text-[#8f8175]">댓글 {comments.length}개</p>
-            </div>
+        <section className={`${styles.sectionCard} ${styles.commentsSection}`}>
+          <div className={styles.sectionHead}>
+            <h2 className={styles.sectionTitle}>댓글</h2>
+            <p className={styles.sectionDescription}>댓글 {comments.length}개</p>
+          </div>
 
             {!currentUserId ? (
-              <p className="text-sm text-[#8f8175]">
+              <p className={styles.sectionDescription}>
                 입력창은 누구나 볼 수 있고, 등록 버튼을 누를 때 로그인 여부를 확인해요.
               </p>
             ) : null}
-          </div>
+          
 
-          <div className="mt-6 rounded-[1.5rem] border border-[#e6ddd2] bg-[#f8f4ee] p-5">
-            <label className="block text-sm font-semibold text-[#6f6257]">댓글 입력</label>
+          <div className={styles.composer}>
+            <label className={styles.label}>댓글 입력</label>
             <textarea
               value={newComment}
               onChange={(event) => setNewComment(event.target.value)}
               placeholder="이 글에 대한 생각을 편하게 남겨보세요."
               rows={4}
-              className="mt-3 w-full resize-none rounded-[1.2rem] border border-[#ddd4c9] bg-white px-4 py-3 text-sm leading-7 text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
+              className={styles.textarea}
             />
-            <div className="mt-4 flex items-center justify-between gap-3">
-              <p className="text-xs text-[#9b8b7f]">등록 버튼을 누르면 로그인 여부를 확인해요.</p>
+            <div className={styles.composerFooter}>
+              <p className={styles.hintText}>등록 버튼을 누르면 로그인 여부를 확인해요.</p>
               <button
                 type="button"
                 onClick={() => submitComment(newComment)}
                 disabled={isCommentSubmitting}
-                className="rounded-2xl bg-[#8a9b84] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#788a73] disabled:cursor-not-allowed disabled:opacity-60"
+                className={styles.submitButton}
               >
                 {isCommentSubmitting ? "등록 중..." : "댓글 등록"}
               </button>
             </div>
           </div>
 
-          <div className="mt-6 space-y-4">
+          <div className={styles.commentList}>
             {rootComments.length > 0 ? (
               rootComments.map((comment) => {
                 const replies = commentsByParent[comment.id] ?? [];
@@ -675,21 +789,21 @@ export default function CommunityDetailPage({ params }: PageProps) {
                   <article
                     key={comment.id}
                     id={`comment-${comment.id}`}
-                    className="scroll-mt-28 rounded-[1.6rem] border border-[#e6ddd2] bg-[#fffdfa] p-5 shadow-sm"
+                    className={styles.commentCard}
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-3">
-                        <span className="text-sm font-semibold text-[#5f5349]">@{comment.author}</span>
-                        <span className="text-xs text-[#9b8b7f]">{formatCommentDate(comment.createdAt)}</span>
+                    <div className={styles.commentHead}>
+                      <div className={styles.commentMeta}>
+                        <span className={styles.commentAuthor}>@{comment.author}</span>
+                        <span className={styles.commentDate}>{formatCommentDate(comment.createdAt)}</span>
                       </div>
 
-                      <div className="flex items-center gap-3">
+                      <div className={styles.commentActions}>
                         {!canModerate ? (
                           <button
                             type="button"
                             onClick={() => handleReportComment(comment)}
                             disabled={isReportPending}
-                            className="text-sm font-semibold text-[#c06d62] transition hover:text-[#a45449] disabled:opacity-50"
+                            className={styles.textButtonDanger}
                           >
                             {isReportPending ? "신고 중..." : "신고"}
                           </button>
@@ -707,7 +821,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                                   setReplyText("");
                                 }}
                                 disabled={isPending}
-                                className="text-sm font-semibold text-[#9b8b7f] transition hover:text-[#6f6257] disabled:opacity-50"
+                                className={styles.textButton}
                               >
                                 수정
                               </button>
@@ -716,7 +830,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                               type="button"
                               onClick={() => handleDeleteComment(comment.id)}
                               disabled={isPending}
-                              className="text-sm font-semibold text-[#c06d62] transition hover:text-[#a45449] disabled:opacity-50"
+                              className={styles.textButtonDanger}
                             >
                               {isAdmin && !isOwner ? "관리자 삭제" : "삭제"}
                             </button>
@@ -733,7 +847,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                             setEditingCommentId(null);
                             setEditingText("");
                           }}
-                          className="text-sm font-semibold text-[#8a9b84] transition hover:text-[#70806b]"
+                          className={styles.textButtonAccent}
                         >
                           {isReplyOpen ? "답글 닫기" : "답글 달기"}
                         </button>
@@ -741,21 +855,21 @@ export default function CommunityDetailPage({ params }: PageProps) {
                     </div>
 
                     {isEditing ? (
-                      <div className="mt-3 rounded-[1.3rem] border border-[#ddd4c9] bg-[#f8f4ee] p-4">
+                      <div className={styles.inlineForm}>
                         <textarea
                           value={editingText}
                           onChange={(event) => setEditingText(event.target.value)}
                           rows={3}
-                          className="w-full resize-none rounded-[1rem] border border-[#ddd4c9] bg-white px-4 py-3 text-sm leading-7 text-[#3d3128] outline-none focus:border-[#8a9b84]"
+                          className={styles.inlineTextarea}
                         />
-                        <div className="mt-3 flex justify-end gap-2">
+                        <div className={styles.inlineActions}>
                           <button
                             type="button"
                             onClick={() => {
                               setEditingCommentId(null);
                               setEditingText("");
                             }}
-                            className="rounded-2xl border border-[#ddd4c9] bg-white px-4 py-2 text-sm font-semibold text-[#6f6257] transition hover:bg-[#f2eee7]"
+                            className={styles.smallGhostButton}
                           >
                             취소
                           </button>
@@ -763,33 +877,33 @@ export default function CommunityDetailPage({ params }: PageProps) {
                             type="button"
                             onClick={() => handleUpdateComment(comment.id)}
                             disabled={isPending}
-                            className="rounded-2xl bg-[#8a9b84] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#788a73] disabled:cursor-not-allowed disabled:opacity-60"
+                            className={styles.smallButton}
                           >
                             {isPending ? "저장 중..." : "수정 저장"}
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <p className="mt-3 whitespace-pre-wrap leading-7 text-[#5f5349]">{comment.content}</p>
+                      <p className={styles.commentBody}>{comment.content}</p>
                     )}
                     {isReplyOpen ? (
-                      <div className="mt-4 rounded-[1.3rem] border border-[#ddd4c9] bg-[#f8f4ee] p-4">
-                        <label className="block text-sm font-semibold text-[#6f6257]">답글 입력</label>
+                      <div className={styles.inlineForm}>
+                        <label className={styles.label}>답글 입력</label>
                         <textarea
                           value={replyText}
                           onChange={(event) => setReplyText(event.target.value)}
                           placeholder="댓글에 대한 답글을 남겨보세요."
                           rows={3}
-                          className="mt-3 w-full resize-none rounded-[1rem] border border-[#ddd4c9] bg-white px-4 py-3 text-sm leading-7 text-[#3d3128] outline-none placeholder:text-[#a69486] focus:border-[#8a9b84]"
+                          className={styles.inlineTextarea}
                         />
-                        <div className="mt-3 flex justify-end gap-2">
+                        <div className={styles.inlineActions}>
                           <button
                             type="button"
                             onClick={() => {
                               setActiveReplyId(null);
                               setReplyText("");
                             }}
-                            className="rounded-2xl border border-[#ddd4c9] bg-white px-4 py-2 text-sm font-semibold text-[#6f6257] transition hover:bg-[#f2eee7]"
+                            className={styles.smallGhostButton}
                           >
                             취소
                           </button>
@@ -797,7 +911,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                             type="button"
                             onClick={() => submitComment(replyText, comment.id)}
                             disabled={isCommentSubmitting}
-                            className="rounded-2xl bg-[#8a9b84] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#788a73] disabled:cursor-not-allowed disabled:opacity-60"
+                            className={styles.smallButton}
                           >
                             {isCommentSubmitting ? "등록 중..." : "답글 등록"}
                           </button>
@@ -806,7 +920,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                     ) : null}
 
                     {replies.length > 0 ? (
-                      <div className="mt-4 space-y-3 border-t border-[#eee5da] pt-4">
+                      <div className={styles.replyList}>
                         {replies.map((reply) => {
                           const isReplyEditing = editingCommentId === reply.id;
                           const isReplyOwner = currentUserId === reply.userId;
@@ -818,21 +932,21 @@ export default function CommunityDetailPage({ params }: PageProps) {
                             <div
                               key={reply.id}
                               id={`comment-${reply.id}`}
-                              className="scroll-mt-28 rounded-[1.2rem] bg-[#f8f4ee] p-4 md:ml-8"
+                              className={styles.replyCard}
                             >
-                              <div className="flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap items-center gap-3">
-                                  <span className="text-sm font-semibold text-[#5f5349]">@{reply.author}</span>
-                                  <span className="text-xs text-[#9b8b7f]">{formatCommentDate(reply.createdAt)}</span>
+                              <div className={styles.commentHead}>
+                                <div className={styles.commentMeta}>
+                                  <span className={styles.commentAuthor}>@{reply.author}</span>
+                                  <span className={styles.commentDate}>{formatCommentDate(reply.createdAt)}</span>
                                 </div>
 
-                                <div className="flex items-center gap-3">
+                                <div className={styles.commentActions}>
                                   {!canReplyModerate ? (
                                     <button
                                       type="button"
                                       onClick={() => handleReportComment(reply)}
                                       disabled={isReplyReportPending}
-                                      className="text-sm font-semibold text-[#c06d62] transition hover:text-[#a45449] disabled:opacity-50"
+                                      className={styles.textButtonDanger}
                                     >
                                       {isReplyReportPending ? "신고 중..." : "신고"}
                                     </button>
@@ -850,7 +964,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                                             setReplyText("");
                                           }}
                                           disabled={isReplyPending}
-                                          className="text-sm font-semibold text-[#9b8b7f] transition hover:text-[#6f6257] disabled:opacity-50"
+                                          className={styles.textButton}
                                         >
                                           수정
                                         </button>
@@ -859,7 +973,7 @@ export default function CommunityDetailPage({ params }: PageProps) {
                                         type="button"
                                         onClick={() => handleDeleteComment(reply.id)}
                                         disabled={isReplyPending}
-                                        className="text-sm font-semibold text-[#c06d62] transition hover:text-[#a45449] disabled:opacity-50"
+                                        className={styles.textButtonDanger}
                                       >
                                         {isAdmin && !isReplyOwner ? "관리자 삭제" : "삭제"}
                                       </button>
@@ -869,21 +983,21 @@ export default function CommunityDetailPage({ params }: PageProps) {
                               </div>
 
                               {isReplyEditing ? (
-                                <div className="mt-3 rounded-[1rem] border border-[#ddd4c9] bg-white p-3">
+                                <div className={styles.inlineForm}>
                                   <textarea
                                     value={editingText}
                                     onChange={(event) => setEditingText(event.target.value)}
                                     rows={3}
-                                    className="w-full resize-none rounded-[0.9rem] border border-[#ddd4c9] bg-white px-4 py-3 text-sm leading-7 text-[#3d3128] outline-none focus:border-[#8a9b84]"
+                                    className={styles.inlineTextarea}
                                   />
-                                  <div className="mt-3 flex justify-end gap-2">
+                                  <div className={styles.inlineActions}>
                                     <button
                                       type="button"
                                       onClick={() => {
                                         setEditingCommentId(null);
                                         setEditingText("");
                                       }}
-                                      className="rounded-2xl border border-[#ddd4c9] bg-white px-4 py-2 text-sm font-semibold text-[#6f6257] transition hover:bg-[#f2eee7]"
+                                      className={styles.smallGhostButton}
                                     >
                                       취소
                                     </button>
@@ -891,14 +1005,14 @@ export default function CommunityDetailPage({ params }: PageProps) {
                                       type="button"
                                       onClick={() => handleUpdateComment(reply.id)}
                                       disabled={isReplyPending}
-                                      className="rounded-2xl bg-[#8a9b84] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#788a73] disabled:cursor-not-allowed disabled:opacity-60"
+                                      className={styles.smallButton}
                                     >
                                       {isReplyPending ? "저장 중..." : "수정 저장"}
                                     </button>
                                   </div>
                                 </div>
                               ) : (
-                                <p className="mt-2 whitespace-pre-wrap leading-7 text-[#5f5349]">{reply.content}</p>
+                                <p className={styles.commentBody}>{reply.content}</p>
                               )}
                             </div>
                           );
@@ -920,5 +1034,3 @@ export default function CommunityDetailPage({ params }: PageProps) {
     </main>
   );
 }
-
-

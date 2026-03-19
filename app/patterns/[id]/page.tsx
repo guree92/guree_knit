@@ -388,6 +388,7 @@ export default function PatternDetailPage() {
     label: policy.label,
     allowed: Boolean(pattern[policy.key]),
   }));
+  const descriptionText = pattern.description || "설명이 아직 등록되지 않았어요.";
   const overviewRows = [
     { label: "난이도", value: pattern.level },
     { label: "카테고리", value: pattern.category },
@@ -395,7 +396,6 @@ export default function PatternDetailPage() {
       label: "태그",
       value: pattern.tags?.length ? pattern.tags.map((tag) => `#${tag}`).join(", ") : "-",
     },
-    { label: "설명 길이", value: `${pattern.description?.trim().length ?? 0}자` },
   ];
   const prepRows = [
     { label: "사용 실", value: pattern.yarn || "-" },
@@ -526,9 +526,7 @@ export default function PatternDetailPage() {
                   </div>
 
                   <div className={styles.descriptionCard}>
-                    <p className={styles.descriptionText}>
-                      {pattern.description || "설명이 아직 등록되지 않았어요."}
-                    </p>
+                    <p className={styles.descriptionText}>{descriptionText}</p>
                   </div>
                 </div>
 
@@ -640,9 +638,7 @@ export default function PatternDetailPage() {
                 </div>
                 <div>
                   <h3 className={styles.previewTitle}>{pattern.title}</h3>
-                  <p className={styles.previewDescription}>
-                    {pattern.description || "설명이 아직 등록되지 않았어요."}
-                  </p>
+                  <p className={styles.previewDescription}>{descriptionText}</p>
                 </div>
               </div>
 

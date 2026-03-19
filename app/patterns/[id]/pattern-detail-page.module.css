@@ -11,7 +11,7 @@
     radial-gradient(circle at top right, rgba(231, 238, 229, 0.78), transparent 34%),
     linear-gradient(145deg, #f1ede4, #e2e8de);
   min-height: calc(100vh - 48px);
-  padding: 0 0 20px;
+  padding: 0 14px 20px;
   color: #3d3128;
 }
 
@@ -25,7 +25,7 @@
   display: grid;
   grid-template-columns: 1fr 250px;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: 0;
   align-items: start;
 }
 
@@ -73,13 +73,11 @@
 .compactIntroGrid,
 .introMain,
 .introSide,
-.miniStats,
 .prepGrid,
 .policyGrid,
 .previewCard,
 .previewHead,
 .summaryList,
-.summaryPolicyList,
 .detailList,
 .emptyState {
   display: grid;
@@ -87,7 +85,7 @@
 
 .heroBody {
   gap: 10px;
-  max-width: none;
+  max-width: 760px;
   align-content: space-between;
   min-height: 120px;
 }
@@ -122,19 +120,10 @@
   letter-spacing: -0.05em;
 }
 
-.heroDescription {
-  margin: 0;
-  color: #77685d;
-  font-size: 0.88rem;
-  line-height: 1.6;
-}
-
 .heroMeta,
-.tagList,
 .heroActions,
 .actionRow,
-.heroActionRow,
-.optionGrid {
+.heroActionRow {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -146,7 +135,6 @@
 }
 
 .pill,
-.tag,
 .actionButton,
 .secondaryAction,
 .ghostButton,
@@ -162,7 +150,7 @@
 }
 
 .pill,
-.tag {
+.pill {
   min-height: 30px;
   padding: 0 12px;
   font-size: 0.77rem;
@@ -184,12 +172,6 @@
   border: 1px solid #e6ddd2;
   background: rgba(255, 255, 255, 0.92);
   color: #7d6d60;
-}
-
-.tag {
-  border: 1px solid #e5d8cb;
-  background: var(--surface);
-  color: #78685d;
 }
 
 .heroActions {
@@ -278,7 +260,6 @@
   margin-right: 6px;
 }
 
-.buttonPending,
 .actionButton:disabled,
 .secondaryAction:disabled,
 .ghostButton:disabled,
@@ -323,12 +304,6 @@
   gap: 8px;
 }
 
-.field {
-  display: grid;
-  gap: 6px;
-  align-content: start;
-}
-
 .fieldLabel {
   color: #5f5044;
   font-size: 0.82rem;
@@ -337,7 +312,6 @@
 
 .descriptionCard,
 .imageStage,
-.metricCard,
 .detailItem,
 .emptyState,
 .policyRow {
@@ -391,35 +365,6 @@
   width: 100%;
   height: 100%;
   background: var(--preview-gradient);
-}
-
-.miniStats {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.metricCard {
-  gap: 6px;
-  padding: 10px 8px;
-  display: grid;
-  align-content: start;
-}
-
-.metricCardLabel {
-  color: #5f5044;
-  font-size: 0.78rem;
-  font-weight: 700;
-}
-
-.metricValue {
-  color: #34291f;
-  font-size: 1rem;
-  font-weight: 900;
-}
-
-.metricHint {
-  color: #857569;
-  font-size: 0.74rem;
 }
 
 .prepGrid {
@@ -542,19 +487,6 @@
   line-height: 1.5;
 }
 
-.summaryPolicyList {
-  gap: 4px;
-  min-width: 116px;
-}
-
-.summaryPolicyItem {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  color: #4a392f;
-}
-
 .summaryPolicyValueAllowed,
 .summaryPolicyValueDenied {
   font-weight: 800;
@@ -591,7 +523,19 @@
   .shell {
     max-width: 100%;
   }
+}
 
+@media (min-width: 1024px) and (max-width: 1170px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sideColumn {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -601,21 +545,98 @@
   }
 
   .introCard,
-  .prepCard,
-  .policyCard,
   .sectionSpanFull {
     grid-column: auto;
     grid-row: auto;
   }
 
   .sideColumn {
-    position: static;
+    display: none;
+  }
+
+  .heroBody {
+    max-width: none;
+  }
+
+  .compactIntroGrid,
+  .prepGrid,
+  .policyGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .policyRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (min-width: 921px) and (max-width: 1023px) {
+  .policyRow {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 920px) {
+  .page {
+    padding: 0 16px 20px;
+  }
+
+  .workspace,
+  .mainColumn {
+    gap: 12px;
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+    padding: 18px 18px;
+  }
+
+  .heroBody {
+    gap: 8px;
+  }
+
+  .heroTitle {
+    max-width: none;
+    font-size: clamp(1.9rem, 4.8vw, 2.6rem);
+  }
+
+  .heroActions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .compactIntroGrid {
+    grid-template-columns: minmax(0, 1.3fr) minmax(280px, 0.9fr);
+    gap: 12px;
+  }
+
+  .introMain,
+  .introSide,
+  .infoStack {
+    gap: 12px;
+  }
+
+  .prepGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+
+  .policyGrid {
+    gap: 8px;
+  }
+
+  .policyRow {
+    flex-direction: row;
+    align-items: center;
   }
 }
 
 @media (max-width: 920px) {
   .page {
-    padding: 0 0 16px;
+    padding: 0 10px 16px;
   }
 
   .hero {
@@ -626,19 +647,11 @@
   .heroActions,
   .actionRow {
     width: 100%;
-    justify-content: flex-start;
   }
 
   .heroActions {
     align-items: flex-start;
     flex-direction: column;
-    justify-content: flex-start;
-  }
-
-  .compactIntroGrid,
-  .prepGrid,
-  .miniStats {
-    grid-template-columns: minmax(0, 1fr);
   }
 
   .sectionCard {
@@ -673,7 +686,7 @@
   }
 
   .summaryValue,
-  .summaryPolicyList {
+  .policyList {
     min-width: 0;
     text-align: left;
   }
