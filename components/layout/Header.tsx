@@ -48,6 +48,19 @@ const menus: MenuItem[] = [
     ),
   },
   {
+    href: "/companion",
+    label: "동행",
+    meta: "Together",
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M8.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
+        <path d="M16.5 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
+        <path d="M4.5 19a4 4 0 0 1 8 0" />
+        <path d="M13.5 19a3.5 3.5 0 0 1 7 0" />
+      </svg>
+    ),
+  },
+  {
     href: "/my-work",
     label: "작업기록",
     meta: "Journal",
@@ -76,12 +89,9 @@ const menus: MenuItem[] = [
 
 export default function Header() {
   const pathname = usePathname();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const [isCompactViewport, setIsCompactViewport] = useState(false);
-
-  useEffect(() => {
-    setIsMobileMenuOpen(false);
-  }, [pathname]);
+  const isMobileMenuOpen = mobileMenuPath === pathname;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -92,7 +102,7 @@ export default function Header() {
       setIsCompactViewport(matches);
 
       if (!matches) {
-        setIsMobileMenuOpen(false);
+        setMobileMenuPath(null);
       }
     };
 
@@ -126,7 +136,7 @@ export default function Header() {
         aria-label={isMobileMenuOpen ? "메뉴 닫기" : "메뉴 열기"}
         aria-expanded={isMobileMenuOpen}
         aria-controls="global-navigation"
-        onClick={() => setIsMobileMenuOpen((current) => !current)}
+        onClick={() => setMobileMenuPath((current) => (current === pathname ? null : pathname))}
       >
         <span className={styles.mobileMenuIcon} aria-hidden="true">
           <span />
@@ -140,7 +150,7 @@ export default function Header() {
           type="button"
           className={styles.mobileBackdrop}
           aria-label="메뉴 닫기"
-          onClick={() => setIsMobileMenuOpen(false)}
+          onClick={() => setMobileMenuPath(null)}
         />
       ) : null}
 
@@ -175,7 +185,7 @@ export default function Header() {
                   href={menu.href}
                   className={isActive ? styles.navLinkActive : styles.navLink}
                   aria-label={menu.label}
-                  onClick={() => setIsMobileMenuOpen(false)}
+                  onClick={() => setMobileMenuPath(null)}
                 >
                   <span className={styles.iconWrap}>{menu.icon}</span>
                   <span className={styles.navLabel}>{menu.label}</span>

@@ -1,0 +1,354 @@
+import type { DetailRow } from "@/lib/pattern-detail";
+
+export const companionStatuses = ["모집중", "곧 시작", "진행중", "완료"] as const;
+
+export const companionLevels = ["입문", "초중급", "중급", "중상급", "고급"] as const;
+export const companionThreadTypes = ["질문", "인증"] as const;
+export const companionPatternSourceTypes = ["site", "custom", "external"] as const;
+export const companionDraftStorageKey = "knit_companion_room_draft";
+export const customCompanionRoomsStorageKey = "knit_custom_companion_rooms";
+
+export type CompanionStatus = (typeof companionStatuses)[number];
+export type CompanionLevel = (typeof companionLevels)[number];
+export type CompanionThreadType = (typeof companionThreadTypes)[number];
+export type CompanionPatternSourceType = (typeof companionPatternSourceTypes)[number];
+
+export type CompanionCustomPatternData = {
+  title: string;
+  level: "초급" | "중급" | "고급";
+  category: string;
+  description: string;
+  tags: string[];
+  duration: string | null;
+  totalYarnAmount: string | null;
+  yarn: string;
+  needle: string;
+  size: string;
+  detailContent: string | null;
+  detailRows: DetailRow[] | null;
+  copyrightSource: "본인" | "무료배포" | null;
+  copyrightHobbyOnly: boolean | null;
+  copyrightColorVariation: boolean | null;
+  copyrightSizeVariation: boolean | null;
+  copyrightCommercialUse: boolean | null;
+  copyrightRedistribution: boolean | null;
+  copyrightModificationResale: boolean | null;
+  imagePath: string | null;
+};
+
+export type CompanionRoomRow = {
+  id: string;
+  host_user_id?: string | null;
+  pattern_id?: string | null;
+  pattern_source_type?: CompanionPatternSourceType | null;
+  pattern_external_url?: string | null;
+  custom_pattern_data?: CompanionCustomPatternData | null;
+  title: string;
+  pattern_name: string;
+  host_name?: string | null;
+  summary: string;
+  start_date: string;
+  end_date: string;
+  recruit_until: string;
+  level: CompanionLevel;
+  capacity: number;
+  participant_count?: number;
+  status: CompanionStatus;
+  tags: string[] | null;
+  created_at: string;
+};
+
+export type CompanionRoom = {
+  id: string;
+  hostUserId?: string | null;
+  patternId?: string | null;
+  patternSourceType?: CompanionPatternSourceType | null;
+  patternExternalUrl?: string | null;
+  customPatternData?: CompanionCustomPatternData | null;
+  title: string;
+  patternName: string;
+  hostName: string;
+  summary: string;
+  startDate: string;
+  endDate: string;
+  recruitUntil: string;
+  level: CompanionLevel;
+  capacity: number;
+  participantCount: number;
+  status: CompanionStatus;
+  tags: string[];
+  createdAt: string;
+};
+
+export type CompanionNoticeRow = {
+  id: string;
+  room_id: string;
+  author_user_id: string;
+  title: string;
+  content: string;
+  is_pinned: boolean;
+  created_at: string;
+};
+
+export type CompanionSupplyRow = {
+  id: string;
+  room_id: string;
+  label: string;
+  sort_order: number;
+  created_at: string;
+};
+
+export type CompanionSupplyCheckRow = {
+  supply_id: string;
+  user_id: string;
+};
+
+export type CompanionThreadRow = {
+  id: string;
+  room_id: string;
+  author_user_id: string;
+  type: "question" | "certification";
+  content: string;
+  created_at: string;
+};
+
+export type CompanionCheckInRow = {
+  id: string;
+  room_id: string;
+  author_user_id: string;
+  title: string;
+  content: string;
+  created_at: string;
+};
+
+export type CompanionParticipant = {
+  id: string;
+  name: string;
+  role: "진행자" | "참여중";
+};
+
+export type CompanionSupplyItem = {
+  id: string;
+  label: string;
+  checked: boolean;
+};
+
+export type CompanionThreadItem = {
+  id: string;
+  type: CompanionThreadType;
+  author: string;
+  content: string;
+  createdAt: string;
+};
+
+export type CompanionCheckIn = {
+  id: string;
+  title: string;
+  content: string;
+  author: string;
+  createdAt: string;
+};
+
+export type CompanionRoomState = {
+  participants: CompanionParticipant[];
+  notices: string[];
+  supplies: CompanionSupplyItem[];
+  threads: CompanionThreadItem[];
+  checkIns: CompanionCheckIn[];
+};
+
+export function mapCompanionRoom(
+  row: CompanionRoomRow,
+  overrides: Partial<Pick<CompanionRoom, "hostName">> = {}
+): CompanionRoom {
+  return {
+    id: row.id,
+    hostUserId: row.host_user_id ?? null,
+    patternId: row.pattern_id ?? null,
+    patternSourceType: row.pattern_source_type ?? null,
+    patternExternalUrl: row.pattern_external_url ?? null,
+    customPatternData: row.custom_pattern_data ?? null,
+    title: row.title,
+    patternName: row.pattern_name,
+    hostName: overrides.hostName ?? row.host_name ?? "진행자",
+    summary: row.summary,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    recruitUntil: row.recruit_until,
+    level: row.level,
+    capacity: row.capacity,
+    participantCount: row.participant_count ?? 0,
+    status: row.status,
+    tags: row.tags ?? [],
+    createdAt: row.created_at,
+  };
+}
+
+export function mapCompanionThreadType(value: CompanionThreadRow["type"]): CompanionThreadType {
+  return value === "question" ? "질문" : "인증";
+}
+
+export function toCompanionThreadDbType(value: CompanionThreadType): CompanionThreadRow["type"] {
+  return value === "질문" ? "question" : "certification";
+}
+
+export function formatCompanionDate(value: string) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "";
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "long",
+    day: "numeric",
+  }).format(date);
+}
+
+export function formatCompanionSchedule(room: Pick<CompanionRoom, "startDate" | "endDate">) {
+  const start = formatCompanionDate(room.startDate);
+  const end = formatCompanionDate(room.endDate);
+
+  if (!start && !end) return "";
+  if (!start) return `${end} 종료`;
+  if (!end) return `${start} 시작`;
+
+  return `${start} 시작 · ${end} 종료`;
+}
+
+export function formatCompanionMembers(
+  room: Pick<CompanionRoom, "participantCount" | "capacity">
+) {
+  return `${room.participantCount}명 참여`;
+}
+
+export function isCompanionRecruitingOpen(recruitUntil: string) {
+  const deadline = new Date(`${recruitUntil}T23:59:59`);
+  const now = new Date();
+
+  if (Number.isNaN(deadline.getTime())) return false;
+
+  return now <= deadline;
+}
+
+export function getCompanionSummaryStats(rooms: CompanionRoom[]) {
+  const recruitingCount = rooms.filter((room) => room.status === "모집중").length;
+  const startingSoonCount = rooms.filter((room) => room.status === "곧 시작").length;
+  const completionRate = rooms.length
+    ? Math.round(
+        (rooms.filter((room) => room.status === "완료").length / rooms.length) * 100
+      )
+    : 0;
+
+  return [
+    { label: "모집 중", value: `${recruitingCount}개` },
+    { label: "곧 시작", value: `${startingSoonCount}개` },
+    { label: "완주율", value: `${completionRate}%` },
+  ];
+}
+
+export function getCompanionRoomStateStorageKey(roomId: string) {
+  return `knit_companion_room_state:${roomId}`;
+}
+
+export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionRoomState {
+  const participantCount = Math.max(1, room.participantCount);
+  const participants = Array.from({ length: participantCount }, (_, index) => ({
+    id: `${room.id}-participant-${index + 1}`,
+    name: index === 0 ? room.hostName : `뜨개메이트 ${index}`,
+    role: index === 0 ? ("진행자" as const) : ("참여중" as const),
+  }));
+
+  return {
+    participants,
+    notices: [
+      `${formatCompanionDate(room.recruitUntil)}까지 모집 후 ${formatCompanionDate(room.startDate)}에 시작해요.`,
+      `${room.patternName} 기준으로 진행하고, 막히는 부분은 질문 탭에 남겨주세요.`,
+      `체크인 기록은 중간 진행 사진과 메모 중심으로 남기면 좋아요.`,
+    ],
+    supplies: [
+      { id: `${room.id}-supply-pattern`, label: `${room.patternName} 도안 확인`, checked: false },
+      { id: `${room.id}-supply-yarn`, label: "사용 실 준비", checked: false },
+      { id: `${room.id}-supply-needle`, label: "바늘 호수 확인", checked: false },
+      { id: `${room.id}-supply-note`, label: "체크인 일정 확인", checked: false },
+    ],
+    threads: [
+      {
+        id: `${room.id}-question-1`,
+        type: "질문",
+        author: "뜨개메이트 1",
+        content: "실 대체 가능한 추천사가 있으면 같이 공유해 주세요.",
+        createdAt: room.createdAt,
+      },
+      {
+        id: `${room.id}-cert-1`,
+        type: "인증",
+        author: "뜨개메이트 2",
+        content: "실이랑 바늘 준비 완료했어요. 시작 전에 게이지 먼저 떠보겠습니다.",
+        createdAt: room.createdAt,
+      },
+    ],
+    checkIns: [
+      {
+        id: `${room.id}-checkin-1`,
+        title: "시작 준비",
+        content: "도안, 실, 바늘을 정리하고 첫 체크인 공지를 확인하는 단계예요.",
+        author: room.hostName,
+        createdAt: room.createdAt,
+      },
+      {
+        id: `${room.id}-checkin-2`,
+        title: "중간 점검",
+        content: "사이즈, 배색, 텐션을 서로 확인하면서 진행 속도를 맞춰요.",
+        author: room.hostName,
+        createdAt: room.createdAt,
+      },
+    ],
+  };
+}
+
+export function serializeCompanionRooms(rooms: CompanionRoom[]) {
+  return JSON.stringify(rooms);
+}
+
+export function deserializeCompanionRooms(raw: string | null) {
+  if (!raw) return [] as CompanionRoom[];
+
+  try {
+    const parsed = JSON.parse(raw) as CompanionRoom[];
+
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed.filter(
+      (room) =>
+        typeof room?.id === "string" &&
+        typeof room?.title === "string" &&
+        typeof room?.patternName === "string"
+    );
+  } catch {
+    return [];
+  }
+}
+
+export function serializeCompanionRoomState(state: CompanionRoomState) {
+  return JSON.stringify(state);
+}
+
+export function deserializeCompanionRoomState(
+  raw: string | null,
+  fallback: CompanionRoomState
+) {
+  if (!raw) return fallback;
+
+  try {
+    const parsed = JSON.parse(raw) as Partial<CompanionRoomState>;
+
+    return {
+      participants: Array.isArray(parsed.participants) ? parsed.participants : fallback.participants,
+      notices: Array.isArray(parsed.notices) ? parsed.notices : fallback.notices,
+      supplies: Array.isArray(parsed.supplies) ? parsed.supplies : fallback.supplies,
+      threads: Array.isArray(parsed.threads) ? parsed.threads : fallback.threads,
+      checkIns: Array.isArray(parsed.checkIns) ? parsed.checkIns : fallback.checkIns,
+    };
+  } catch {
+    return fallback;
+  }
+}
