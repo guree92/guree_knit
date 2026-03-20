@@ -93,7 +93,9 @@ const companionRoomRows: CompanionRoomRow[] = [
   },
 ];
 
-export const companionRooms: CompanionRoom[] = companionRoomRows.map(mapCompanionRoom);
+export const companionRooms: CompanionRoom[] = companionRoomRows.map((row) =>
+  mapCompanionRoom(row)
+);
 
 export const companionHighlights = getCompanionSummaryStats(companionRooms);
 
