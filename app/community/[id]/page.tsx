@@ -617,7 +617,7 @@ export default function CommunityDetailPage() {
               href="/community"
               className={styles.submitButton}
             >
-              뜨개마당으로 돌아가기
+              목록으로
             </Link>
           </section>
         </div>
@@ -633,13 +633,6 @@ export default function CommunityDetailPage() {
           <div className={styles.mainColumn}>
             <section className={`${styles.hero} ${styles.heroCompact}`}>
               <div className={styles.heroBody}>
-                <Link
-                  href="/community"
-                  className={styles.backLink}
-                >
-                  뜨개마당으로 돌아가기
-                </Link>
-
                 <span className={styles.eyebrow}>Post Archive</span>
 
                 <h1 className={styles.heroTitle}>{post.title}</h1>
@@ -657,28 +650,49 @@ export default function CommunityDetailPage() {
                   ) : null}
                 </div>
 
-                <div className={`${styles.actionRow} ${styles.heroActionRow}`}>
-                  <button
-                    type="button"
-                    onClick={handleLikeToggle}
-                    disabled={isLikePending}
-                    aria-pressed={isLiked}
-                    className={`${styles.likeButton} ${isLiked ? styles.likeButtonActive : ""}`}
-                  >
-                    <span className={styles.buttonIcon} aria-hidden="true">
-                      {isLiked ? "♥" : "♡"}
-                    </span>
-                    좋아요 {post.likes}
-                  </button>
-                  {!isPostOwner && !isAdmin ? (
+                <div className={styles.heroActionBand}>
+                  <div className={`${styles.actionRow} ${styles.heroActionRow}`}>
                     <button
                       type="button"
-                      onClick={handleReportPost}
-                      disabled={isPostReportPending}
-                      className={styles.dangerButton}
+                      onClick={handleLikeToggle}
+                      disabled={isLikePending}
+                      aria-pressed={isLiked}
+                      className={`${styles.likeButton} ${isLiked ? styles.likeButtonActive : ""}`}
                     >
-                      {isPostReportPending ? "신고 중..." : "게시글 신고"}
+                      <span className={styles.buttonIcon} aria-hidden="true">
+                        {isLiked ? "♥" : "♡"}
+                      </span>
+                      좋아요 {post.likes}
                     </button>
+                    {!isPostOwner && !isAdmin ? (
+                      <button
+                        type="button"
+                        onClick={handleReportPost}
+                        disabled={isPostReportPending}
+                        className={styles.dangerButton}
+                      >
+                        {isPostReportPending ? "신고 중..." : "게시글 신고"}
+                      </button>
+                    ) : null}
+                  </div>
+
+                  {isPostOwner ? (
+                    <div className={`${styles.actionRow} ${styles.heroInlineOwnerActions}`}>
+                      <Link
+                        href={`/community/${post.id}/edit`}
+                        className={styles.ghostButton}
+                      >
+                        게시글 수정
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleDeletePost}
+                        disabled={isPostModerating}
+                        className={styles.dangerButton}
+                      >
+                        {isPostModerating ? "삭제 중..." : "게시글 삭제"}
+                      </button>
+                    </div>
                   ) : null}
                 </div>
               </div>
@@ -700,25 +714,6 @@ export default function CommunityDetailPage() {
                     목록으로
                   </Link>
                 </div>
-
-                {isPostOwner ? (
-                  <div className={`${styles.actionRow} ${styles.heroMiddleActions}`}>
-                    <Link
-                      href={`/community/${post.id}/edit`}
-                      className={styles.ghostButton}
-                    >
-                      게시글 수정
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleDeletePost}
-                      disabled={isPostModerating}
-                      className={styles.dangerButton}
-                    >
-                      {isPostModerating ? "삭제 중..." : "게시글 삭제"}
-                    </button>
-                  </div>
-                ) : null}
 
                 {post.isHidden && isAdmin ? (
                   <span className={styles.hintText}>현재 관리자에 의해 숨김 처리된 게시글이에요.</span>

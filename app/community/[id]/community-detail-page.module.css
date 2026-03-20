@@ -158,32 +158,44 @@
 }
 
 .heroActions {
-  position: relative;
   gap: 8px;
   align-self: stretch;
   justify-content: flex-start;
   flex-direction: column;
   align-items: flex-end;
-  min-width: 220px;
+  min-width: 0;
 }
 
 .actionRow {
   justify-content: flex-end;
 }
 
+.heroActionBand {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .heroActionRow {
   justify-content: flex-start;
 }
 
+.heroInlineOwnerActions {
+  justify-content: flex-end;
+  margin-left: auto;
+}
+
 .heroTopActions {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 1;
   justify-content: flex-end;
 }
 
 .heroMiddleActions {
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
   justify-content: flex-end;
 }
 
@@ -748,7 +760,7 @@
   }
 
   .hero {
-    padding: 12px 13px;
+    padding: 12px 13px 64px;
   }
 
   .sectionCard {
@@ -801,6 +813,18 @@
 
   .heroActions {
     min-width: 190px;
+  }
+
+  .heroActionBand {
+    position: static;
+  }
+
+  .heroInlineOwnerActions {
+    position: absolute;
+    right: 13px;
+    bottom: 12px;
+    margin-left: 0;
+    z-index: 1;
   }
 
   .imageWrap {
@@ -904,14 +928,69 @@
   }
 }
 
-@media (max-width: 920px) {
+@media (min-width: 721px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch;
+    padding: 14px 16px;
+  }
+
+  .heroActions {
+    width: auto;
+    align-items: flex-end;
+    justify-content: flex-start;
+  }
+
+  .actionRow {
+    width: auto;
+  }
+
+  .heroTopActions {
+    top: 14px;
+    right: 16px;
+  }
+
+  .heroActionBand {
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .heroInlineOwnerActions {
+    flex-wrap: nowrap;
+    margin-left: auto;
+  }
+}
+
+@media (min-width: 1252px) {
+  .hero {
+    padding-bottom: 70px;
+  }
+
+  .heroActionBand {
+    position: absolute;
+    left: 16px;
+    right: 16px;
+    bottom: 14px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .heroInlineOwnerActions {
+    position: static;
+    margin-left: auto;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 720px) {
   .page {
     padding: 0 10px 16px;
   }
 
   .hero {
+    position: relative;
     grid-template-columns: minmax(0, 1fr);
-    padding: 14px 12px;
+    padding: 54px 12px 14px;
   }
 
   .heroActions,
@@ -922,6 +1001,25 @@
 
   .heroActions {
     align-items: flex-start;
+  }
+
+  .heroTopActions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: auto;
+    justify-content: flex-end;
+  }
+
+  .heroMiddleActions {
+    position: static;
+    transform: none;
+    justify-content: flex-end;
+  }
+
+  .heroTopActions .secondaryAction {
+    flex: 0 0 auto;
+    min-width: 88px;
   }
 
   .sectionCard,
@@ -949,6 +1047,10 @@
     border-radius: 18px;
   }
 
+  .hero {
+    padding-top: 54px;
+  }
+
   .heroTitle {
     max-width: none;
     font-size: clamp(1.5rem, 8vw, 2rem);
@@ -963,6 +1065,38 @@
   .smallGhostButton {
     flex: 1 1 0;
     min-width: 0;
+  }
+
+  .heroActions {
+    position: static;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .heroTopActions {
+    top: 12px;
+    right: 12px;
+  }
+
+  .heroMiddleActions {
+    position: static;
+    transform: none;
+    justify-content: flex-end;
+  }
+
+  .heroTopActions .secondaryAction {
+    flex: 0 0 auto;
+    min-width: 88px;
+  }
+
+  .heroActionBand {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .heroInlineOwnerActions {
+    margin-left: 0;
+    width: 100%;
   }
 
   .summaryRow,
