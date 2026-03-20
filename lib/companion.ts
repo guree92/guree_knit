@@ -157,6 +157,32 @@ export type CompanionRoomState = {
   checkIns: CompanionCheckIn[];
 };
 
+export function getEffectiveCompanionStatus(
+  _status: CompanionStatus,
+  startDate: string,
+  endDate: string
+): CompanionStatus {
+  const start = new Date(`${startDate}T00:00:00`);
+  const soonBoundary = new Date(`${startDate}T00:00:00`);
+  soonBoundary.setDate(soonBoundary.getDate() - 1);
+  const deadline = new Date(`${endDate}T23:59:59`);
+  const now = new Date();
+
+  if (!Number.isNaN(deadline.getTime()) && now > deadline) {
+    return "완료";
+  }
+
+  if (!Number.isNaN(start.getTime()) && now >= start) {
+    return "진행중";
+  }
+
+  if (!Number.isNaN(soonBoundary.getTime()) && now >= soonBoundary) {
+    return "곧 시작";
+  }
+
+  return "모집중";
+}
+
 export function mapCompanionRoom(
   row: CompanionRoomRow,
   overrides: Partial<Pick<CompanionRoom, "hostName">> = {}
@@ -178,7 +204,7 @@ export function mapCompanionRoom(
     level: row.level,
     capacity: row.capacity,
     participantCount: row.participant_count ?? 0,
-    status: row.status,
+    status: getEffectiveCompanionStatus(row.status, row.start_date, row.end_date),
     tags: row.tags ?? [],
     createdAt: row.created_at,
   };
@@ -232,16 +258,10 @@ export function isCompanionRecruitingOpen(recruitUntil: string) {
 export function getCompanionSummaryStats(rooms: CompanionRoom[]) {
   const recruitingCount = rooms.filter((room) => room.status === "모집중").length;
   const startingSoonCount = rooms.filter((room) => room.status === "곧 시작").length;
-  const completionRate = rooms.length
-    ? Math.round(
-        (rooms.filter((room) => room.status === "완료").length / rooms.length) * 100
-      )
-    : 0;
 
   return [
     { label: "모집 중", value: `${recruitingCount}개` },
     { label: "곧 시작", value: `${startingSoonCount}개` },
-    { label: "완주율", value: `${completionRate}%` },
   ];
 }
 

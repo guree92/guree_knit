@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, KeyboardEvent, useEffect, useMemo, useState } from "react";
@@ -12,11 +11,9 @@ import {
   companionDraftStorageKey,
   companionLevels,
   companionPatternSourceTypes,
-  companionStatuses,
   type CompanionCustomPatternData,
   type CompanionLevel,
   type CompanionPatternSourceType,
-  type CompanionStatus,
 } from "@/lib/companion";
 import { type DetailRow, type NeedleType } from "@/lib/pattern-detail";
 import type { PatternItem } from "@/lib/patterns";
@@ -60,7 +57,6 @@ type CompanionDraft = {
   endDate: string;
   recruitUntil: string;
   level: CompanionLevel;
-  status: CompanionStatus;
   tags: string[];
   customPatternTitle: string;
   customPatternLevel: (typeof levelOptions)[number];
@@ -92,7 +88,6 @@ const initialDraft: CompanionDraft = {
   endDate: "",
   recruitUntil: "",
   level: companionLevels[0],
-  status: "모집중",
   tags: [],
   customPatternTitle: "",
   customPatternLevel: levelOptions[0],
@@ -165,7 +160,6 @@ export default function CompanionRoomForm() {
   const [endDate, setEndDate] = useState(initialDraft.endDate);
   const [recruitUntil, setRecruitUntil] = useState(initialDraft.recruitUntil);
   const [level, setLevel] = useState<CompanionLevel>(initialDraft.level);
-  const [status, setStatus] = useState<CompanionStatus>(initialDraft.status);
   const [tags, setTags] = useState<string[]>(initialDraft.tags);
   const [tagInput, setTagInput] = useState("");
   const [hostName, setHostName] = useState("내 닉네임");
@@ -209,6 +203,7 @@ export default function CompanionRoomForm() {
   );
   const [customPatternImageFile, setCustomPatternImageFile] = useState<File | null>(null);
   const [customPatternImagePreviewUrl, setCustomPatternImagePreviewUrl] = useState("");
+  const [customPatternImagePreviewFailed, setCustomPatternImagePreviewFailed] = useState(false);
 
   const selectedPattern = useMemo(
     () => availablePatterns.find((pattern) => pattern.id === selectedPatternId) ?? null,
@@ -247,6 +242,24 @@ export default function CompanionRoomForm() {
     if (patternSourceType === "custom") return customPatternTitle;
     return externalPatternName;
   }, [customPatternTitle, externalPatternName, patternSourceType, selectedPattern]);
+  const isHeicImage = useMemo(() => {
+    if (!customPatternImageFile) return false;
+
+    const normalizedName = customPatternImageFile.name.toLowerCase();
+    const normalizedType = customPatternImageFile.type.toLowerCase();
+
+    return (
+      normalizedName.endsWith(".heic") ||
+      normalizedName.endsWith(".heif") ||
+      normalizedType.includes("heic") ||
+      normalizedType.includes("heif")
+    );
+  }, [customPatternImageFile]);
+  const todayDateString = useMemo(() => {
+    const now = new Date();
+    const offset = now.getTimezoneOffset() * 60000;
+    return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -266,7 +279,6 @@ export default function CompanionRoomForm() {
       setEndDate(parsed.endDate ?? initialDraft.endDate);
       setRecruitUntil(parsed.recruitUntil ?? initialDraft.recruitUntil);
       setLevel(parsed.level ?? initialDraft.level);
-      setStatus(parsed.status ?? initialDraft.status);
       setTags(parsed.tags ?? initialDraft.tags);
       setCustomPatternTitle(parsed.customPatternTitle ?? initialDraft.customPatternTitle);
       setCustomPatternLevel(parsed.customPatternLevel ?? initialDraft.customPatternLevel);
@@ -310,7 +322,6 @@ export default function CompanionRoomForm() {
       endDate,
       recruitUntil,
       level,
-      status,
       tags,
       customPatternTitle,
       customPatternLevel,
@@ -358,7 +369,6 @@ export default function CompanionRoomForm() {
     recruitUntil,
     selectedPatternId,
     startDate,
-    status,
     summary,
     tags,
     title,
@@ -404,11 +414,13 @@ export default function CompanionRoomForm() {
   useEffect(() => {
     if (!customPatternImageFile) {
       setCustomPatternImagePreviewUrl("");
+      setCustomPatternImagePreviewFailed(false);
       return;
     }
 
     const objectUrl = URL.createObjectURL(customPatternImageFile);
     setCustomPatternImagePreviewUrl(objectUrl);
+    setCustomPatternImagePreviewFailed(false);
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [customPatternImageFile]);
@@ -464,12 +476,14 @@ export default function CompanionRoomForm() {
 
   function handleCustomPatternImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
+    setCustomPatternImagePreviewFailed(false);
     setCustomPatternImageFile(file);
   }
 
   function removeCustomPatternImage() {
     setCustomPatternImageFile(null);
     setCustomPatternImagePreviewUrl("");
+    setCustomPatternImagePreviewFailed(false);
   }
 
   async function handleSubmit() {
@@ -485,6 +499,11 @@ export default function CompanionRoomForm() {
 
     if (recruitUntil > startDate) {
       alert("모집 마감일은 시작일보다 늦을 수 없어요.");
+      return;
+    }
+
+    if (startDate > endDate) {
+      alert("종료일은 시작일보다 빠를 수 없어요.");
       return;
     }
 
@@ -609,7 +628,7 @@ export default function CompanionRoomForm() {
         recruit_until: recruitUntil,
         level,
         capacity: 9999,
-        status,
+        status: "모집중",
         tags,
       });
 
@@ -1140,19 +1159,29 @@ export default function CompanionRoomForm() {
                     <div className={patternStyles.mediaCompactGrid}>
                       <div className={patternStyles.uploadCard}>
                         <div className={patternStyles.uploadPreview}>
-                          {customPatternImagePreviewUrl ? (
-                            <Image
+                          {customPatternImagePreviewUrl && !customPatternImagePreviewFailed ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
                               src={customPatternImagePreviewUrl}
                               alt="업로드한 도안 이미지 미리보기"
-                              fill
                               className={patternStyles.uploadPreviewImage}
-                              sizes="(max-width: 920px) 100vw, 280px"
+                              onError={() => setCustomPatternImagePreviewFailed(true)}
                             />
                           ) : (
                             <div className={patternStyles.uploadPreviewEmpty}>
                               <div>
-                                대표 이미지를 등록하면 카드 인상이 또렷해져요.
-                                <p>정사각형 비율을 추천해요.</p>
+                                {customPatternImageFile && customPatternImagePreviewFailed
+                                  ? isHeicImage
+                                    ? "HEIC 미리보기를 이 환경에서 바로 보여주지 못하고 있어요."
+                                    : "이미지 미리보기를 불러오지 못했어요."
+                                  : "대표 이미지를 등록하면 카드 인상이 또렷해져요."}
+                                <p>
+                                  {customPatternImageFile && customPatternImagePreviewFailed
+                                    ? isHeicImage
+                                      ? "JPG, PNG, WEBP 형식으로 올리면 바로 미리보기가 보여요."
+                                      : "다른 이미지 파일로 다시 시도해 주세요."
+                                    : "정사각형 비율을 추천해요."}
+                                </p>
                               </div>
                             </div>
                           )}
@@ -1215,6 +1244,8 @@ export default function CompanionRoomForm() {
                       type="date"
                       className={styles.input}
                       value={recruitUntil}
+                      min={todayDateString}
+                      max={startDate || undefined}
                       onChange={(event) => setRecruitUntil(event.target.value)}
                     />
                   </label>
@@ -1225,6 +1256,8 @@ export default function CompanionRoomForm() {
                       type="date"
                       className={styles.input}
                       value={startDate}
+                      min={todayDateString}
+                      max={endDate || undefined}
                       onChange={(event) => setStartDate(event.target.value)}
                     />
                   </label>
@@ -1235,6 +1268,7 @@ export default function CompanionRoomForm() {
                       type="date"
                       className={styles.input}
                       value={endDate}
+                      min={startDate || todayDateString}
                       onChange={(event) => setEndDate(event.target.value)}
                     />
                   </label>
@@ -1249,21 +1283,6 @@ export default function CompanionRoomForm() {
                       onChange={(event) => setLevel(event.target.value as CompanionLevel)}
                     >
                       {companionLevels.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>상태</span>
-                    <select
-                      className={styles.select}
-                      value={status}
-                      onChange={(event) => setStatus(event.target.value as CompanionStatus)}
-                    >
-                      {companionStatuses.filter((item) => item !== "완료").map((item) => (
                         <option key={item} value={item}>
                           {item}
                         </option>
