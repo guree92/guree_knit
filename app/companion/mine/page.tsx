@@ -161,8 +161,6 @@ export default async function MyCompanionPage() {
     }));
   }
 
-  const highlights = getCompanionSummaryStats(rooms);
-
   return (
     <>
       <Header />
@@ -181,15 +179,6 @@ export default async function MyCompanionPage() {
                       전체 동행 보기
                     </Link>
                   </div>
-                </div>
-
-                <div className={styles.heroStats}>
-                  {highlights.map((item) => (
-                    <article key={item.label} className={styles.statCard}>
-                      <span className={styles.statLabel}>{item.label}</span>
-                      <strong className={styles.statValue}>{item.value}</strong>
-                    </article>
-                  ))}
                 </div>
               </section>
 
@@ -212,8 +201,6 @@ export default async function MyCompanionPage() {
                         동행 정보 보기
                       </Link>
                     </div>
-
-                    <p className={styles.roomSummary}>{room.summary}</p>
 
                     <div className={styles.roomInfoGrid}>
                       <div className={styles.infoBox}>

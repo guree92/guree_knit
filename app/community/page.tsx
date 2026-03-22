@@ -76,35 +76,23 @@ export default function CommunityPage() {
   const [sortOption, setSortOption] = useState<SortOption>("latest");
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
-  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [pendingHideId, setPendingHideId] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchPosts() {
       setIsLoading(true);
 
-      const [postsResponse, adminResponse] = await Promise.all([
-        supabase
-          .from("community_posts")
-          .select(`*, community_likes(count)`)
-          .eq("is_hidden", false)
-          .order("created_at", { ascending: false }),
-        fetch("/api/admin/status", { cache: "no-store" }),
-      ]);
+      const postsResponse = await supabase
+        .from("community_posts")
+        .select(`*, community_likes(count)`)
+        .eq("is_hidden", false)
+        .order("created_at", { ascending: false });
 
       if (postsResponse.error) {
         console.error(postsResponse.error);
         alert("뜨개마당 글을 불러오지 못했어요.");
         setIsLoading(false);
         return;
-      }
-
-      if (adminResponse.ok) {
-        const result = (await adminResponse.json()) as { isAdmin?: boolean };
-        setIsAdmin(Boolean(result.isAdmin));
-      } else {
-        setIsAdmin(false);
       }
 
       const rows = (postsResponse.data ?? []) as CommunityPostRow[];
@@ -217,30 +205,6 @@ export default function CommunityPage() {
     });
   }
 
-  async function handleHidePost(postId: string) {
-    const shouldHide = window.confirm("이 게시글을 숨김 처리할까요?");
-    if (!shouldHide) return;
-
-    setPendingHideId(postId);
-
-    const response = await fetch(`/api/admin/community/posts/${postId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ hidden: true }),
-    });
-
-    if (!response.ok) {
-      const result = (await response.json().catch(() => null)) as { message?: string } | null;
-      alert(result?.message ?? "게시글 숨김 처리에 실패했어요. 잠시 후 다시 시도해 주세요.");
-      setPendingHideId(null);
-      return;
-    }
-
-    setPosts((current) => current.filter((post) => post.id !== postId));
-    router.refresh();
-    setPendingHideId(null);
-  }
-
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
@@ -248,13 +212,8 @@ export default function CommunityPage() {
         <div className={styles.workspace}>
           <div className={styles.mainColumn}>
             <section className={styles.hero}>
-              <div className={styles.heroBadge}>Community Lounge</div>
-
-              <div className={styles.heroHeader}>
-                <div>
-                  <h1 className={styles.heroTitle}>뜨개마당</h1>
-                </div>
-
+              <div className={styles.heroTop}>
+                <div className={styles.heroBadge}>Community Lounge</div>
                 <div className={styles.heroActions}>
                   <Link
                     href={isLoggedIn ? "/community/write" : writeHref}
@@ -265,22 +224,12 @@ export default function CommunityPage() {
                 </div>
               </div>
 
-              <div className={styles.heroStats}>
-                <div className={styles.statCard}>
-                  <span className={styles.statLabel}>전체 글</span>
-                  <strong className={styles.statValue}>{posts.length}</strong>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statLabel}>오늘 올라온 새글</span>
-                  <strong className={styles.statValue}>{todayPostCount}</strong>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statLabel}>정렬 방식</span>
-                  <strong className={styles.statValue}>
-                    {sortOption === "latest" ? "최신순" : "인기순"}
-                  </strong>
+              <div className={styles.heroIntro}>
+                <div>
+                  <h1 className={styles.heroTitle}>뜨개마당</h1>
                 </div>
               </div>
+
             </section>
 
             <section className={styles.filterPanel}>
@@ -457,18 +406,6 @@ export default function CommunityPage() {
                             </div>
                           </Link>
 
-                          {isAdmin ? (
-                            <div className={styles.cardActions}>
-                              <button
-                                type="button"
-                                onClick={() => handleHidePost(post.id)}
-                                disabled={pendingHideId === post.id}
-                                className={styles.dangerButton}
-                              >
-                                {pendingHideId === post.id ? "숨김 중..." : "관리자 숨김"}
-                              </button>
-                            </div>
-                          ) : null}
                         </article>
                       );
                     })}
@@ -565,17 +502,19 @@ export default function CommunityPage() {
           <aside className={styles.sideColumn}>
             <section className={styles.sidePanel}>
               <div className={styles.sectionHeader}>
-                <span className={styles.sectionEyebrow}>At A Glance</span>
-                <h2 className={styles.sectionTitle}>카테고리 흐름</h2>
+                <span className={styles.sectionEyebrow}>Board Snapshot</span>
+                <h2 className={styles.sectionTitle}>한눈에 보기</h2>
               </div>
 
-              <div className={styles.sideList}>
-                {categorySummaries.map((item) => (
-                  <div key={item.name} className={styles.sideRow}>
-                    <span>{item.name}</span>
-                    <strong>{item.count}</strong>
-                  </div>
-                ))}
+              <div className={styles.sideStatsGrid}>
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>전체 글</span>
+                  <strong className={styles.statValue}>{posts.length}</strong>
+                </article>
+                <article className={styles.statCard}>
+                  <span className={styles.statLabel}>오늘 올라온 새글</span>
+                  <strong className={styles.statValue}>{todayPostCount}</strong>
+                </article>
               </div>
             </section>
 
@@ -600,28 +539,14 @@ export default function CommunityPage() {
               </div>
             </section>
 
-            <section className={styles.sidePanel}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.sectionEyebrow}>Write Guide</span>
-                <h2 className={styles.sectionTitle}>이렇게 쓰면 좋아요</h2>
-              </div>
-
-              <div className={styles.tipList}>
-                <p>질문 글은 사용 실, 바늘, 막힌 부분을 함께 적어보세요.</p>
-                <p>같이뜨기 글은 일정과 진행 방식을 먼저 보여주면 좋아요.</p>
-                <p>완성작은 태그와 이미지가 있을수록 더 잘 발견돼요.</p>
-              </div>
-
-              <Link
-                href={isLoggedIn ? "/community/write" : writeHref}
-                className={styles.primaryAction}
-              >
-                새 글 작성
-              </Link>
-            </section>
           </aside>
         </div>
       </div>
     </main>
   );
 }
+
+
+
+
+

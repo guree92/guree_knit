@@ -1,4 +1,4 @@
-.page {
+﻿.page {
   min-height: calc(100vh - 48px);
   margin-top: -6px;
   padding: 0 24px 20px;
@@ -74,20 +74,30 @@
 
 .hero {
   display: grid;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   padding: 20px 28px;
+  margin-bottom: -2px;
 }
 
-.heroHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 20px;
-  align-items: end;
+.heroTop {
+  display: contents;
+}
+
+.heroIntro {
+  grid-column: 1;
+  grid-row: 2;
+  margin-top: 12px;
+}
+
+.heroBadge {
+  grid-column: 1;
+  grid-row: 1;
 }
 
 .heroTitle {
-  margin: 14px 0 0;
-  max-width: 9ch;
+  margin: 0;
+  max-width: 10ch;
   color: #34291f;
   font-size: clamp(1.8rem, 3vw, 2.95rem);
   line-height: 1.02;
@@ -104,6 +114,8 @@
 }
 
 .heroActions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -131,6 +143,7 @@
 }
 
 .primaryAction {
+  align-self: center;
   min-width: 124px;
   padding: 13px 18px;
   background: linear-gradient(135deg, #8a9b84, #71826c);
@@ -161,6 +174,7 @@
 }
 
 .heroStats {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
@@ -677,6 +691,15 @@
   gap: 8px;
 }
 
+.sideStatsGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.sideStatsGrid .statCard {
+  padding: 14px 16px;
+}
+
 .sideRow {
   display: flex;
   justify-content: space-between;
@@ -771,15 +794,20 @@
   }
 
   .hero {
-    gap: 12px;
-  }
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 20px 28px;
+  margin-bottom: -2px;
+}
 
-  .heroHeader {
-    gap: 14px;
-  }
+  .heroBadge {
+  grid-column: 1;
+  grid-row: 1;
+}
 
-  .heroTitle {
-    font-size: clamp(1.65rem, 2.4vw, 2.4rem);
+.heroTitle {
+    font-size: clamp(1.7rem, 3.2vw, 2.45rem);
   }
 
   .heroDescription,
@@ -987,13 +1015,21 @@
   }
 
   .hero {
-    padding: 12px 10px;
-    gap: 10px;
-  }
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  padding: 20px 28px;
+  margin-bottom: -2px;
+}
 
-  .heroTitle {
-    max-width: 8ch;
-    font-size: clamp(1.28rem, 4vw, 1.7rem);
+  .heroBadge {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.heroTitle {
+    max-width: none;
+    font-size: clamp(1.9rem, 9vw, 2.7rem);
   }
 
   .heroDescription,
@@ -1008,11 +1044,6 @@
     font-size: 0.72rem;
   }
 
-  .heroHeader {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    align-items: end;
-  }
 
   .heroActions {
     display: inline-flex;
@@ -1178,3 +1209,13 @@
     font-size: 0.96rem;
   }
 }
+
+
+
+
+
+
+
+
+
+
