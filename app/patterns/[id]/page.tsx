@@ -408,6 +408,9 @@ export default function PatternDetailPage() {
   const previewRows = [
     ...prepRows,
     { label: "원작자", value: pattern.copyright_source || "-" },
+    ...(pattern.copyright_source_url
+      ? [{ label: "출처 링크", value: pattern.copyright_source_url }]
+      : []),
   ];
 
   return (
@@ -572,6 +575,19 @@ export default function PatternDetailPage() {
                           <span>원작자</span>
                           <span className={styles.summaryValue}>{pattern.copyright_source || "-"}</span>
                         </div>
+                        {pattern.copyright_source_url ? (
+                          <div className={styles.summaryRow}>
+                            <span>출처 링크</span>
+                            <a
+                              href={pattern.copyright_source_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={styles.secondaryLinkAction}
+                            >
+                              링크 열기
+                            </a>
+                          </div>
+                        ) : null}
                         {previewPolicies.map((policy) => (
                           <div key={`compact-policy-${policy.label}`} className={styles.policyRow}>
                             <span className={styles.fieldLabel}>{policy.label}</span>
@@ -677,3 +693,4 @@ export default function PatternDetailPage() {
     </main>
   );
 }
+

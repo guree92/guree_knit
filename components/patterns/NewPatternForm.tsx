@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -24,7 +24,7 @@ const copyrightRules = [
   { key: "sizeVariation", label: "사이즈 변형" },
   { key: "commercialUse", label: "상업적 사용" },
   { key: "redistribution", label: "도안 재배포" },
-  { key: "modificationResale", label: "도안 수정 및 재판매" },
+  { key: "modificationResale", label: "수정본 판매" },
 ] as const;
 const maxTags = 5;
 
@@ -98,6 +98,7 @@ export default function NewPatternForm() {
     redistribution: "x",
     modificationResale: "x",
   });
+  const [copyrightSourceUrl, setCopyrightSourceUrl] = useState("");
   const [detailRows, setDetailRows] = useState<DetailRow[]>([]);
   const [detailContent, setDetailContent] = useState("");
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -245,6 +246,8 @@ export default function NewPatternForm() {
         needle: needleText,
         size: finalSizeText,
         copyright_source: copyrightSettings.source,
+        copyright_source_url:
+          copyrightSettings.source === "무료배포" ? copyrightSourceUrl.trim() || null : null,
         copyright_hobby_only: copyrightSettings.hobbyOnly === "o",
         copyright_color_variation: copyrightSettings.colorVariation === "o",
         copyright_size_variation: copyrightSettings.sizeVariation === "o",
@@ -311,7 +314,7 @@ export default function NewPatternForm() {
                         className={styles.input}
                         value={title}
                         onChange={(event) => setTitle(event.target.value)}
-                        placeholder="예: 봄 네트백 도안"
+                        placeholder="예: 포근한 니트백 도안"
                       />
                     </div>
 
@@ -364,7 +367,7 @@ export default function NewPatternForm() {
                         className={styles.textarea}
                         value={description}
                         onChange={(event) => setDescription(event.target.value)}
-                        placeholder="작품 분위기, 추천 포인트, 준비 포인트를 간단히 적어 주세요."
+                        placeholder="작품 분위기, 추천 포인트, 준비 팁을 가볍게 적어주세요."
                       />
                     </div>
                   </div>
@@ -378,7 +381,7 @@ export default function NewPatternForm() {
                           value={tagInput}
                           onChange={(event) => setTagInput(event.target.value)}
                           onKeyDown={handleTagKeyDown}
-                          placeholder="예: 사계절, 데일리"
+                          placeholder="예: 봄가방, 데일리"
                         />
                         <button
                           type="button"
@@ -401,7 +404,7 @@ export default function NewPatternForm() {
                           </button>
                         ))}
                       </div>
-                      <p className={styles.helperText}>최대 5개</p>
+                      <p className={styles.helperText}>최대 5개까지 추가할 수 있어요.</p>
                     </div>
 
                     <div className={styles.miniStats}>
@@ -489,7 +492,7 @@ export default function NewPatternForm() {
                       className={styles.input}
                       value={yarn}
                       onChange={(event) => setYarn(event.target.value)}
-                      placeholder="예: 코튼사 2합"
+                      placeholder="예: 코튼사 2볼"
                     />
                   </div>
 
@@ -539,14 +542,14 @@ export default function NewPatternForm() {
 
                   <div className={styles.field}>
                     <label htmlFor="duration" className={styles.fieldLabel}>
-                      소요시간
+                      소요 시간
                     </label>
                     <input
                       id="duration"
                       className={styles.input}
                       value={duration}
                       onChange={(event) => setDuration(event.target.value)}
-                      placeholder="예: 3일, 8시간"
+                      placeholder="예: 3일 / 8시간"
                     />
                   </div>
                 </div>
@@ -583,6 +586,25 @@ export default function NewPatternForm() {
                       ))}
                     </div>
                   </div>
+
+                  {copyrightSettings.source === "무료배포" ? (
+                    <div className={styles.policySourceLinkRow}>
+                      <label htmlFor="copyright-source-url" className={styles.fieldLabel}>
+                        출처 링크
+                      </label>
+                      <input
+                        id="copyright-source-url"
+                        type="url"
+                        className={styles.input}
+                        value={copyrightSourceUrl}
+                        onChange={(event) => setCopyrightSourceUrl(event.target.value)}
+                        placeholder="https://..."
+                      />
+                      <p className={styles.helperText}>
+                        무료배포 도안이라면 원문이나 배포 페이지 링크를 함께 남겨둘 수 있어요.
+                      </p>
+                    </div>
+                  ) : null}
 
                   {copyrightRules.map((rule) => (
                     <div key={rule.key} className={styles.policyRow}>
@@ -745,7 +767,7 @@ export default function NewPatternForm() {
                     <span className={styles.summaryValue}>{totalYarnAmount.trim() || "-"}</span>
                   </div>
                   <div className={styles.summaryRow}>
-                    <span>소요시간</span>
+                    <span>소요 시간</span>
                     <span className={styles.summaryValue}>{duration.trim() || "-"}</span>
                   </div>
                   <div className={styles.summaryRow}>
@@ -786,3 +808,5 @@ export default function NewPatternForm() {
     </div>
   );
 }
+
+

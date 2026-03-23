@@ -1,4 +1,4 @@
-.page {
+﻿.page {
   --card-border: rgba(230, 221, 210, 0.82);
   --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 242, 0.95));
   --surface-border: #ddd4c9;
@@ -1004,3 +1004,12 @@
     width: 100%;
   }
 }
+
+
+
+.policySourceLinkRow {
+  display: grid;
+  gap: 6px;
+  padding: 4px 0 6px;
+}
+

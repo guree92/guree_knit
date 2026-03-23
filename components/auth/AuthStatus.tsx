@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { workItems } from "@/data/my-work";
 import styles from "./auth-status.module.css";
 
 type AuthUser = {
+  id: string;
   email?: string | null;
   user_metadata?: {
     nickname?: string;
@@ -68,8 +69,17 @@ export default function AuthStatus({
   profileCard = false,
   showUserBadge = true,
 }: Props) {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const router = useRouter();
+  const pathname = usePathname();
+  const safePathname = pathname || "/";
+  const loginHref = `/login?returnTo=${encodeURIComponent(safePathname)}`;
+  const logoutRedirect =
+    safePathname.startsWith("/companion/") || safePathname === "/companion"
+      ? "/companion"
+      : safePathname.startsWith("/patterns/") || safePathname === "/patterns"
+        ? "/patterns"
+      : "/";
 
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -80,80 +90,94 @@ export default function AuthStatus({
   useEffect(() => {
     async function loadUser() {
       const { data } = await supabase.auth.getUser();
-      setUser((data.user as AuthUser | null) ?? null);
+      const nextUser = (data.user as AuthUser | null) ?? null;
+      setUser(nextUser);
 
-      if (data.user) {
-        const [response, profileResult, patternCountResult] = await Promise.all([
-          fetch("/api/admin/status", { cache: "no-store" }),
-          supabase.from("profiles").select("nickname").eq("id", data.user.id).maybeSingle(),
-          supabase
-            .from("patterns")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", data.user.id)
-            .eq("is_hidden", false),
-        ]);
-
-        if (response.ok) {
-          const result = (await response.json()) as { isAdmin?: boolean };
-          setIsAdmin(Boolean(result.isAdmin));
-        } else {
-          setIsAdmin(false);
-        }
-
-        const candidateNames = Array.from(
-          new Set(
-            [
-              profileResult.data?.nickname,
-              data.user.user_metadata?.nickname as string | undefined,
-              data.user.user_metadata?.name as string | undefined,
-              data.user.email?.split("@")[0],
-            ].filter(Boolean)
-          )
-        ) as string[];
-
-        if (candidateNames.length > 0) {
-          const filters = candidateNames
-            .map((name) => `author_name.eq.${escapeFilterValue(name)}`)
-            .join(",");
-
-          const communityCountResult = await supabase
-            .from("community_posts")
-            .select("id", { count: "exact", head: true })
-            .eq("is_hidden", false)
-            .or(filters);
-
-          setCommunityCount(communityCountResult.count ?? 0);
-        } else {
-          setCommunityCount(0);
-        }
-
-        setPatternCount(patternCountResult.count ?? 0);
-      } else {
+      if (!nextUser) {
         setIsAdmin(false);
         setPatternCount(0);
         setCommunityCount(0);
+        setLoading(false);
+        return;
       }
 
+      const response = await fetch("/api/admin/status", { cache: "no-store" });
+
+      if (response.ok) {
+        const result = (await response.json()) as { isAdmin?: boolean };
+        setIsAdmin(Boolean(result.isAdmin));
+      } else {
+        setIsAdmin(false);
+      }
+
+      // Only the expanded profile card needs expensive count queries.
+      if (!profileCard) {
+        setPatternCount(0);
+        setCommunityCount(0);
+        setLoading(false);
+        return;
+      }
+
+      const [profileResult, patternCountResult] = await Promise.all([
+        supabase.from("profiles").select("nickname").eq("id", nextUser.id).maybeSingle(),
+        supabase
+          .from("patterns")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", nextUser.id)
+          .eq("is_hidden", false),
+      ]);
+
+      const candidateNames = Array.from(
+        new Set(
+          [
+            profileResult.data?.nickname,
+            nextUser.user_metadata?.nickname as string | undefined,
+            nextUser.user_metadata?.name as string | undefined,
+            nextUser.email?.split("@")[0],
+          ].filter(Boolean)
+        )
+      ) as string[];
+
+      if (candidateNames.length > 0) {
+        const filters = candidateNames
+          .map((name) => `author_name.eq.${escapeFilterValue(name)}`)
+          .join(",");
+
+        const communityCountResult = await supabase
+          .from("community_posts")
+          .select("id", { count: "exact", head: true })
+          .eq("is_hidden", false)
+          .or(filters);
+
+        setCommunityCount(communityCountResult.count ?? 0);
+      } else {
+        setCommunityCount(0);
+      }
+
+      setPatternCount(patternCountResult.count ?? 0);
       setLoading(false);
     }
 
     loadUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
       loadUser();
-      router.refresh();
+
+      if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
+        router.refresh();
+      }
     });
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, [router, supabase]);
+  }, [profileCard, router, supabase]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
     setUser(null);
     setIsAdmin(false);
-    router.push("/");
+    router.push(logoutRedirect);
     router.refresh();
   }
 
@@ -182,7 +206,7 @@ export default function AuthStatus({
   if (!user) {
     return (
       <div className={styles.root}>
-        <Link href="/login" className={styles.loginLink} aria-label="로그인">
+        <Link href={loginHref} className={styles.loginLink} aria-label="로그인">
           <span className={styles.icon}><UserIcon /></span>
           <span className={styles.label} data-collapsible-label>
             로그인

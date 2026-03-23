@@ -1,15 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LogoutButton() {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = createClient();
+  const safePathname = pathname || "/";
+  const logoutRedirect =
+    safePathname.startsWith("/companion/") || safePathname === "/companion"
+      ? "/companion"
+      : safePathname.startsWith("/patterns/") || safePathname === "/patterns"
+        ? "/patterns"
+      : "/";
 
   async function handleLogout() {
     await supabase.auth.signOut();
-    router.push("/");
+    router.push(logoutRedirect);
     router.refresh();
   }
 

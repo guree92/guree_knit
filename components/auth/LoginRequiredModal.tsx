@@ -1,6 +1,6 @@
-"use client";
+﻿"use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import styles from "./LoginRequiredModal.module.css";
 
@@ -14,10 +14,13 @@ type LoginRequiredModalProps = {
 export default function LoginRequiredModal({
   open,
   title = "로그인이 필요해요",
-  description = "먼저 로그인을 해주세요.",
+  description = "먼저 로그인해 주세요.",
   onClose,
 }: LoginRequiredModalProps) {
   const router = useRouter();
+  const pathname = usePathname();
+  const safePathname = pathname || "/";
+  const loginHref = `/login?returnTo=${encodeURIComponent(safePathname)}`;
 
   useEffect(() => {
     if (!open) return;
@@ -57,7 +60,7 @@ export default function LoginRequiredModal({
             className={styles.primaryButton}
             onClick={() => {
               onClose();
-              router.push("/login");
+              router.push(loginHref);
             }}
           >
             로그인하기

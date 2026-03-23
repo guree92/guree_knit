@@ -1,10 +1,11 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { getCompanionRoomById } from "@/data/companion";
+import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import { normalizeDetailRows } from "@/lib/pattern-detail";
 import {
   createDefaultCompanionRoomState,
@@ -53,7 +54,7 @@ function parsePatternSize(sizeText: string) {
   const widthMatch = sizeText.match(/가로\s*(\d+)/);
   const heightMatch = sizeText.match(/세로\s*(\d+)/);
   const gaugeStitchesMatch = sizeText.match(/게이지\s*:\s*(\d+)코/);
-  const gaugeRowsMatch = sizeText.match(/\*\s*(\d+)단/);
+  const gaugeRowsMatch = sizeText.match(/x\s*(\d+)단/);
 
   return {
     sizeText:
@@ -89,6 +90,7 @@ export default function CompanionDetailClient() {
   const [threadInput, setThreadInput] = useState("");
   const [checkInTitle, setCheckInTitle] = useState("");
   const [checkInContent, setCheckInContent] = useState("");
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -422,7 +424,7 @@ export default function CompanionDetailClient() {
     if (currentRoom.patternSourceType === "external") {
       return {
         title: currentRoom.patternName,
-        description: "외부 링크로 연결한 도안이에요. 원본 페이지에서 자세한 안내와 파일을 확인할 수 있어요.",
+        description: "외부 링크로 연결된 도안이에요. 원문 페이지에서 자세한 안내와 파일을 확인할 수 있어요.",
         imageUrl: "",
         heroMeta: [
           { label: currentRoom.level, tone: "level" as const },
@@ -451,7 +453,7 @@ export default function CompanionDetailClient() {
     if (!roomState) return [];
 
     return roomState.threads
-      .filter((thread) => thread.type === "질문")
+      .filter((thread) => thread.type === "吏덈Ц")
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [roomState]);
 
@@ -463,8 +465,7 @@ export default function CompanionDetailClient() {
     } = await supabase.auth.getUser();
 
     if (!user || !currentUserName) {
-      alert("참여 신청은 로그인 후 사용할 수 있어요.");
-      router.push(`/login?returnTo=%2Fcompanion%2F${currentRoom.id}`);
+      setIsLoginModalOpen(true);
       return;
     }
 
@@ -637,7 +638,7 @@ export default function CompanionDetailClient() {
     if (!currentRoom || !roomState || !noticeTitle.trim() || !noticeContent.trim()) return;
 
     if (!isHost) {
-      alert("공지 작성은 진행자만 할 수 있어요.");
+      alert("공지 작성은 진행자만 사용할 수 있어요.");
       return;
     }
 
@@ -733,7 +734,7 @@ export default function CompanionDetailClient() {
       <div className={styles.emptyState}>
         <span className={styles.eyebrow}>Companion Room</span>
         <h1 className={styles.emptyTitle}>동행방을 불러오는 중이에요</h1>
-        <p className={styles.emptyDescription}>상세 정보를 준비하고 있습니다.</p>
+        <p className={styles.emptyDescription}>상세 정보를 준비하고 있어요.</p>
       </div>
     );
   }
@@ -754,8 +755,15 @@ export default function CompanionDetailClient() {
   }
 
   return (
-    <div className={styles.shell}>
-      <section className={styles.hero}>
+    <>
+      <LoginRequiredModal
+        open={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        title="참여 신청은 로그인 후 사용할 수 있어요"
+        description="로그인하면 이 동행방에 참여 신청하고 이후 일정도 바로 확인할 수 있어요."
+      />
+      <div className={styles.shell}>
+        <section className={styles.hero}>
         <div className={styles.heroHeader}>
           <div>
             <div className={styles.topRow}>
@@ -850,7 +858,7 @@ export default function CompanionDetailClient() {
             </div>
             {!canAccessMemberPanels ? (
               <p className={styles.panelLockMessage}>
-                이 동행방에 참여한 사람만 `준비물`, `질의응답`, `진행 기록`을 볼 수 있어요.
+                이 동행방에 참여한 뒤에만 `준비물`, `질의응답`, `진행 기록`을 볼 수 있어요.
               </p>
             ) : null}
 
@@ -1103,10 +1111,10 @@ export default function CompanionDetailClient() {
                       className={styles.textarea}
                       value={threadInput}
                       onChange={(event) => setThreadInput(event.target.value)}
-                      placeholder="질문 내용을 남겨보세요."
+                      placeholder="질문 내용을 적어보세요."
                     />
                     <button type="button" className={styles.secondaryAction} onClick={() => void handleThreadSubmit()}>
-                      질문 등록
+                      吏덈Ц ?깅줉
                     </button>
                   </div>
                   <div className={styles.threadList}>
@@ -1210,5 +1218,6 @@ export default function CompanionDetailClient() {
         </aside>
       </section>
     </div>
+    </>
   );
 }
