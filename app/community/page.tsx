@@ -315,7 +315,6 @@ export default function CommunityPage() {
 
             <section className={styles.listSection}>
               <div className={styles.sectionHeader}>
-                <span className={styles.sectionEyebrow}>Post Archive</span>
                 <h2 className={styles.sectionTitle}>지금 뜨개마당에서 나누는 이야기</h2>
               </div>
 
@@ -502,7 +501,6 @@ export default function CommunityPage() {
           <aside className={styles.sideColumn}>
             <section className={styles.sidePanel}>
               <div className={styles.sectionHeader}>
-                <span className={styles.sectionEyebrow}>Board Snapshot</span>
                 <h2 className={styles.sectionTitle}>한눈에 보기</h2>
               </div>
 
@@ -520,7 +518,6 @@ export default function CommunityPage() {
 
             <section className={styles.sidePanel}>
               <div className={styles.sectionHeader}>
-                <span className={styles.sectionEyebrow}>Popular Now</span>
                 <h2 className={styles.sectionTitle}>지금 반응 좋은 글</h2>
               </div>
 

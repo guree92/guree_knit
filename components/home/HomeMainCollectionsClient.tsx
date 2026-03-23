@@ -107,7 +107,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
       <section className={styles.popularShowcase}>
         <div className={styles.sectionIntro}>
           <div>
-            <p className={styles.sectionEyebrow}>POPULAR PATTERNS</p>
             <h2 className={styles.sectionTitle}>인기 도안</h2>
           </div>
           <Link href="/patterns" className={styles.sectionLink}>
@@ -157,7 +156,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         <section className={styles.progressFeatureCard}>
           <div className={styles.sideSectionHeader}>
             <div>
-              <p className={styles.sideSectionEyebrow}>IN PROGRESS</p>
               <h2 className={styles.sideSectionTitle}>진행 중 작품</h2>
             </div>
           </div>
@@ -187,7 +185,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         <section className={styles.favoriteFeatureCard}>
           <div className={styles.sideSectionHeader}>
             <div>
-              <p className={styles.sideSectionEyebrow}>FAVORITES</p>
               <h2 className={styles.sideSectionTitle}>찜한 도안</h2>
             </div>
             <Link href="/patterns/favorites" className={styles.sideSectionLink}>

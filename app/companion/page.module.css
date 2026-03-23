@@ -2,10 +2,7 @@
   min-height: calc(100vh - 48px);
   margin-top: -6px;
   padding: 0 24px 20px;
-  background:
-    radial-gradient(circle at top left, rgba(214, 193, 173, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(145, 168, 143, 0.14), transparent 26%),
-    linear-gradient(180deg, rgba(252, 249, 244, 0.96), rgba(247, 242, 235, 0.96));
+  background: transparent;
   color: #3d3128;
 }
 
@@ -17,22 +14,23 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.42fr) 280px;
+  grid-template-columns: minmax(0, 1fr) 280px;
   gap: 14px;
-  margin-top: 0;
+  align-items: start;
 }
 
-.mainColumn {
+.mainColumn,
+.sideColumn {
   display: grid;
   gap: 10px;
+  align-content: start;
+  grid-auto-rows: max-content;
 }
 
 .sideColumn {
+  align-self: start;
   position: sticky;
   top: 18px;
-  align-self: start;
-  display: grid;
-  gap: 10px;
 }
 
 .hero,
@@ -50,15 +48,14 @@
 .filterPanel,
 .listSection,
 .sidePanel {
-  padding: 16px 14px;
+  padding: 18px 16px;
 }
 
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  padding: 20px 28px;
-  margin-bottom: -2px;
+  gap: 16px;
 }
 
 .heroBadge,
@@ -83,26 +80,21 @@
   box-shadow: 0 0 0 4px rgba(138, 155, 132, 0.12);
 }
 
-.heroTop {
-  display: contents;
+.heroContent {
+  display: grid;
+  gap: 12px;
 }
 
 .heroBadge {
-  grid-column: 1;
-  grid-row: 1;
 }
 
 .heroIntro {
-  grid-column: 1;
-  grid-row: 2;
-  margin-top: 12px;
 }
 
 .heroTitle {
   margin: 0;
-  max-width: 10ch;
   color: #34291f;
-  font-size: clamp(1.8rem, 3vw, 2.95rem);
+  font-size: clamp(2rem, 4vw, 3rem);
   line-height: 1.02;
   font-weight: 900;
   letter-spacing: -0.05em;
@@ -117,11 +109,11 @@
 }
 
 .heroActions {
-  grid-column: 2;
-  grid-row: 1 / span 2;
   display: inline-flex;
   align-items: center;
+  align-self: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .primaryAction,
@@ -225,19 +217,14 @@
   font-weight: 900;
 }
 
-.filterPanel,
-.listSection {
+.filterPanel {
   display: grid;
   gap: 14px;
 }
 
 .sectionHeader {
   display: grid;
-  gap: 8px;
-}
-
-.listSection > .sectionHeader {
-  gap: 4px;
+  gap: 6px;
 }
 
 .sectionTitle {
@@ -260,6 +247,13 @@
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  align-items: center;
+}
+
+.toolbar {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  padding-left: 0;
 }
 
 .filterChip,
@@ -332,7 +326,7 @@
 
 .boardList {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .boardHeader {
@@ -350,9 +344,9 @@
 .boardRow {
   display: grid;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 14px 14px;
   border: 1px solid #e4dbcf;
-  border-radius: 22px;
+  border-radius: 24px;
   background: rgba(255, 255, 255, 0.88);
   box-shadow: 0 8px 18px rgba(61, 49, 40, 0.04);
   transition:
@@ -368,8 +362,8 @@
 
 .boardLink {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr) 220px;
-  gap: 14px;
+  grid-template-columns: 96px minmax(0, 1fr) 180px;
+  gap: 18px;
   align-items: center;
   color: inherit;
   text-decoration: none;
@@ -385,17 +379,16 @@
   align-items: center;
   justify-content: center;
   width: 88px;
-  aspect-ratio: 1 / 1;
-  border-radius: 18px;
-  padding: 8px;
+  height: 88px;
+  border-radius: 999px;
   text-align: center;
 }
 
 .boardFallbackLabel {
   color: rgba(255, 255, 255, 0.96);
-  font-size: 0.82rem;
+  font-size: 1rem;
   font-weight: 800;
-  line-height: 1.2;
+  line-height: 1;
   letter-spacing: -0.02em;
 }
 
@@ -411,7 +404,7 @@
 .tipList {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 8px;
 }
 
 .sideStack {
@@ -425,7 +418,7 @@
 
 .boardMeta {
   display: grid;
-  gap: 6px;
+  gap: 8px;
   justify-items: end;
   align-content: center;
   text-align: right;
@@ -435,7 +428,8 @@
   display: grid;
   gap: 4px;
   color: #9b8b7f;
-  font-size: 0.75rem;
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
 
 .boardMetaTop span {
@@ -454,10 +448,10 @@
 .statusDone {
   display: inline-flex;
   align-items: center;
-  min-height: 26px;
+  min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
@@ -511,15 +505,14 @@
   color: #30251c;
   font-size: 1rem;
   font-weight: 800;
-  line-height: 1.25;
-  letter-spacing: -0.03em;
+  line-height: 1.3;
 }
 
 .cardPreview {
   margin: 0;
   color: #6f6257;
-  font-size: 0.82rem;
-  line-height: 1.55;
+  font-size: 0.83rem;
+  line-height: 1.6;
   display: -webkit-box;
   overflow: hidden;
   -webkit-line-clamp: 2;
@@ -528,7 +521,7 @@
 
 .readMore {
   color: #7a8e74;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -565,7 +558,7 @@
 }
 
 .pagination {
-  margin-top: 6px;
+  margin-top: 14px;
   align-items: center;
 }
 
@@ -700,7 +693,6 @@
     padding: 14px 12px;
   }
 
-  .heroHeader,
   .toolbar,
   .resultBar {
     grid-template-columns: minmax(0, 1fr);
@@ -709,21 +701,12 @@
   }
 
   .hero {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    padding: 20px 28px;
-    margin-bottom: -2px;
-  }
-
-  .heroBadge {
-    grid-column: 1;
-    grid-row: 1;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
   }
 
   .heroTitle {
-    max-width: none;
-    font-size: clamp(1.9rem, 9vw, 2.7rem);
+    font-size: clamp(2rem, 4vw, 3rem);
   }
 
   .heroDescription,
@@ -735,8 +718,7 @@
   }
 
   .heroActions {
-    display: inline-flex;
-    width: auto;
+    width: 100%;
   }
 
   .boardHeader {
@@ -753,7 +735,7 @@
   }
 
   .boardMain {
-    gap: 7px;
+    gap: 8px;
   }
 
   .cardTitle {
@@ -787,6 +769,7 @@
     font-size: 0.72rem;
   }
 }
+
 
 
 

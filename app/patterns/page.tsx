@@ -312,7 +312,6 @@ export default function PatternsPage() {
       <section className={panelClassName}>
         <div className={styles.sideFavoriteHeader}>
           <div>
-            <p className={styles.sectionEyebrow}>Favorites</p>
             <h2 className={styles.sideFavoriteTitle}>찜한 도안</h2>
           </div>
 
@@ -452,7 +451,6 @@ export default function PatternsPage() {
             >
               <div className={styles.sectionHeading}>
                 <div className={styles.sectionTitleRow}>
-                  <p className={styles.sectionEyebrow}>Featured</p>
                   <div className={styles.sectionTitleInline}>
                     <h2 className={styles.sectionTitle}>인기 도안</h2>
                     <button
@@ -557,7 +555,6 @@ export default function PatternsPage() {
             <section className={styles.sectionBlock}>
               <div className={styles.sectionHeading}>
                 <div>
-                  <p className={styles.sectionEyebrow}>Archive</p>
                   <h2 className={styles.sectionTitle}>도안 목록</h2>
                 </div>
                 <div className={styles.archiveSortGroup}>

@@ -1,22 +1,36 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import Header from "@/components/layout/Header";
+import MyCompanionBoardClient from "@/components/companion/MyCompanionBoardClient";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import {
-  formatCompanionMembers,
-  formatCompanionSchedule,
-  getCompanionSummaryStats,
-  mapCompanionRoom,
-  type CompanionRoom,
-  type CompanionRoomRow,
-} from "@/lib/companion";
-import styles from "../page.module.css";
+import { mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
+import styles from "./page.module.css";
 
-function getStatusClassName(room: CompanionRoom) {
-  if (room.status === "모집중") return styles.statusRecruiting;
-  if (room.status === "곧 시작") return styles.statusSoon;
-  if (room.status === "진행중") return styles.statusProgress;
+function MineHero() {
+  return (
+    <section className={styles.mineHero}>
+      <div className={styles.mineHeroBadge}>My Companion</div>
+      <h1 className={styles.mineHeroTitle}>나와의 동행</h1>
+    </section>
+  );
+}
 
-  return styles.statusDone;
+function MineHeroWithActions() {
+  return (
+    <section className={styles.mineHeroWithActions}>
+      <div className={styles.mineHeroContent}>
+        <div className={styles.mineHeroBadge}>My Companion</div>
+        <h1 className={styles.mineHeroTitle}>나와의 동행</h1>
+      </div>
+      <div className={styles.mineHeroActions}>
+        <Link href="/companion/new" className={styles.primaryAction}>
+          동행방 만들기
+        </Link>
+        <Link href="/companion" className={styles.secondaryAction}>
+          모두의 동행
+        </Link>
+      </div>
+    </section>
+  );
 }
 
 export default async function MyCompanionPage() {
@@ -33,50 +47,38 @@ export default async function MyCompanionPage() {
           <div className={styles.shell}>
             <section className={styles.workspace}>
               <div className={styles.mainColumn}>
-                <section className={styles.hero}>
-                  <div className={styles.heroHeader}>
-                    <div>
-                      <span className={styles.eyebrow}>My Companion</span>
-                      <h1 className={styles.title}>나와의동행</h1>
-                    </div>
-                    <div className={styles.heroActions}>
-                      <Link
-                        href="/login?returnTo=%2Fcompanion%2Fmine"
-                        className={styles.primaryAction}
-                      >
-                        로그인하기
-                      </Link>
-                    </div>
-                  </div>
-                </section>
+                <MineHero />
 
-                <article className={styles.roomCard}>
-                  <div className={styles.roomHeader}>
-                    <div>
-                      <div className={styles.roomMetaRow}>
-                        <span className={styles.statusDone}>로그인 필요</span>
-                      </div>
-                      <h2 className={styles.roomTitle}>참여한 동행은 로그인 후 확인할 수 있어요</h2>
-                    </div>
-                    <Link href="/companion" className={styles.joinAction}>
-                      동행 둘러보기
+                <section className={styles.feedbackCard}>
+                  <p className={styles.feedbackTitle}>참여한 동행은 로그인 후 확인할 수 있어요.</p>
+                  <p className={styles.feedbackDescription}>
+                    내가 함께 뜨고 있는 방과 진행 기록을 이곳에서 차분하게 모아볼 수 있어요.
+                  </p>
+                  <div className={styles.emptyActions}>
+                    <Link
+                      href="/login?returnTo=%2Fcompanion%2Fmine"
+                      className={styles.primaryAction}
+                    >
+                      로그인하고 보기
+                    </Link>
+                    <Link href="/companion" className={styles.secondaryAction}>
+                      모두의 동행
                     </Link>
                   </div>
-                  <p className={styles.roomSummary}>
-                    내가 참여한 동행방, 진행 중인 일정, 다시 들어가야 할 방을 한곳에서 모아볼 수 있어요.
-                  </p>
-                </article>
+                </section>
               </div>
 
               <aside className={styles.sideColumn}>
                 <section className={styles.sidePanel}>
-                  <span className={styles.sectionEyebrow}>Shortcut</span>
-                  <h2 className={styles.sideTitle}>바로가기</h2>
-                  <ul className={styles.feedList}>
-                    <li>로그인하면 내가 참여한 동행만 모아 보여줘요.</li>
-                    <li>진행 중인 방으로 바로 이동할 수 있어요.</li>
-                    <li>모집 중인 새 동행도 다시 둘러볼 수 있어요.</li>
-                  </ul>
+                  <div className={styles.sectionHeader}>
+                    <span className={styles.sectionEyebrow}>Shortcut</span>
+                    <h2 className={styles.sectionTitle}>바로가기</h2>
+                  </div>
+                  <div className={styles.noteList}>
+                    <p>로그인하면 내가 참여한 동행만 모아서 보여줘요.</p>
+                    <p>진행 중인 방으로 바로 이동해 흐름을 이어갈 수 있어요.</p>
+                    <p>전체 동행 페이지로 돌아가 새 방도 편하게 둘러볼 수 있어요.</p>
+                  </div>
                 </section>
               </aside>
             </section>
@@ -114,13 +116,8 @@ export default async function MyCompanionPage() {
         supabase.from("companion_participants").select("room_id, user_id").in("room_id", joinedRoomIds),
       ]);
 
-    if (roomError) {
-      throw new Error(roomError.message);
-    }
-
-    if (participantError) {
-      throw new Error(participantError.message);
-    }
+    if (roomError) throw new Error(roomError.message);
+    if (participantError) throw new Error(participantError.message);
 
     const companionRoomRows = ((roomRows ?? []) as CompanionRoomRow[]) ?? [];
     const participantCountMap = new Map<string, number>();
@@ -141,9 +138,7 @@ export default async function MyCompanionPage() {
         .select("id, nickname")
         .in("id", hostIds);
 
-      if (profileError) {
-        throw new Error(profileError.message);
-      }
+      if (profileError) throw new Error(profileError.message);
 
       nicknameMap = new Map(
         ((profiles ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
@@ -161,6 +156,10 @@ export default async function MyCompanionPage() {
     }));
   }
 
+  const startingSoonCount = rooms.filter((room) => room.status === "곧 시작").length;
+  const inProgressCount = rooms.filter((room) => room.status === "진행중").length;
+  const completedCount = rooms.filter((room) => room.status === "완료").length;
+
   return (
     <>
       <Header />
@@ -168,89 +167,69 @@ export default async function MyCompanionPage() {
         <div className={styles.shell}>
           <section className={styles.workspace}>
             <div className={styles.mainColumn}>
-              <section className={styles.hero}>
-                <div className={styles.heroHeader}>
-                  <div>
-                    <span className={styles.eyebrow}>My Companion</span>
-                    <h1 className={styles.title}>나와의동행</h1>
-                  </div>
-                  <div className={styles.heroActions}>
-                    <Link href="/companion" className={styles.secondaryAction}>
-                      전체 동행 보기
-                    </Link>
-                  </div>
-                </div>
-              </section>
+              <MineHeroWithActions />
 
-              {rooms.length > 0 ? (
-                rooms.map((room) => (
-                  <article key={room.id} className={styles.roomCard}>
-                    <div className={styles.roomHeader}>
-                      <div>
-                        <div className={styles.roomMetaRow}>
-                          <span className={getStatusClassName(room)}>{room.status}</span>
-                          <span className={styles.patternName}>{room.patternName}</span>
-                        </div>
-                        <h2 className={styles.roomTitle}>
-                          <Link href={`/companion/${room.id}`} className={styles.roomLink}>
-                            {room.title}
-                          </Link>
-                        </h2>
-                      </div>
-                      <Link href={`/companion/${room.id}`} className={styles.joinAction}>
-                        동행 정보 보기
+              <section className={styles.listSection}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>참여한 동행방</h2>
+                </div>
+                {rooms.length > 0 ? (
+                  <MyCompanionBoardClient rooms={rooms} />
+                ) : (
+                  <div className={styles.feedbackCard}>
+                    <p className={styles.feedbackTitle}>아직 참여한 동행방이 없어요.</p>
+                    <p className={styles.feedbackDescription}>
+                      마음이 가는 동행방에 참여하면 이곳에서 일정과 기록을 한 번에 모아볼 수 있어요.
+                    </p>
+                    <div className={styles.emptyActions}>
+                      <Link href="/companion" className={styles.secondaryAction}>
+                        모두의 동행
+                      </Link>
+                      <Link href="/companion/new" className={styles.primaryAction}>
+                        첫 동행방 만들기
                       </Link>
                     </div>
-
-                    <div className={styles.roomInfoGrid}>
-                      <div className={styles.infoBox}>
-                        <span className={styles.infoLabel}>진행자</span>
-                        <strong>{room.hostName}</strong>
-                      </div>
-                      <div className={styles.infoBox}>
-                        <span className={styles.infoLabel}>일정</span>
-                        <strong>{formatCompanionSchedule(room)}</strong>
-                      </div>
-                      <div className={styles.infoBox}>
-                        <span className={styles.infoLabel}>난이도</span>
-                        <strong>{room.level}</strong>
-                      </div>
-                      <div className={styles.infoBox}>
-                        <span className={styles.infoLabel}>참여 인원</span>
-                        <strong>{formatCompanionMembers(room)}</strong>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              ) : (
-                <article className={styles.roomCard}>
-                  <div className={styles.roomHeader}>
-                    <div>
-                      <div className={styles.roomMetaRow}>
-                        <span className={styles.statusDone}>비어 있음</span>
-                      </div>
-                      <h2 className={styles.roomTitle}>아직 참여한 동행이 없어요</h2>
-                    </div>
-                    <Link href="/companion" className={styles.joinAction}>
-                      동행 둘러보기
-                    </Link>
                   </div>
-                  <p className={styles.roomSummary}>
-                    마음에 드는 동행방에 참여하면 여기에서 진행 중인 방들을 한 번에 모아볼 수 있어요.
-                  </p>
-                </article>
-              )}
+                )}
+              </section>
             </div>
 
             <aside className={styles.sideColumn}>
               <section className={styles.sidePanel}>
-                <span className={styles.sectionEyebrow}>My Status</span>
-                <h2 className={styles.sideTitle}>나의 동행 현황</h2>
-                <ul className={styles.feedList}>
-                  <li>참여 중인 동행: {rooms.length}개</li>
-                  <li>모집중 상태: {rooms.filter((room) => room.status === "모집중").length}개</li>
-                  <li>진행중 상태: {rooms.filter((room) => room.status === "진행중").length}개</li>
-                </ul>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionEyebrow}>My Status</span>
+                  <h2 className={styles.sectionTitle}>지금의 흐름</h2>
+                </div>
+                <div className={styles.sideList}>
+                  <div className={styles.sideRow}>
+                    <span>내가 참여한 동행</span>
+                    <strong>{rooms.length}개</strong>
+                  </div>
+                  <div className={styles.sideRow}>
+                    <span>곧 시작하는 동행</span>
+                    <strong>{startingSoonCount}개</strong>
+                  </div>
+                  <div className={styles.sideRow}>
+                    <span>진행중 동행</span>
+                    <strong>{inProgressCount}개</strong>
+                  </div>
+                  <div className={styles.sideRow}>
+                    <span>완료한 동행</span>
+                    <strong>{completedCount}개</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.sidePanel}>
+                <div className={styles.sectionHeader}>
+                  <span className={styles.sectionEyebrow}>Keep Going</span>
+                  <h2 className={styles.sectionTitle}>작은 메모</h2>
+                </div>
+                <div className={styles.noteList}>
+                  <p>곧 시작하는 방은 준비물과 공지를 먼저 확인해두면 좋아요.</p>
+                  <p>진행 중인 방에서는 질문과 체크인을 자주 남길수록 흐름이 좋아져요.</p>
+                  <p>새로운 분위기를 만들고 싶다면 직접 동행방을 열어도 좋아요.</p>
+                </div>
               </section>
             </aside>
           </section>

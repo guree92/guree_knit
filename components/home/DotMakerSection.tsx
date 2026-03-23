@@ -5,10 +5,6 @@ export default function DotMakerSection() {
     <section>
       <div className="grid gap-6 rounded-[2rem] border border-[#eee3d7] bg-white/78 p-8 shadow-sm backdrop-blur lg:grid-cols-[1.1fr_0.9fr]">
         <div>
-          <div className="inline-flex rounded-full bg-[#eef4ee] px-4 py-2 text-sm font-semibold text-[#6f856f]">
-            DOT MAKER
-          </div>
-
           <h3 className="mt-4 text-3xl font-black tracking-[-0.02em] text-[#3f342b]">
             뜨개 도안용 도트 작품을
             <br />

@@ -48,6 +48,17 @@ type Props = {
   showUserBadge?: boolean;
 };
 
+function AdminSlotPlaceholder() {
+  return (
+    <div className={`${styles.adminLink} ${styles.hiddenSlot}`} aria-hidden="true">
+      <span className={styles.icon}><ShieldIcon /></span>
+      <span className={styles.label} data-collapsible-label>
+        관리자 페이지
+      </span>
+    </div>
+  );
+}
+
 function escapeFilterValue(value: string) {
   return value.replace(/[,()]/g, (char) => `\\${char}`);
 }
@@ -146,7 +157,27 @@ export default function AuthStatus({
     router.refresh();
   }
 
-  if (loading) return null;
+  if (loading) {
+    return (
+      <div className={styles.root}>
+        <AdminSlotPlaceholder />
+        {showUserBadge ? (
+          <div className={`${styles.userBadge} ${styles.hiddenSlot}`} aria-hidden="true">
+            <span className={`${styles.icon} ${styles.userAvatar}`}>U</span>
+            <span className={styles.label} data-collapsible-label>
+              사용자
+            </span>
+          </div>
+        ) : null}
+        <button type="button" className={`${styles.logoutButton} ${styles.hiddenSlot}`} aria-hidden="true" tabIndex={-1}>
+          <span className={styles.icon}><LogoutIcon /></span>
+          <span className={styles.label} data-collapsible-label>
+            로그아웃
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   if (!user) {
     return (
@@ -216,7 +247,9 @@ export default function AuthStatus({
             관리자 페이지
           </span>
         </Link>
-      ) : null}
+      ) : (
+        <AdminSlotPlaceholder />
+      )}
 
       {showUserBadge ? (
         <div className={styles.userBadge}>

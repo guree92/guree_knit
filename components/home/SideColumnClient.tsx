@@ -75,7 +75,6 @@ export default function SideColumnClient({
       </section>
 
       <section className={`${styles.heroMakerCard} ${styles.sideMakerCard}`}>
-        <p className={styles.heroMakerEyebrow}>DOT MAKER</p>
         <div className={styles.heroMakerTopRow}>
           <div className={styles.heroMakerTextBlock}>
             <h2 className={styles.heroMakerTitle}>도트메이커</h2>

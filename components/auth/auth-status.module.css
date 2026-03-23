@@ -131,6 +131,11 @@
     border-color 140ms ease;
 }
 
+.hiddenSlot {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .loginLink,
 .logoutButton {
   color: var(--app-text-soft);

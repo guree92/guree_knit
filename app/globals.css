@@ -36,9 +36,9 @@ body {
   margin: 0;
   padding: 24px 24px 24px calc(var(--sidebar-collapsed) + 42px);
   background:
-    radial-gradient(circle at top left, rgba(229, 236, 229, 0.9), transparent 20%),
-    radial-gradient(circle at top right, rgba(242, 233, 221, 0.85), transparent 18%),
-    linear-gradient(180deg, #f6f3ee 0%, #eee8de 100%);
+    radial-gradient(circle at top left, rgba(229, 236, 229, 0.5), transparent 22%),
+    radial-gradient(circle at top right, rgba(242, 233, 221, 0.48), transparent 20%),
+    linear-gradient(180deg, #f4efe7 0%, #f4efe7 100%);
   color: var(--app-text);
   font-family: var(--font-sans), "Segoe UI", sans-serif;
   line-height: 1.45;

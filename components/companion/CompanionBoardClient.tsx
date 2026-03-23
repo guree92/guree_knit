@@ -111,29 +111,27 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
       <section className={styles.workspace}>
         <div className={styles.mainColumn}>
           <section className={styles.hero}>
-            <div className={styles.heroTop}>
+            <div className={styles.heroContent}>
               <div className={styles.heroBadge}>Companion</div>
-              <div className={styles.heroActions}>
-                <Link href="/companion/new" className={styles.primaryAction}>
-                  동행방 만들기
-                </Link>
-                <Link href="/companion/mine" className={styles.secondaryLinkAction}>
-                  나와의동행
-                </Link>
+              <div className={styles.heroIntro}>
+                <div>
+                  <h1 className={styles.heroTitle}>동행</h1>
+                </div>
               </div>
             </div>
-
-            <div className={styles.heroIntro}>
-              <div>
-                <h1 className={styles.heroTitle}>동행</h1>
-              </div>
+            <div className={styles.heroActions}>
+              <Link href="/companion/new" className={styles.primaryAction}>
+                동행방 만들기
+              </Link>
+              <Link href="/companion/mine" className={styles.secondaryLinkAction}>
+                나와의동행
+              </Link>
             </div>
           </section>
 
           <section className={styles.listSection}>
             <div className={styles.sectionHeader}>
-              <span className={styles.sectionEyebrow}>Companion Archive</span>
-              <h2 className={styles.sectionTitle}>동행 둘러보기</h2>
+              <h2 className={styles.sectionTitle}>모두의 동행</h2>
             </div>
 
             <div className={styles.toolbar}>
@@ -333,6 +331,8 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
     </div>
   );
 }
+
+
 
 
 

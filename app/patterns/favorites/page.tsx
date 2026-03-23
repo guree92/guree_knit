@@ -33,10 +33,9 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
         <div className={styles.shell}>
           <Header />
 
-          <section className={styles.feedbackShell}>
-            <div className={styles.feedbackCard}>
-              <p className={styles.sectionEyebrow}>Favorites</p>
-              <h1 className={styles.feedbackTitle}>
+            <section className={styles.feedbackShell}>
+              <div className={styles.feedbackCard}>
+                <h1 className={styles.feedbackTitle}>
                 {"\ucc1c\ud55c \ub3c4\uc548\uc740 \ub85c\uadf8\uc778 \ud6c4 \ud655\uc778\ud560 \uc218 \uc788\uc5b4\uc694."}
               </h1>
               <div className={styles.feedbackActions}>
@@ -72,7 +71,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
 
             <section className={styles.feedbackShell}>
               <div className={styles.feedbackCard}>
-                <p className={styles.sectionEyebrow}>Favorites</p>
                 <h1 className={styles.feedbackTitle}>
                   {"\ucc1c \uae30\ub2a5\uc774 \uc544\uc9c1 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc5b4\uc694."}
                 </h1>
@@ -213,7 +211,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
             <section className={styles.sectionBlock}>
               <div className={styles.sectionHeading}>
                 <div>
-                  <p className={styles.sectionEyebrow}>Favorites</p>
                   <h2 className={styles.sectionTitle}>{"\uc800\uc7a5\ud55c \ub3c4\uc548 \ubaa9\ub85d"}</h2>
                 </div>
               </div>
