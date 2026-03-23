@@ -5,7 +5,7 @@ export type PatternItem = {
   id: string;
   user_id: string | null;
   title: string;
-  level: "珥덇툒" | "以묎툒" | "怨좉툒";
+  level: "초급" | "중급" | "고급";
   category: string;
   description: string;
   detail_content?: string | null;
@@ -16,7 +16,7 @@ export type PatternItem = {
   yarn: string;
   needle: string;
   size: string;
-  copyright_source?: "蹂몄씤" | "臾대즺諛고룷" | null;
+  copyright_source?: "본인" | "무료배포" | null;
   copyright_source_url?: string | null;
   copyright_hobby_only?: boolean | null;
   copyright_color_variation?: boolean | null;
@@ -42,7 +42,7 @@ type SupabaseLikeError = {
 };
 
 export class PatternLikeAuthError extends Error {
-  constructor(message = "醫뗭븘?붾? ?꾨Ⅴ?ㅻ㈃ 濡쒓렇?몄씠 ?꾩슂?댁슂.") {
+  constructor(message = "좋아요를 누르려면 로그인이 필요해요.") {
     super(message);
     this.name = "PatternLikeAuthError";
   }
@@ -74,7 +74,7 @@ async function attachNicknames(patterns: PatternItem[]): Promise<PatternItem[]> 
   const { data, error } = await supabase.from("profiles").select("id, nickname").in("id", userIds);
 
   if (error) {
-    console.error("?됰꽕?꾩쓣 遺덈윭?ㅼ? 紐삵뻽?댁슂.", error);
+    console.error("닉네임을 불러오지 못했어요.", error);
     return patterns;
   }
 
