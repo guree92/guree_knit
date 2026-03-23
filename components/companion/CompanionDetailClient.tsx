@@ -453,7 +453,7 @@ export default function CompanionDetailClient() {
     if (!roomState) return [];
 
     return roomState.threads
-      .filter((thread) => thread.type === "吏덈Ц")
+      .filter((thread) => thread.type === "질문")
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
   }, [roomState]);
 
@@ -1114,7 +1114,7 @@ export default function CompanionDetailClient() {
                       placeholder="질문 내용을 적어보세요."
                     />
                     <button type="button" className={styles.secondaryAction} onClick={() => void handleThreadSubmit()}>
-                      吏덈Ц ?깅줉
+                        질문 등록
                     </button>
                   </div>
                   <div className={styles.threadList}>
