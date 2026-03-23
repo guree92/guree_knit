@@ -27,6 +27,7 @@ export type CompanionCustomPatternData = {
   detailContent: string | null;
   detailRows: DetailRow[] | null;
   copyrightSource: "본인" | "무료배포" | null;
+  copyrightSourceUrl?: string | null;
   copyrightHobbyOnly: boolean | null;
   copyrightColorVariation: boolean | null;
   copyrightSizeVariation: boolean | null;
@@ -42,6 +43,7 @@ export type CompanionRoomRow = {
   pattern_id?: string | null;
   pattern_source_type?: CompanionPatternSourceType | null;
   pattern_external_url?: string | null;
+  pattern_external_image_path?: string | null;
   custom_pattern_data?: CompanionCustomPatternData | null;
   title: string;
   pattern_name: string;
@@ -64,6 +66,7 @@ export type CompanionRoom = {
   patternId?: string | null;
   patternSourceType?: CompanionPatternSourceType | null;
   patternExternalUrl?: string | null;
+  patternExternalImagePath?: string | null;
   customPatternData?: CompanionCustomPatternData | null;
   title: string;
   patternName: string;
@@ -112,6 +115,14 @@ export type CompanionThreadRow = {
   created_at: string;
 };
 
+export type CompanionThreadCommentRow = {
+  id: string;
+  thread_id: string;
+  author_user_id: string;
+  content: string;
+  created_at: string;
+};
+
 export type CompanionCheckInRow = {
   id: string;
   room_id: string;
@@ -136,6 +147,14 @@ export type CompanionSupplyItem = {
 export type CompanionThreadItem = {
   id: string;
   type: CompanionThreadType;
+  author: string;
+  content: string;
+  createdAt: string;
+  comments?: CompanionThreadCommentItem[];
+};
+
+export type CompanionThreadCommentItem = {
+  id: string;
   author: string;
   content: string;
   createdAt: string;
@@ -193,6 +212,7 @@ export function mapCompanionRoom(
     patternId: row.pattern_id ?? null,
     patternSourceType: row.pattern_source_type ?? null,
     patternExternalUrl: row.pattern_external_url ?? null,
+    patternExternalImagePath: row.pattern_external_image_path ?? null,
     customPatternData: row.custom_pattern_data ?? null,
     title: row.title,
     patternName: row.pattern_name,
@@ -297,6 +317,14 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
         author: "뜨개메이트 1",
         content: "실 대체 가능한 추천사가 있으면 같이 공유해 주세요.",
         createdAt: room.createdAt,
+        comments: [
+          {
+            id: `${room.id}-question-1-comment-1`,
+            author: room.hostName,
+            content: "진행하면서 대체 가능한 실 정보가 있으면 여기에 계속 남겨둘게요.",
+            createdAt: room.createdAt,
+          },
+        ],
       },
       {
         id: `${room.id}-cert-1`,
@@ -304,6 +332,7 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
         author: "뜨개메이트 2",
         content: "실이랑 바늘 준비 완료했어요. 시작 전에 게이지 먼저 떠보겠습니다.",
         createdAt: room.createdAt,
+        comments: [],
       },
     ],
     checkIns: [

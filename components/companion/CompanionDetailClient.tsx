@@ -1,12 +1,11 @@
-﻿"use client";
+"use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
-import { getCompanionRoomById } from "@/data/companion";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
-import { normalizeDetailRows } from "@/lib/pattern-detail";
+import { getCompanionRoomById } from "@/data/companion";
 import {
   createDefaultCompanionRoomState,
   customCompanionRoomsStorageKey,
@@ -19,6 +18,7 @@ import {
   mapCompanionRoom,
   mapCompanionThreadType,
   serializeCompanionRoomState,
+  toCompanionThreadDbType,
   type CompanionCheckInRow,
   type CompanionNoticeRow,
   type CompanionParticipant,
@@ -27,10 +27,12 @@ import {
   type CompanionRoomState,
   type CompanionSupplyCheckRow,
   type CompanionSupplyRow,
+  type CompanionThreadCommentRow,
   type CompanionThreadRow,
 } from "@/lib/companion";
-import { createClient } from "@/lib/supabase/client";
+import { normalizeDetailRows } from "@/lib/pattern-detail";
 import { getPatternImageUrl, type PatternItem } from "@/lib/patterns";
+import { createClient } from "@/lib/supabase/client";
 import styles from "@/app/companion/[id]/page.module.css";
 
 const copyrightPolicyRows = [
@@ -46,7 +48,6 @@ function getStatusClassName(room: CompanionRoom) {
   if (room.status === "모집중") return styles.statusRecruiting;
   if (room.status === "곧 시작") return styles.statusSoon;
   if (room.status === "진행중") return styles.statusProgress;
-
   return styles.statusDone;
 }
 
@@ -68,6 +69,42 @@ function parsePatternSize(sizeText: string) {
   };
 }
 
+function formatDateLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+}
+
+function formatDateTimeLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("ko-KR", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function splitNoticeText(notice: string) {
+  const parts = notice.split(" - ");
+  if (parts.length < 2) {
+    return { title: "안내", content: notice };
+  }
+
+  return {
+    title: parts[0],
+    content: parts.slice(1).join(" - "),
+  };
+}
+
 export default function CompanionDetailClient() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
@@ -85,12 +122,20 @@ export default function CompanionDetailClient() {
   const [activePanel, setActivePanel] = useState<"overview" | "pattern" | "supplies" | "qna" | "checkin">(
     "overview"
   );
+  const [threadType] = useState<"질문">("질문");
   const [noticeTitle, setNoticeTitle] = useState("");
   const [noticeContent, setNoticeContent] = useState("");
   const [threadInput, setThreadInput] = useState("");
   const [checkInTitle, setCheckInTitle] = useState("");
   const [checkInContent, setCheckInContent] = useState("");
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [threadCommentInputs, setThreadCommentInputs] = useState<Record<string, string>>({});
+  const [openThreadComments, setOpenThreadComments] = useState<Record<string, boolean>>({});
+  const [questionPage, setQuestionPage] = useState(1);
+  const [supplyCheckedCounts, setSupplyCheckedCounts] = useState<Record<string, number>>({});
+  const [participantSupplyProgress, setParticipantSupplyProgress] = useState<
+    Array<{ userId: string; name: string; checkedCount: number }>
+  >([]);
 
   useEffect(() => {
     async function loadUser() {
@@ -115,11 +160,7 @@ export default function CompanionDetailClient() {
       setIsStateReady(false);
       setLinkedPattern(null);
 
-      const { data: roomRow } = await supabase
-        .from("companion_rooms")
-        .select("*")
-        .eq("id", roomId)
-        .maybeSingle();
+      const { data: roomRow } = await supabase.from("companion_rooms").select("*").eq("id", roomId).maybeSingle();
 
       if (roomRow) {
         const dbRoomRow = roomRow as CompanionRoomRow;
@@ -129,36 +170,22 @@ export default function CompanionDetailClient() {
           noticesResult,
           suppliesResult,
           threadsResult,
+          threadCommentsResult,
           checkInsResult,
         ] = await Promise.all([
           dbRoomRow.host_user_id
             ? supabase.from("profiles").select("id, nickname").eq("id", dbRoomRow.host_user_id).maybeSingle()
             : Promise.resolve({ data: null }),
+          supabase.from("companion_participants").select("*").eq("room_id", roomId).order("joined_at", { ascending: true }),
+          supabase.from("companion_notices").select("*").eq("room_id", roomId).order("created_at", { ascending: false }),
+          supabase.from("companion_supplies").select("*").eq("room_id", roomId).order("sort_order", { ascending: true }),
+          supabase.from("companion_threads").select("*").eq("room_id", roomId).order("created_at", { ascending: false }),
           supabase
-            .from("companion_participants")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("joined_at", { ascending: true }),
-          supabase
-            .from("companion_notices")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("companion_supplies")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("sort_order", { ascending: true }),
-          supabase
-            .from("companion_threads")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("companion_checkins")
-            .select("*")
-            .eq("room_id", roomId)
-            .order("created_at", { ascending: false }),
+            .from("companion_thread_comments")
+            .select("id, thread_id, author_user_id, content, created_at, companion_threads!inner(room_id)")
+            .eq("companion_threads.room_id", roomId)
+            .order("created_at", { ascending: true }),
+          supabase.from("companion_checkins").select("*").eq("room_id", roomId).order("created_at", { ascending: false }),
         ]);
 
         const participantRows =
@@ -172,11 +199,14 @@ export default function CompanionDetailClient() {
         const checkInRows = ((checkInsResult.data ?? []) as CompanionCheckInRow[]) ?? [];
         const noticeRows = ((noticesResult.data ?? []) as CompanionNoticeRow[]) ?? [];
         const supplyRows = ((suppliesResult.data ?? []) as CompanionSupplyRow[]) ?? [];
+        const threadCommentRows =
+          (((threadCommentsResult.data ?? []) as CompanionThreadCommentRow[]) ?? []);
 
         const authorIds = Array.from(
           new Set([
             ...participantRows.map((row) => row.user_id),
             ...threadRows.map((row) => row.author_user_id),
+            ...threadCommentRows.map((row) => row.author_user_id),
             ...checkInRows.map((row) => row.author_user_id),
             ...noticeRows.map((row) => row.author_user_id),
           ].filter(Boolean))
@@ -185,11 +215,7 @@ export default function CompanionDetailClient() {
         let nicknameMap = new Map<string, string | null>();
 
         if (authorIds.length > 0) {
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, nickname")
-            .in("id", authorIds);
-
+          const { data: profiles } = await supabase.from("profiles").select("id, nickname").in("id", authorIds);
           nicknameMap = new Map(
             ((profiles ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
               profile.id,
@@ -199,20 +225,55 @@ export default function CompanionDetailClient() {
         }
 
         let checkedSupplyIds = new Set<string>();
+        let nextSupplyCheckedCounts: Record<string, number> = {};
+        let nextParticipantSupplyProgress: Array<{ userId: string; name: string; checkedCount: number }> = [];
 
-        if (currentUserId && supplyRows.length > 0) {
+        if (supplyRows.length > 0) {
           const { data: checkedRows } = await supabase
             .from("companion_supply_checks")
             .select("supply_id, user_id")
-            .eq("user_id", currentUserId)
             .in(
               "supply_id",
               supplyRows.map((row) => row.id)
             );
 
-          checkedSupplyIds = new Set(
-            ((((checkedRows ?? []) as CompanionSupplyCheckRow[]) ?? []).map((row) => row.supply_id))
+          const normalizedCheckedRows = ((checkedRows ?? []) as CompanionSupplyCheckRow[]) ?? [];
+
+          if (currentUserId) {
+            checkedSupplyIds = new Set(
+              normalizedCheckedRows.filter((row) => row.user_id === currentUserId).map((row) => row.supply_id)
+            );
+          }
+
+          const participantUserIds = new Set(
+            participantRows.filter((participant) => participant.role === "participant").map((participant) => participant.user_id)
           );
+          const supplyCountMap = new Map<string, Set<string>>();
+          const participantProgressMap = new Map<string, Set<string>>();
+
+          normalizedCheckedRows.forEach((row) => {
+            if (!participantUserIds.has(row.user_id)) return;
+
+            const checkedUsers = supplyCountMap.get(row.supply_id) ?? new Set<string>();
+            checkedUsers.add(row.user_id);
+            supplyCountMap.set(row.supply_id, checkedUsers);
+
+            const checkedSupplies = participantProgressMap.get(row.user_id) ?? new Set<string>();
+            checkedSupplies.add(row.supply_id);
+            participantProgressMap.set(row.user_id, checkedSupplies);
+          });
+
+          nextSupplyCheckedCounts = Object.fromEntries(
+            supplyRows.map((supply) => [supply.id, supplyCountMap.get(supply.id)?.size ?? 0])
+          );
+
+          nextParticipantSupplyProgress = participantRows
+            .filter((participant) => participant.role === "participant")
+            .map((participant) => ({
+              userId: participant.user_id,
+              name: nicknameMap.get(participant.user_id) ?? "참여자",
+              checkedCount: participantProgressMap.get(participant.user_id)?.size ?? 0,
+            }));
         }
 
         const room = mapCompanionRoom(dbRoomRow, {
@@ -222,12 +283,7 @@ export default function CompanionDetailClient() {
         });
 
         if (dbRoomRow.pattern_id) {
-          const { data: patternRow } = await supabase
-            .from("patterns")
-            .select("*")
-            .eq("id", dbRoomRow.pattern_id)
-            .maybeSingle();
-
+          const { data: patternRow } = await supabase.from("patterns").select("*").eq("id", dbRoomRow.pattern_id).maybeSingle();
           setLinkedPattern((patternRow as PatternItem | null) ?? null);
         }
 
@@ -236,11 +292,28 @@ export default function CompanionDetailClient() {
           name: nicknameMap.get(participant.user_id) ?? "참여자",
           role: participant.role === "host" ? "진행자" : "참여중",
         }));
+        const commentsByThreadId = new Map<
+          string,
+          Array<{ id: string; author: string; content: string; createdAt: string }>
+        >();
+
+        threadCommentRows.forEach((comment) => {
+          const existing = commentsByThreadId.get(comment.thread_id) ?? [];
+          existing.push({
+            id: comment.id,
+            author: nicknameMap.get(comment.author_user_id) ?? "참여자",
+            content: comment.content,
+            createdAt: comment.created_at,
+          });
+          commentsByThreadId.set(comment.thread_id, existing);
+        });
 
         setCurrentRoom({
           ...room,
           participantCount: participants.length,
         });
+        setSupplyCheckedCounts(nextSupplyCheckedCounts);
+        setParticipantSupplyProgress(nextParticipantSupplyProgress);
         setRoomState({
           participants,
           notices: noticeRows.map((notice) => `${notice.title} - ${notice.content}`),
@@ -255,6 +328,7 @@ export default function CompanionDetailClient() {
             author: nicknameMap.get(thread.author_user_id) ?? "참여자",
             content: thread.content,
             createdAt: thread.created_at,
+            comments: commentsByThreadId.get(thread.id) ?? [],
           })),
           checkIns: checkInRows.map((checkIn) => ({
             id: checkIn.id,
@@ -271,26 +345,27 @@ export default function CompanionDetailClient() {
       }
 
       if (typeof window !== "undefined") {
-        const customRooms = deserializeCompanionRooms(
-          window.localStorage.getItem(customCompanionRoomsStorageKey)
-        );
-        const localRoom =
-          customRooms.find((item) => item.id === roomId) ?? getCompanionRoomById(roomId) ?? null;
+        const customRooms = deserializeCompanionRooms(window.localStorage.getItem(customCompanionRoomsStorageKey));
+        const localRoom = customRooms.find((item) => item.id === roomId) ?? getCompanionRoomById(roomId) ?? null;
 
         if (localRoom) {
           const storageKey = getCompanionRoomStateStorageKey(localRoom.id);
           const fallback = createDefaultCompanionRoomState(localRoom);
           setCurrentRoom(localRoom);
           setLinkedPattern(null);
-          setRoomState(
-            deserializeCompanionRoomState(window.localStorage.getItem(storageKey), fallback)
-          );
+          setSupplyCheckedCounts({});
+          setParticipantSupplyProgress([]);
+          setRoomState(deserializeCompanionRoomState(window.localStorage.getItem(storageKey), fallback));
         } else {
           setCurrentRoom(null);
+          setSupplyCheckedCounts({});
+          setParticipantSupplyProgress([]);
           setRoomState(null);
         }
       } else {
         setCurrentRoom(null);
+        setSupplyCheckedCounts({});
+        setParticipantSupplyProgress([]);
         setRoomState(null);
       }
 
@@ -318,14 +393,22 @@ export default function CompanionDetailClient() {
 
   const isJoined = useMemo(() => {
     if (!roomState || !currentUserName) return false;
-
     return roomState.participants.some((participant) => participant.name === currentUserName);
   }, [currentUserName, roomState]);
+
   const isHost = Boolean(currentUserId && currentRoom?.hostUserId && currentRoom.hostUserId === currentUserId);
   const canAccessMemberPanels = isJoined || isHost;
-  const visiblePanel =
-    activePanel === "pattern" || canAccessMemberPanels ? activePanel : "overview";
+  const visiblePanel = activePanel === "pattern" || canAccessMemberPanels ? activePanel : "overview";
   const isRecruitingOpen = currentRoom ? isCompanionRecruitingOpen(currentRoom.recruitUntil) : false;
+  const overviewNotices = roomState?.notices ?? [];
+  const questionThreads = (roomState?.threads ?? []).filter((thread) => thread.type === "질문");
+  const sortedQuestionThreads = [...questionThreads].sort(
+    (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+  );
+  const totalQuestionPages = Math.max(1, Math.ceil(sortedQuestionThreads.length / 3));
+  const currentQuestionPage = Math.min(questionPage, totalQuestionPages);
+  const pagedQuestionThreads = sortedQuestionThreads.slice((currentQuestionPage - 1) * 3, currentQuestionPage * 3);
+
   const patternPreview = useMemo(() => {
     if (!currentRoom) return null;
 
@@ -339,18 +422,14 @@ export default function CompanionDetailClient() {
         title: linkedPattern.title,
         description: linkedPattern.description || "설명이 아직 등록되지 않았어요.",
         imageUrl: linkedPattern.image_path ? getPatternImageUrl(linkedPattern.image_path) : "",
-        heroMeta: [
-          { label: linkedPattern.level, tone: "level" as const },
-          { label: linkedPattern.category, tone: "category" as const },
-          { label: `작성자 ${linkedPattern.author_nickname ?? "닉네임 없음"}`, tone: "muted" as const },
-        ],
-        overviewRows: [
+        summaryRows: [
           { label: "난이도", value: linkedPattern.level },
           { label: "카테고리", value: linkedPattern.category },
           {
             label: "태그",
             value: linkedPattern.tags?.length ? linkedPattern.tags.map((tag) => `#${tag}`).join(", ") : "-",
           },
+          { label: "작성자", value: linkedPattern.author_nickname ?? "-" },
         ],
         prepRows: [
           { label: "사용 실", value: linkedPattern.yarn || "-" },
@@ -368,10 +447,8 @@ export default function CompanionDetailClient() {
           })),
         ],
         detailRows,
-        linkHref: `/patterns/${linkedPattern.id}`,
-        linkLabel: "도안 상세 보기",
-        externalUrl: null as string | null,
-        externalLabel: null as string | null,
+        actionHref: `/patterns/${linkedPattern.id}`,
+        actionLabel: "도안 상세 보기",
       };
     }
 
@@ -386,15 +463,11 @@ export default function CompanionDetailClient() {
         title: pattern.title,
         description: pattern.description || "설명이 아직 등록되지 않았어요.",
         imageUrl: pattern.imagePath ? getPatternImageUrl(pattern.imagePath) : "",
-        heroMeta: [
-          { label: pattern.level, tone: "level" as const },
-          { label: pattern.category, tone: "category" as const },
-          { label: "동행 전용 도안", tone: "muted" as const },
-        ],
-        overviewRows: [
+        summaryRows: [
           { label: "난이도", value: pattern.level },
           { label: "카테고리", value: pattern.category },
           { label: "태그", value: pattern.tags.length ? pattern.tags.map((tag) => `#${tag}`).join(", ") : "-" },
+          { label: "형태", value: "동행 전용 도안" },
         ],
         prepRows: [
           { label: "사용 실", value: pattern.yarn || "-" },
@@ -414,10 +487,8 @@ export default function CompanionDetailClient() {
           { label: "수정본 판매", value: pattern.copyrightModificationResale ? "O" : "X" },
         ],
         detailRows,
-        linkHref: null as string | null,
-        linkLabel: null as string | null,
-        externalUrl: null as string | null,
-        externalLabel: null as string | null,
+        actionHref: null as string | null,
+        actionLabel: null as string | null,
       };
     }
 
@@ -425,37 +496,23 @@ export default function CompanionDetailClient() {
       return {
         title: currentRoom.patternName,
         description: "외부 링크로 연결된 도안이에요. 원문 페이지에서 자세한 안내와 파일을 확인할 수 있어요.",
-        imageUrl: "",
-        heroMeta: [
-          { label: currentRoom.level, tone: "level" as const },
-          { label: "외부 링크", tone: "category" as const },
-          { label: "동행 전용 연결", tone: "muted" as const },
-        ],
-        overviewRows: [
+        imageUrl: currentRoom.patternExternalImagePath ? getPatternImageUrl(currentRoom.patternExternalImagePath) : "",
+        summaryRows: [
           { label: "도안명", value: currentRoom.patternName || "-" },
           { label: "연결 방식", value: "외부 링크" },
           { label: "모집 상태", value: currentRoom.status },
+          { label: "난이도", value: currentRoom.level },
         ],
         prepRows: [] as Array<{ label: string; value: string }>,
         policyRows: [] as Array<{ label: string; value: string }>,
         detailRows: [] as Array<{ id: string; rowNumber: number; instruction: string }>,
-        linkHref: null as string | null,
-        linkLabel: null as string | null,
-        externalUrl: currentRoom.patternExternalUrl ?? null,
-        externalLabel: "외부 도안 열기",
+        actionHref: currentRoom.patternExternalUrl ?? null,
+        actionLabel: "외부 도안 열기",
       };
     }
 
     return null;
   }, [currentRoom, linkedPattern]);
-
-  const filteredThreads = useMemo(() => {
-    if (!roomState) return [];
-
-    return roomState.threads
-      .filter((thread) => thread.type === "질문")
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  }, [roomState]);
 
   async function handleJoinToggle() {
     if (!currentRoom || !roomState) return;
@@ -481,12 +538,7 @@ export default function CompanionDetailClient() {
       }
 
       if (isJoined) {
-        const { error } = await supabase
-          .from("companion_participants")
-          .delete()
-          .eq("room_id", currentRoom.id)
-          .eq("user_id", user.id);
-
+        const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id);
         if (error) {
           alert(error.message);
           return;
@@ -553,7 +605,6 @@ export default function CompanionDetailClient() {
           .delete()
           .eq("supply_id", supplyId)
           .eq("user_id", user.id);
-
         if (error) {
           alert(error.message);
           return;
@@ -563,7 +614,6 @@ export default function CompanionDetailClient() {
           supply_id: supplyId,
           user_id: user.id,
         });
-
         if (error) {
           alert(error.message);
           return;
@@ -604,7 +654,7 @@ export default function CompanionDetailClient() {
       const { error } = await supabase.from("companion_threads").insert({
         room_id: currentRoom.id,
         author_user_id: user.id,
-        type: "question",
+        type: toCompanionThreadDbType(threadType),
         content: threadInput.trim(),
       });
 
@@ -614,6 +664,7 @@ export default function CompanionDetailClient() {
       }
 
       setThreadInput("");
+      setQuestionPage(1);
       setReloadToken((current) => current + 1);
       return;
     }
@@ -623,22 +674,80 @@ export default function CompanionDetailClient() {
       threads: [
         {
           id: `${currentRoom.id}-thread-${Date.now()}`,
-          type: "질문",
+          type: threadType,
           author: currentUserName ?? "게스트",
           content: threadInput.trim(),
           createdAt: new Date().toISOString(),
+          comments: [],
         },
         ...roomState.threads,
       ],
     });
     setThreadInput("");
+    setQuestionPage(1);
+  }
+
+  async function handleThreadCommentSubmit(threadId: string) {
+    if (!currentRoom || !roomState) return;
+
+    const nextContent = threadCommentInputs[threadId]?.trim();
+    if (!nextContent) return;
+
+    if (isDbRoom) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        alert("로그인 후 댓글을 남길 수 있어요.");
+        router.push(`/login?returnTo=%2Fcompanion%2F${currentRoom.id}`);
+        return;
+      }
+
+      const { error } = await supabase.from("companion_thread_comments").insert({
+        thread_id: threadId,
+        author_user_id: user.id,
+        content: nextContent,
+      });
+
+      if (error) {
+        alert(error.message);
+        return;
+      }
+
+      setThreadCommentInputs((current) => ({ ...current, [threadId]: "" }));
+      setOpenThreadComments((current) => ({ ...current, [threadId]: true }));
+      setReloadToken((current) => current + 1);
+      return;
+    }
+
+    persistLocalState({
+      ...roomState,
+      threads: roomState.threads.map((thread) =>
+        thread.id === threadId
+          ? {
+              ...thread,
+              comments: [
+                ...(thread.comments ?? []),
+                {
+                  id: `${threadId}-comment-${Date.now()}`,
+                  author: currentUserName ?? "게스트",
+                  content: nextContent,
+                  createdAt: new Date().toISOString(),
+                },
+              ],
+            }
+          : thread
+      ),
+    });
+    setThreadCommentInputs((current) => ({ ...current, [threadId]: "" }));
+    setOpenThreadComments((current) => ({ ...current, [threadId]: true }));
   }
 
   async function handleNoticeSubmit() {
     if (!currentRoom || !roomState || !noticeTitle.trim() || !noticeContent.trim()) return;
 
     if (!isHost) {
-      alert("공지 작성은 진행자만 사용할 수 있어요.");
       return;
     }
 
@@ -731,26 +840,21 @@ export default function CompanionDetailClient() {
 
   if (!hasLoadedRooms || !isStateReady) {
     return (
-      <div className={styles.emptyState}>
-        <span className={styles.eyebrow}>Companion Room</span>
-        <h1 className={styles.emptyTitle}>동행방을 불러오는 중이에요</h1>
-        <p className={styles.emptyDescription}>상세 정보를 준비하고 있어요.</p>
-      </div>
+      <section className={styles.feedbackCard}>
+        <p className={styles.sectionDescription}>동행방을 불러오는 중이에요...</p>
+      </section>
     );
   }
 
   if (!currentRoom || !roomState) {
     return (
-      <div className={styles.emptyState}>
-        <span className={styles.eyebrow}>Companion Room</span>
-        <h1 className={styles.emptyTitle}>동행방을 찾을 수 없어요</h1>
-        <p className={styles.emptyDescription}>
-          삭제되었거나 아직 이 기기에서 불러오지 못한 방일 수 있어요.
-        </p>
-        <Link href="/companion" className={styles.primaryAction}>
-          동행 목록으로 돌아가기
+      <section className={styles.feedbackCard}>
+        <h1 className={styles.sectionTitle}>동행방을 찾을 수 없어요</h1>
+        <p className={styles.sectionDescription}>요청하신 동행방이 없거나 아직 불러오지 못했어요.</p>
+        <Link href="/companion" className={styles.submitButton}>
+          목록으로
         </Link>
-      </div>
+      </section>
     );
   }
 
@@ -762,462 +866,645 @@ export default function CompanionDetailClient() {
         title="참여 신청은 로그인 후 사용할 수 있어요"
         description="로그인하면 이 동행방에 참여 신청하고 이후 일정도 바로 확인할 수 있어요."
       />
+
       <div className={styles.shell}>
-        <section className={styles.hero}>
-        <div className={styles.heroHeader}>
-          <div>
-            <div className={styles.topRow}>
-              <span className={getStatusClassName(currentRoom)}>{currentRoom.status}</span>
-              <span className={styles.patternName}>{currentRoom.patternName}</span>
-            </div>
-            <h1 className={styles.title}>{currentRoom.title}</h1>
-            <p className={styles.description}>{currentRoom.summary}</p>
-          </div>
+        <div className={styles.workspace}>
+          <div className={styles.mainColumn}>
+            <section className={`${styles.hero} ${styles.heroCompact}`}>
+              <div className={`${styles.actionRow} ${styles.heroTopActions}`}>
+                {isHost ? (
+                  <Link href={`/companion/${currentRoom.id}/edit`} className={styles.ghostButton}>
+                    수정
+                  </Link>
+                ) : null}
+                <button type="button" onClick={handleJoinToggle} className={styles.submitButton}>
+                  {isJoined ? "참여 취소" : isRecruitingOpen ? "참여 신청" : "모집 마감"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActivePanel("pattern")}
+                  className={styles.ghostButton}
+                >
+                  연결 도안 보기
+                </button>
+                <Link href="/companion" className={styles.secondaryAction}>
+                  목록으로
+                </Link>
+              </div>
 
-          <div className={styles.heroActions}>
-            <button type="button" className={styles.primaryAction} onClick={handleJoinToggle}>
-              {isJoined ? "참여 취소" : isRecruitingOpen ? "참여 신청" : "모집 마감"}
-            </button>
-            <Link href="/companion" className={styles.secondaryAction}>
-              목록 보기
-            </Link>
-          </div>
-        </div>
+              <div className={styles.heroBody}>
+                <span className={styles.eyebrow}>Companion Archive</span>
 
-        <div className={styles.infoGrid}>
-          <article className={styles.infoCard}>
-            <span className={styles.infoLabel}>진행자</span>
-            <strong>{currentRoom.hostName}</strong>
-          </article>
-          <article className={styles.infoCard}>
-            <span className={styles.infoLabel}>일정</span>
-            <strong>{formatCompanionSchedule(currentRoom)}</strong>
-          </article>
-          <article className={styles.infoCard}>
-            <span className={styles.infoLabel}>모집 마감</span>
-            <strong>{currentRoom.recruitUntil}</strong>
-          </article>
-          <article className={styles.infoCard}>
-            <span className={styles.infoLabel}>참여 인원</span>
-            <strong>{formatCompanionMembers(currentRoom)}</strong>
-          </article>
-        </div>
+                <h1 className={styles.heroTitle}>{currentRoom.title}</h1>
 
-        <div className={styles.tagList}>
-          {currentRoom.tags.map((tag) => (
-            <span key={tag} className={styles.tag}>
-              #{tag}
-            </span>
-          ))}
-        </div>
-      </section>
+                <div className={styles.heroMeta}>
+                  <span className={`${styles.pill} ${getStatusClassName(currentRoom)}`}>{currentRoom.status}</span>
+                  <span className={`${styles.pill} ${styles.pillMuted}`}>{currentRoom.patternName}</span>
+                  <span className={`${styles.pill} ${styles.pillMuted}`}>@{currentRoom.hostName}</span>
+                  <span className={`${styles.pill} ${styles.pillMuted}`}>{formatCompanionSchedule(currentRoom)}</span>
+                </div>
+              </div>
+            </section>
 
-      <section className={styles.workspace}>
-        <div className={styles.mainColumn}>
-          <section className={styles.sectionCard}>
-            <div className={styles.panelTabRow}>
-              <button
-                type="button"
-                className={visiblePanel === "overview" ? styles.indexTabActive : styles.indexTab}
-                onClick={() => setActivePanel("overview")}
-              >
-                안내
-              </button>
-              <button
-                type="button"
-                className={visiblePanel === "pattern" ? styles.indexTabActive : styles.indexTab}
-                onClick={() => setActivePanel("pattern")}
-              >
-                연결 도안
-              </button>
-              {canAccessMemberPanels ? (
-                <>
-                  <button
-                    type="button"
-                    className={visiblePanel === "supplies" ? styles.indexTabActive : styles.indexTab}
-                    onClick={() => setActivePanel("supplies")}
-                  >
-                    준비물
-                  </button>
-                  <button
-                    type="button"
-                    className={visiblePanel === "qna" ? styles.indexTabActive : styles.indexTab}
-                    onClick={() => setActivePanel("qna")}
-                  >
-                    질의응답
-                  </button>
-                  <button
-                    type="button"
-                    className={visiblePanel === "checkin" ? styles.indexTabActive : styles.indexTab}
-                    onClick={() => setActivePanel("checkin")}
-                  >
-                    진행 기록
-                  </button>
-                </>
-              ) : null}
-            </div>
-            {!canAccessMemberPanels ? (
-              <p className={styles.panelLockMessage}>
-                이 동행방에 참여한 뒤에만 `준비물`, `질의응답`, `진행 기록`을 볼 수 있어요.
-              </p>
-            ) : null}
+            <div className={`${styles.compactIntroGrid} ${styles.sectionSpanFull}`}>
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>동행방 정보</h2>
+                </div>
 
-            {visiblePanel === "overview" ? (
-              <div className={styles.panelStack}>
-                <section className={styles.innerSection}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionEyebrow}>Pinned Notice</span>
-                    <h2 className={styles.sectionTitle}>공지와 진행 안내</h2>
+                <div className={styles.summaryList}>
+                  <div className={styles.summaryRow}>
+                    <span>진행자</span>
+                    <span className={styles.summaryValue}>@{currentRoom.hostName}</span>
                   </div>
+                  <div className={styles.summaryRow}>
+                    <span>일정</span>
+                    <span className={styles.summaryValue}>{formatCompanionSchedule(currentRoom)}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>모집 마감</span>
+                    <span className={styles.summaryValue}>{formatDateLabel(currentRoom.recruitUntil)}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>난이도</span>
+                    <span className={styles.summaryValue}>{currentRoom.level}</span>
+                  </div>
+                  <div className={styles.summaryRow}>
+                    <span>인원</span>
+                    <span className={styles.summaryValue}>
+                      {formatCompanionMembers(currentRoom)} / 정원 {currentRoom.capacity}명
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.sectionCard}>
+                <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitle}>동행방 안내</h2>
+                </div>
+
+                <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
+                  <p className={styles.descriptionText}>{currentRoom.summary}</p>
+                </div>
+
+                {currentRoom.tags.length > 0 ? (
+                  <div className={styles.tagList}>
+                    {currentRoom.tags.map((tag) => (
+                      <span key={tag} className={styles.tag}>
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </section>
+            </div>
+
+            <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.commentsSection}`}>
+              <div className={styles.tabRow}>
+                <button
+                  type="button"
+                  className={visiblePanel === "overview" ? styles.tabActive : styles.tabButton}
+                  onClick={() => setActivePanel("overview")}
+                >
+                  안내
+                </button>
+                <button
+                  type="button"
+                  className={visiblePanel === "pattern" ? styles.tabActive : styles.tabButton}
+                  onClick={() => setActivePanel("pattern")}
+                >
+                  도안
+                </button>
+                {canAccessMemberPanels ? (
+                  <>
+                    <button
+                      type="button"
+                      className={visiblePanel === "supplies" ? styles.tabActive : styles.tabButton}
+                      onClick={() => setActivePanel("supplies")}
+                    >
+                      준비물
+                    </button>
+                    <button
+                      type="button"
+                      className={visiblePanel === "qna" ? styles.tabActive : styles.tabButton}
+                      onClick={() => setActivePanel("qna")}
+                    >
+                      질문
+                    </button>
+                    <button
+                      type="button"
+                      className={visiblePanel === "checkin" ? styles.tabActive : styles.tabButton}
+                      onClick={() => setActivePanel("checkin")}
+                    >
+                      기록
+                    </button>
+                  </>
+                ) : null}
+              </div>
+
+              {visiblePanel === "overview" ? (
+                <>
+                  <div className={styles.sectionHead}>
+                    <h2 className={styles.sectionTitle}>공지</h2>
+                    <p className={styles.sectionDescription}>등록된 안내 {overviewNotices.length}개</p>
+                  </div>
+
                   {isHost ? (
                     <div className={styles.composer}>
+                      <label className={styles.label}>공지 작성</label>
                       <input
-                        className={styles.input}
                         value={noticeTitle}
                         onChange={(event) => setNoticeTitle(event.target.value)}
                         placeholder="공지 제목"
+                        className={styles.input}
                       />
                       <textarea
-                        className={styles.textarea}
                         value={noticeContent}
                         onChange={(event) => setNoticeContent(event.target.value)}
                         placeholder="참여자에게 안내할 공지 내용을 적어주세요."
-                      />
-                      <button type="button" className={styles.secondaryAction} onClick={() => void handleNoticeSubmit()}>
+                        rows={4}
+                        className={styles.textarea}
+                    />
+                    <div className={styles.composerFooter}>
+                      <button type="button" onClick={() => void handleNoticeSubmit()} className={styles.submitButton}>
                         공지 등록
                       </button>
+                      </div>
                     </div>
                   ) : null}
-                  <ul className={styles.noticeList}>
-                    {roomState.notices.map((notice) => (
-                      <li key={notice} className={styles.noticeItem}>
-                        {notice}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              </div>
-            ) : null}
 
-            {visiblePanel === "pattern" ? (
-              <div className={styles.panelStack}>
-                <section className={styles.innerSection}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionEyebrow}>Linked Pattern</span>
-                    <h2 className={styles.sectionTitle}>연결된 도안 정보</h2>
-                  </div>
-                  {patternPreview ? (
-                    <div className={styles.patternStudio}>
-                      <section className={styles.patternHero}>
-                        <div className={styles.patternHeroBody}>
-                          <span className={styles.eyebrow}>Pattern Studio</span>
-                          <h3 className={styles.patternHeroTitle}>{patternPreview.title}</h3>
-                          <div className={styles.patternHeroMeta}>
-                            {patternPreview.heroMeta.map((item) => (
-                              <span
-                                key={`${item.tone}-${item.label}`}
-                                className={
-                                  item.tone === "level"
-                                    ? `${styles.patternPill} ${styles.patternPillLevel}`
-                                    : item.tone === "category"
-                                      ? `${styles.patternPill} ${styles.patternPillCategory}`
-                                      : `${styles.patternPill} ${styles.patternPillMuted}`
-                                }
-                              >
-                                {item.label}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
+                  <div className={styles.commentList}>
+                    {overviewNotices.length > 0 ? (
+                      overviewNotices.map((notice, index) => {
+                        const item = splitNoticeText(notice);
 
-                        <div className={styles.patternHeroActions}>
-                          {patternPreview.linkHref && patternPreview.linkLabel ? (
-                            <Link href={patternPreview.linkHref} className={styles.secondaryAction}>
-                              {patternPreview.linkLabel}
-                            </Link>
-                          ) : null}
-                          {patternPreview.externalUrl && patternPreview.externalLabel ? (
-                            <Link
-                              href={patternPreview.externalUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className={styles.secondaryAction}
-                            >
-                              {patternPreview.externalLabel}
-                            </Link>
-                          ) : null}
-                        </div>
-                      </section>
-
-                      <section className={styles.patternIntroCard}>
-                        <div className={styles.patternCompactIntroGrid}>
-                          <div className={styles.patternIntroMain}>
-                            <div className={styles.patternImageStage}>
-                              <div className={styles.patternImageWrap}>
-                                {patternPreview.imageUrl ? (
-                                  <Image
-                                    src={patternPreview.imageUrl}
-                                    alt={patternPreview.title}
-                                    fill
-                                    sizes="(max-width: 920px) 100vw, 46vw"
-                                  />
-                                ) : (
-                                  <div className={styles.patternImageFallback} />
-                                )}
+                        return (
+                          <article key={`${notice}-${index}`} className={styles.commentCard}>
+                            <div className={styles.commentHead}>
+                              <div className={styles.commentMeta}>
+                                <span className={styles.commentAuthor}>{item.title}</span>
+                                <span className={styles.commentDate}>공지 {index + 1}</span>
                               </div>
                             </div>
+                            <p className={styles.commentBody}>{item.content}</p>
+                          </article>
+                        );
+                      })
+                    ) : (
+                      <div className={styles.emptyState}>
+                        <p className={styles.emptyStateTitle}>아직 공지가 없어요</p>
+                        <p className={styles.emptyStateDescription}>첫 안내를 남겨 동행 흐름을 정리해 보세요.</p>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : null}
 
-                            <div className={styles.patternDescriptionCard}>
-                              <p className={styles.patternDescriptionText}>
-                                {patternPreview.description}
-                              </p>
+              {visiblePanel === "pattern" ? (
+                <>
+                  <div className={styles.sectionHeader}>
+                    <h2 className={styles.sectionTitle}>연결 도안</h2>
+                  </div>
+
+                  {patternPreview ? (
+                    <>
+                      <div className={styles.compactIntroGrid}>
+                        <div className={styles.introMain}>
+                          <div className={styles.imageStage}>
+                            <div className={styles.imageWrap}>
+                              {patternPreview.imageUrl ? (
+                                <Image
+                                  src={patternPreview.imageUrl}
+                                  alt={patternPreview.title}
+                                  fill
+                                  sizes="(max-width: 920px) 100vw, 46vw"
+                                />
+                              ) : (
+                                <div className={styles.imageFallback}>사진없음</div>
+                              )}
                             </div>
                           </div>
 
-                          <div className={styles.patternIntroSide}>
-                            <div className={styles.patternInfoStack}>
-                              <section className={styles.patternSectionCard}>
-                                <div className={styles.sectionHead}>
-                                  <span className={styles.sectionEyebrow}>Story</span>
-                                  <h3 className={styles.sectionTitle}>도안 소개</h3>
+                          <div className={styles.descriptionCard}>
+                            <p className={styles.descriptionText}>{patternPreview.description}</p>
+                          </div>
+                        </div>
+
+                        <div className={styles.introSide}>
+                          <div className={styles.infoStack}>
+                            <section className={styles.sectionCard}>
+                              <div className={styles.sectionHeader}>
+                                <h3 className={styles.sectionTitle}>도안</h3>
+                              </div>
+                              <div className={styles.summaryList}>
+                                {patternPreview.summaryRows.map((row) => (
+                                  <div key={row.label} className={styles.summaryRow}>
+                                    <span>{row.label}</span>
+                                    <span className={styles.summaryValue}>{row.value}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </section>
+
+                            {patternPreview.prepRows.length > 0 ? (
+                              <section className={styles.sectionCard}>
+                                <div className={styles.sectionHeader}>
+                                  <h3 className={styles.sectionTitle}>제작 준비</h3>
                                 </div>
-                                <div className={styles.patternSummaryList}>
-                                  {patternPreview.overviewRows.map((row) => (
-                                    <div key={row.label} className={styles.patternSummaryRow}>
+                                <div className={styles.prepGrid}>
+                                  {patternPreview.prepRows.map((row) => (
+                                    <div key={`compact-${row.label}`} className={styles.summaryRow}>
                                       <span>{row.label}</span>
-                                      <span className={styles.patternSummaryValue}>{row.value}</span>
+                                      <span className={styles.summaryValue}>{row.value}</span>
                                     </div>
                                   ))}
                                 </div>
                               </section>
+                            ) : null}
 
-                              {patternPreview.prepRows.length ? (
-                                <section className={styles.patternSectionCard}>
-                                  <div className={styles.sectionHead}>
-                                    <span className={styles.sectionEyebrow}>Material</span>
-                                    <h3 className={styles.sectionTitle}>제작 준비</h3>
-                                  </div>
-                                  <div className={styles.patternPrepGrid}>
-                                    {patternPreview.prepRows.map((row) => (
-                                      <div key={row.label} className={styles.patternSummaryRow}>
-                                        <span>{row.label}</span>
-                                        <span className={styles.patternSummaryValue}>{row.value}</span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </section>
-                              ) : null}
-
-                              {patternPreview.policyRows.length ? (
-                                <section className={styles.patternSectionCard}>
-                                  <div className={styles.sectionHead}>
-                                    <span className={styles.sectionEyebrow}>Policy</span>
-                                    <h3 className={styles.sectionTitle}>이용 범위</h3>
-                                  </div>
-                                  <div className={styles.patternPolicyGrid}>
-                                    {patternPreview.policyRows.map((row, index) => (
-                                      <div
-                                        key={`${row.label}-${index}`}
-                                        className={index === 0 ? styles.patternSummaryRow : styles.patternPolicyRow}
-                                      >
-                                        <span>{row.label}</span>
+                            {patternPreview.policyRows.length > 0 ? (
+                              <section className={styles.sectionCard}>
+                                <div className={styles.sectionHeader}>
+                                  <h3 className={styles.sectionTitle}>이용 범위</h3>
+                                </div>
+                                <div className={styles.policyGrid}>
+                                  {patternPreview.policyRows.map((row, index) => (
+                                    <div
+                                      key={`${row.label}-${index}`}
+                                      className={index === 0 ? styles.summaryRow : styles.policyRow}
+                                    >
+                                      <span className={index === 0 ? undefined : styles.fieldLabel}>{row.label}</span>
+                                      {index === 0 ? (
+                                        <span className={styles.summaryValue}>{row.value}</span>
+                                      ) : (
                                         <span
-                                          className={
-                                            index === 0
-                                              ? styles.patternSummaryValue
-                                              : row.value === "O"
-                                                ? `${styles.patternPolicyState} ${styles.patternPolicyAllowed}`
-                                                : `${styles.patternPolicyState} ${styles.patternPolicyDenied}`
-                                          }
+                                          className={`${styles.policyState} ${
+                                            row.value === "O" ? styles.policyAllowed : styles.policyDenied
+                                          }`}
                                         >
                                           {row.value}
                                         </span>
-                                      </div>
-                                    ))}
+                                      )}
+                                    </div>
+                                  ))}
+                                  {patternPreview.actionHref && patternPreview.actionLabel ? (
+                                    <div className={styles.summaryRow}>
+                                      <span>링크</span>
+                                      <Link
+                                        href={patternPreview.actionHref}
+                                        target={patternPreview.actionHref.startsWith("http") ? "_blank" : undefined}
+                                        rel={patternPreview.actionHref.startsWith("http") ? "noreferrer" : undefined}
+                                        className={styles.secondaryLinkAction}
+                                      >
+                                        {patternPreview.actionLabel}
+                                      </Link>
+                                    </div>
+                                  ) : null}
+                                </div>
+                              </section>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
+
+                      {!(currentRoom.patternSourceType === "custom" && !canAccessMemberPanels) ? (
+                        <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.sheetCard}`}>
+                          <div className={styles.sectionHeader}>
+                            <h2 className={styles.sectionTitle}>도안 세부 내용</h2>
+                          </div>
+
+                          {patternPreview.detailRows.length ? (
+                            <div className={styles.detailList}>
+                              {patternPreview.detailRows.map((row) => (
+                                <div key={row.id} className={styles.detailItem}>
+                                  <div className={styles.detailMeta}>
+                                    <span className={styles.detailIndex}>{row.rowNumber}단</span>
+                                    <span className={styles.detailPreview}>
+                                      {row.instruction.length > 28
+                                        ? `${row.instruction.slice(0, 28)}...`
+                                        : row.instruction}
+                                    </span>
                                   </div>
-                                </section>
+                                  <p className={styles.detailText}>{row.instruction || "-"}</p>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div className={styles.emptyState}>
+                              <p className={styles.emptyStateTitle}>등록된 세부 내용이 아직 없어요</p>
+                              <p className={styles.emptyStateDescription}>
+                                작성자가 아직 행별 설명을 입력하지 않았거나, 공개된 상세 내용이 없어요.
+                              </p>
+                            </div>
+                          )}
+                        </section>
+                      ) : null}
+                    </>
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>아직 연결된 도안 정보가 없어요</p>
+                      <p className={styles.emptyStateDescription}>이 동행방에는 아직 상세 도안이 연결되지 않았어요.</p>
+                    </div>
+                  )}
+                </>
+              ) : null}
+
+              {visiblePanel === "supplies" ? (
+                <>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>준비물</h2>
+                  <p className={styles.sectionDescription}>체크리스트 {roomState.supplies.length}개</p>
+                </div>
+
+                {canAccessMemberPanels ? (
+                  <>
+                    {isHost && participantSupplyProgress.length > 0 ? (
+                      <div className={styles.supplyProgressList}>
+                        {participantSupplyProgress.map((participant) => (
+                          <div key={participant.userId} className={styles.supplyProgressRow}>
+                            <span className={styles.supplyProgressName}>{participant.name}</span>
+                            <strong className={styles.supplyProgressValue}>
+                              {participant.checkedCount}/{roomState.supplies.length}
+                            </strong>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <div className={styles.commentList}>
+                      {roomState.supplies.map((supply) => (
+                        <label key={supply.id} className={supply.checked ? styles.replyCardChecked : styles.replyCard}>
+                          <div className={styles.supplyRow}>
+                            <input
+                              type="checkbox"
+                              checked={supply.checked}
+                              onChange={() => void handleSupplyToggle(supply.id)}
+                              className={styles.checkbox}
+                            />
+                            <div>
+                              <div className={styles.commentAuthor}>{supply.label}</div>
+                              <p className={styles.commentBody}>{supply.checked ? "준비 완료" : "아직 확인 전"}</p>
+                              {isHost && participantSupplyProgress.length > 0 ? (
+                                <p className={styles.supplyCountText}>
+                                  참여자 {supplyCheckedCounts[supply.id] ?? 0} / {participantSupplyProgress.length}명 완료
+                                </p>
                               ) : null}
                             </div>
                           </div>
-                        </div>
-                      </section>
-
-                      {patternPreview.detailRows.length ? (
-                        <section className={styles.patternSectionCard}>
-                          <div className={styles.sectionHead}>
-                            <span className={styles.sectionEyebrow}>Pattern Sheet</span>
-                            <h3 className={styles.sectionTitle}>도안 세부 내용</h3>
-                          </div>
-                          <div className={styles.patternDetailList}>
-                            {patternPreview.detailRows.map((row) => (
-                              <div key={row.id} className={styles.patternDetailItem}>
-                                <div className={styles.patternDetailMeta}>
-                                  <span className={styles.patternDetailIndex}>{row.rowNumber}단</span>
-                                  <span className={styles.patternDetailPreview}>
-                                    {row.instruction.length > 28
-                                      ? `${row.instruction.slice(0, 28)}...`
-                                      : row.instruction}
-                                  </span>
-                                </div>
-                                <p className={styles.patternDetailText}>{row.instruction}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      ) : null}
+                        </label>
+                      ))}
                     </div>
-                  ) : (
-                    <p className={styles.panelLockMessage}>아직 연결된 도안 정보가 없어요.</p>
-                  )}
-                </section>
-              </div>
-            ) : null}
+                  </>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>참여 후 열리는 공간이에요</p>
+                    <p className={styles.emptyStateDescription}>이 동행방에 참여하면 준비물 체크리스트를 사용할 수 있어요.</p>
+                  </div>
+                )}
+                </>
+              ) : null}
 
-            {visiblePanel === "supplies" && canAccessMemberPanels ? (
-              <div className={styles.panelStack}>
-                <section className={styles.innerSection}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionEyebrow}>Supplies</span>
-                    <h2 className={styles.sectionTitle}>준비물 체크리스트</h2>
-                  </div>
-                  <div className={styles.supplyList}>
-                    {roomState.supplies.map((supply) => (
-                      <label
-                        key={supply.id}
-                        className={supply.checked ? styles.supplyChecked : styles.supplyItem}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={supply.checked}
-                          onChange={() => void handleSupplyToggle(supply.id)}
-                        />
-                        <span>{supply.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-
-            {visiblePanel === "qna" && canAccessMemberPanels ? (
-              <div className={styles.panelStack}>
-                <section className={styles.innerSection}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionEyebrow}>Thread</span>
-                    <h2 className={styles.sectionTitle}>질의응답 섹션</h2>
-                  </div>
-                  <div className={styles.composer}>
-                    <textarea
-                      className={styles.textarea}
-                      value={threadInput}
-                      onChange={(event) => setThreadInput(event.target.value)}
-                      placeholder="질문 내용을 적어보세요."
-                    />
-                    <button type="button" className={styles.secondaryAction} onClick={() => void handleThreadSubmit()}>
-                        질문 등록
-                    </button>
-                  </div>
-                  <div className={styles.threadList}>
-                    {filteredThreads.map((thread) => (
-                      <article key={thread.id} className={styles.threadCard}>
-                        <div className={styles.threadMeta}>
-                          <strong>{thread.author}</strong>
-                          <span>{new Date(thread.createdAt).toLocaleString("ko-KR")}</span>
-                        </div>
-                        <p>{thread.content}</p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-
-            {visiblePanel === "checkin" && canAccessMemberPanels ? (
-              <div className={styles.panelStack}>
-                <section className={styles.innerSection}>
-                  <div className={styles.sectionHead}>
-                    <span className={styles.sectionEyebrow}>Check-In</span>
-                    <h2 className={styles.sectionTitle}>진행 기록</h2>
-                  </div>
-                  <div className={styles.checkInComposer}>
-                    <input
-                      className={styles.input}
-                      value={checkInTitle}
-                      onChange={(event) => setCheckInTitle(event.target.value)}
-                      placeholder="예: 2주차 진행 기록"
-                    />
-                    <textarea
-                      className={styles.textarea}
-                      value={checkInContent}
-                      onChange={(event) => setCheckInContent(event.target.value)}
-                      placeholder="이번 주 진행 상황과 메모를 적어주세요."
-                    />
-                    <button type="button" className={styles.secondaryAction} onClick={() => void handleCheckInSubmit()}>
-                      체크인 추가
-                    </button>
-                  </div>
-                  <div className={styles.timelineList}>
-                    {roomState.checkIns.map((checkIn) => (
-                      <article key={checkIn.id} className={styles.timelineCard}>
-                        <div className={styles.threadMeta}>
-                          <strong>{checkIn.title}</strong>
-                          <span>{checkIn.author}</span>
-                        </div>
-                        <p>{checkIn.content}</p>
-                      </article>
-                    ))}
-                  </div>
-                </section>
-              </div>
-            ) : null}
-          </section>
-        </div>
-
-        <aside className={styles.sideColumn}>
-          <section className={styles.sideCard}>
-            <span className={styles.sectionEyebrow}>Participants</span>
-            <h2 className={styles.sideTitle}>참여자 목록</h2>
-            <div className={styles.participantList}>
-              {roomState.participants.map((participant) => (
-                <div key={participant.id} className={styles.participantCard}>
-                  <strong>{participant.name}</strong>
-                  <span>{participant.role}</span>
+              {visiblePanel === "qna" ? (
+                <>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>질문</h2>
+                  <p className={styles.sectionDescription}>등록된 질문 {questionThreads.length}개</p>
                 </div>
-              ))}
-            </div>
-          </section>
 
-          <section className={styles.sideCard}>
-            <span className={styles.sectionEyebrow}>Room Status</span>
-            <h2 className={styles.sideTitle}>운영 요약</h2>
-            <div className={styles.summaryGrid}>
-              <div className={styles.summaryBox}>
-                <span>체크 완료</span>
-                <strong>
-                  {roomState.supplies.filter((supply) => supply.checked).length} / {roomState.supplies.length}
-                </strong>
+                {canAccessMemberPanels ? (
+                  <>
+                    <div className={styles.inlineQuestionComposer}>
+                      <textarea
+                        value={threadInput}
+                        onChange={(event) => setThreadInput(event.target.value)}
+                        placeholder="질문 내용을 적어보세요."
+                        rows={4}
+                        className={styles.textarea}
+                      />
+                      <div className={`${styles.composerFooter} ${styles.composerFooterEnd}`}>
+                        <button type="button" onClick={() => void handleThreadSubmit()} className={styles.submitButton}>
+                          질문 등록
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={styles.commentList}>
+                      {pagedQuestionThreads.map((thread) => {
+                          const commentCount = thread.comments?.length ?? 0;
+                          const isCommentOpen = openThreadComments[thread.id] ?? false;
+
+                          return (
+                          <article key={thread.id} className={styles.commentCard}>
+                            <div className={styles.commentHead}>
+                              <div className={styles.commentMeta}>
+                                <span className={styles.commentAuthor}>@{thread.author}</span>
+                                <span className={styles.commentDate}>{formatDateTimeLabel(thread.createdAt)}</span>
+                              </div>
+                              <div className={styles.commentActions}>
+                                <span className={`${styles.pill} ${styles.categoryQuestion}`}>
+                                  {thread.type}
+                                </span>
+                              </div>
+                            </div>
+                            <p className={styles.commentBody}>{thread.content}</p>
+
+                            <div className={styles.threadCommentToggleRow}>
+                              <button
+                                type="button"
+                                className={styles.threadCommentToggle}
+                                onClick={() =>
+                                  setOpenThreadComments((current) => ({
+                                    ...current,
+                                    [thread.id]: !isCommentOpen,
+                                  }))
+                                }
+                              >
+                                {isCommentOpen
+                                  ? "댓글 숨기기"
+                                  : commentCount > 0
+                                    ? `댓글 ${commentCount}개 보기`
+                                    : "댓글 쓰기"}
+                              </button>
+                            </div>
+
+                            {isCommentOpen ? (
+                              <div className={styles.threadCommentSection}>
+                                {commentCount ? (
+                                  <div className={styles.threadCommentList}>
+                                    {(thread.comments ?? []).map((comment) => (
+                                      <div key={comment.id} className={styles.threadCommentItem}>
+                                        <div className={styles.threadCommentMeta}>
+                                          <span className={styles.commentAuthor}>@{comment.author}</span>
+                                          <span className={styles.commentDate}>
+                                            {formatDateTimeLabel(comment.createdAt)}
+                                          </span>
+                                        </div>
+                                        <p className={styles.threadCommentBody}>{comment.content}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
+
+                                <div className={styles.threadCommentComposer}>
+                                  <input
+                                    value={threadCommentInputs[thread.id] ?? ""}
+                                    onChange={(event) =>
+                                      setThreadCommentInputs((current) => ({
+                                        ...current,
+                                        [thread.id]: event.target.value,
+                                      }))
+                                    }
+                                    placeholder="댓글을 남겨보세요."
+                                    className={styles.input}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => void handleThreadCommentSubmit(thread.id)}
+                                    className={styles.secondaryAction}
+                                  >
+                                    댓글 등록
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null}
+                          </article>
+                        )})}
+                    </div>
+
+                    {sortedQuestionThreads.length > 3 ? (
+                      <div className={styles.questionPagination}>
+                        <button
+                          type="button"
+                          className={styles.questionPageButton}
+                          onClick={() => setQuestionPage((current) => Math.max(1, current - 1))}
+                          disabled={currentQuestionPage === 1}
+                        >
+                          이전
+                        </button>
+                        <span className={styles.questionPageLabel}>
+                          {currentQuestionPage} / {totalQuestionPages}
+                        </span>
+                        <button
+                          type="button"
+                          className={styles.questionPageButton}
+                          onClick={() => setQuestionPage((current) => Math.min(totalQuestionPages, current + 1))}
+                          disabled={currentQuestionPage === totalQuestionPages}
+                        >
+                          다음
+                        </button>
+                      </div>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>참여 후 열리는 공간이에요</p>
+                    <p className={styles.emptyStateDescription}>참여자만 질문을 남길 수 있어요.</p>
+                  </div>
+                )}
+                </>
+              ) : null}
+
+              {visiblePanel === "checkin" ? (
+                <>
+                <div className={styles.sectionHead}>
+                  <h2 className={styles.sectionTitle}>진행 기록</h2>
+                  <p className={styles.sectionDescription}>체크인 {roomState.checkIns.length}개</p>
+                </div>
+
+                {canAccessMemberPanels ? (
+                  <>
+                    <div className={styles.composer}>
+                      <label className={styles.label}>체크인 입력</label>
+                      <input
+                        value={checkInTitle}
+                        onChange={(event) => setCheckInTitle(event.target.value)}
+                        placeholder="예: 2주차 진행 기록"
+                        className={styles.input}
+                      />
+                      <textarea
+                        value={checkInContent}
+                        onChange={(event) => setCheckInContent(event.target.value)}
+                        placeholder="이번 주 진행 상황과 메모를 적어주세요."
+                        rows={4}
+                        className={styles.textarea}
+                      />
+                      <div className={styles.composerFooter}>
+                        <p className={styles.hintText}>체크인은 순서대로 쌓여 진행 흐름을 보여줘요.</p>
+                        <button type="button" onClick={() => void handleCheckInSubmit()} className={styles.submitButton}>
+                          체크인 추가
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className={styles.commentList}>
+                      {roomState.checkIns.map((checkIn) => (
+                        <article key={checkIn.id} className={styles.commentCard}>
+                          <div className={styles.commentHead}>
+                            <div className={styles.commentMeta}>
+                              <span className={styles.commentAuthor}>{checkIn.title}</span>
+                              <span className={styles.commentDate}>{formatDateTimeLabel(checkIn.createdAt)}</span>
+                            </div>
+                            <div className={styles.commentActions}>
+                              <span className={`${styles.pill} ${styles.pillMuted}`}>@{checkIn.author}</span>
+                            </div>
+                          </div>
+                          <p className={styles.commentBody}>{checkIn.content}</p>
+                        </article>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>참여 후 열리는 공간이에요</p>
+                    <p className={styles.emptyStateDescription}>동행에 참여하면 진행 기록을 함께 남길 수 있어요.</p>
+                  </div>
+                )}
+                </>
+              ) : null}
+            </section>
+          </div>
+
+          <aside className={styles.sideColumn}>
+            <section className={`${styles.sectionCard} ${styles.previewCard}`}>
+              <div className={styles.previewHead}>
+                <h3 className={styles.previewTitle}>참여자</h3>
               </div>
-              <div className={styles.summaryBox}>
-                <span>질문 글</span>
-                <strong>
-                  {roomState.threads.filter((thread) => thread.type === "질문").length}
-                </strong>
+              <div className={styles.detailList}>
+                {roomState.participants.map((participant) => (
+                  <div key={participant.id} className={styles.detailItem}>
+                    <div className={styles.detailMeta}>
+                      <span className={styles.detailIndex}>{participant.name}</span>
+                    </div>
+                    <p className={styles.detailText}>{participant.role}</p>
+                  </div>
+                ))}
               </div>
-              <div className={styles.summaryBox}>
-                <span>인증 글</span>
-                <strong>
-                  {roomState.threads.filter((thread) => thread.type === "인증").length}
-                </strong>
+            </section>
+
+            <section className={`${styles.sectionCard} ${styles.previewCard}`}>
+              <div className={styles.previewHead}>
+                <h3 className={styles.previewTitle}>운영 요약</h3>
               </div>
-              <div className={styles.summaryBox}>
-                <span>체크인</span>
-                <strong>{roomState.checkIns.length}</strong>
+              <div className={styles.summaryList}>
+                <div className={styles.summaryRow}>
+                  <span>준비물 체크</span>
+                  <span className={styles.summaryValue}>
+                    {roomState.supplies.filter((supply) => supply.checked).length} / {roomState.supplies.length}
+                  </span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>질문</span>
+                  <span className={styles.summaryValue}>{questionThreads.length}</span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>체크인</span>
+                  <span className={styles.summaryValue}>{roomState.checkIns.length}</span>
+                </div>
               </div>
-            </div>
-          </section>
-        </aside>
-      </section>
-    </div>
+            </section>
+          </aside>
+        </div>
+      </div>
     </>
   );
 }

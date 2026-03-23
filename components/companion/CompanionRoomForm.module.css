@@ -263,7 +263,8 @@
 .companionIntroGrid,
 .companionIntroMain,
 .companionIntroSide,
-.sourceTypeStack {
+.sourceTypeStack,
+.externalPatternFields {
   display: grid;
 }
 
@@ -275,8 +276,16 @@
 
 .companionIntroMain,
 .companionIntroSide,
-.sourceTypeStack {
+.sourceTypeStack,
+.externalPatternFields {
   gap: 10px;
+}
+
+.externalPatternGrid {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
 }
 
 .innerCard {
@@ -414,6 +423,8 @@
 
 .previewDescription {
   margin-top: 14px;
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
 
 .previewInfoGrid {
@@ -434,12 +445,13 @@
 
 .previewInfoBox span {
   color: #8c7f72;
-  font-size: 0.78rem;
+  font-size: 0.7rem;
   font-weight: 700;
 }
 
 .previewInfoBox strong {
   text-align: right;
+  font-size: 0.82rem;
 }
 
 .guideList {
@@ -470,7 +482,8 @@
   }
 
   .basicsHeader,
-  .companionIntroGrid {
+  .companionIntroGrid,
+  .externalPatternGrid {
     grid-template-columns: 1fr;
   }
 

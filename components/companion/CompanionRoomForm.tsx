@@ -11,12 +11,13 @@ import {
   companionDraftStorageKey,
   companionLevels,
   companionPatternSourceTypes,
+  type CompanionRoomRow,
   type CompanionCustomPatternData,
   type CompanionLevel,
   type CompanionPatternSourceType,
 } from "@/lib/companion";
 import { type DetailRow, type NeedleType } from "@/lib/pattern-detail";
-import type { PatternItem } from "@/lib/patterns";
+import { getPatternImageUrl, type PatternItem } from "@/lib/patterns";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./CompanionRoomForm.module.css";
 
@@ -38,6 +39,7 @@ type CopyrightChoice = "o" | "x";
 
 type CopyrightSettings = {
   source: (typeof copyrightSourceOptions)[number];
+  sourceUrl: string;
   hobbyOnly: CopyrightChoice;
   colorVariation: CopyrightChoice;
   sizeVariation: CopyrightChoice;
@@ -105,6 +107,7 @@ const initialDraft: CompanionDraft = {
   customPatternGaugeRows: "",
   customPatternCopyright: {
     source: "본인",
+    sourceUrl: "",
     hobbyOnly: "o",
     colorVariation: "o",
     sizeVariation: "o",
@@ -143,9 +146,47 @@ function formatFileSize(file: File) {
   return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
 }
 
-export default function CompanionRoomForm() {
+function parseNeedleDraft(value: string) {
+  const match = value.match(/^(코바늘|대바늘)\s*(.*)$/);
+  if (!match) {
+    return {
+      type: needleTypeOptions[0],
+      size: value,
+    };
+  }
+
+  return {
+    type: match[1] as (typeof needleTypeOptions)[number],
+    size: match[2]?.replace(/호$/, "").trim() ?? "",
+  };
+}
+
+function parseCustomSizeDraft(value: string) {
+  const widthMatch = value.match(/가로\s*(\d+)/);
+  const heightMatch = value.match(/세로\s*(\d+)/);
+  const gaugeStitchesMatch = value.match(/(\d+)코/);
+  const gaugeRowsMatch = value.match(/x\s*(\d+)단/);
+
+  return {
+    width: widthMatch?.[1] ?? "",
+    height: heightMatch?.[1] ?? "",
+    gaugeStitches: gaugeStitchesMatch?.[1] ?? "",
+    gaugeRows: gaugeRowsMatch?.[1] ?? "",
+  };
+}
+
+type CompanionRoomFormProps = {
+  mode?: "create" | "edit";
+  initialRoom?: CompanionRoomRow | null;
+};
+
+export default function CompanionRoomForm({
+  mode = "create",
+  initialRoom = null,
+}: CompanionRoomFormProps) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
+  const isEditMode = mode === "edit";
   const [availablePatterns, setAvailablePatterns] = useState<PatternItem[]>([]);
   const [patternSearchQuery, setPatternSearchQuery] = useState("");
   const [title, setTitle] = useState(initialDraft.title);
@@ -155,6 +196,10 @@ export default function CompanionRoomForm() {
   const [selectedPatternId, setSelectedPatternId] = useState(initialDraft.selectedPatternId);
   const [externalPatternName, setExternalPatternName] = useState(initialDraft.externalPatternName);
   const [externalPatternUrl, setExternalPatternUrl] = useState(initialDraft.externalPatternUrl);
+  const [externalPatternImageFile, setExternalPatternImageFile] = useState<File | null>(null);
+  const [externalPatternImagePath, setExternalPatternImagePath] = useState<string | null>(null);
+  const [externalPatternImagePreviewUrl, setExternalPatternImagePreviewUrl] = useState("");
+  const [externalPatternImagePreviewFailed, setExternalPatternImagePreviewFailed] = useState(false);
   const [summary, setSummary] = useState(initialDraft.summary);
   const [startDate, setStartDate] = useState(initialDraft.startDate);
   const [endDate, setEndDate] = useState(initialDraft.endDate);
@@ -202,6 +247,7 @@ export default function CompanionRoomForm() {
     initialDraft.customPatternDetailContent
   );
   const [customPatternImageFile, setCustomPatternImageFile] = useState<File | null>(null);
+  const [customPatternImagePath, setCustomPatternImagePath] = useState<string | null>(null);
   const [customPatternImagePreviewUrl, setCustomPatternImagePreviewUrl] = useState("");
   const [customPatternImagePreviewFailed, setCustomPatternImagePreviewFailed] = useState(false);
 
@@ -255,6 +301,19 @@ export default function CompanionRoomForm() {
       normalizedType.includes("heif")
     );
   }, [customPatternImageFile]);
+  const isExternalHeicImage = useMemo(() => {
+    if (!externalPatternImageFile) return false;
+
+    const normalizedName = externalPatternImageFile.name.toLowerCase();
+    const normalizedType = externalPatternImageFile.type.toLowerCase();
+
+    return (
+      normalizedName.endsWith(".heic") ||
+      normalizedName.endsWith(".heif") ||
+      normalizedType.includes("heic") ||
+      normalizedType.includes("heif")
+    );
+  }, [externalPatternImageFile]);
   const todayDateString = useMemo(() => {
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
@@ -262,7 +321,7 @@ export default function CompanionRoomForm() {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (isEditMode || typeof window === "undefined") return;
 
     const raw = window.localStorage.getItem(companionDraftStorageKey);
     if (!raw) return;
@@ -306,10 +365,10 @@ export default function CompanionRoomForm() {
     } catch {
       // Ignore malformed draft.
     }
-  }, []);
+  }, [isEditMode]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (isEditMode || typeof window === "undefined") return;
 
     const nextDraft: CompanionDraft = {
       title,
@@ -372,7 +431,65 @@ export default function CompanionRoomForm() {
     summary,
     tags,
     title,
+    isEditMode,
   ]);
+
+  useEffect(() => {
+    if (!initialRoom) return;
+
+    const customPattern = initialRoom.custom_pattern_data ?? null;
+    const parsedNeedle = parseNeedleDraft(customPattern?.needle ?? "");
+    const parsedSize = parseCustomSizeDraft(customPattern?.size ?? "");
+
+    setTitle(initialRoom.title ?? "");
+    setPatternSourceType(initialRoom.pattern_source_type ?? companionPatternSourceTypes[0]);
+    setSelectedPatternId(initialRoom.pattern_id ?? "");
+    setExternalPatternName(initialRoom.pattern_source_type === "external" ? initialRoom.pattern_name ?? "" : "");
+    setExternalPatternUrl(initialRoom.pattern_external_url ?? "");
+    setExternalPatternImageFile(null);
+    setExternalPatternImagePath(initialRoom.pattern_external_image_path ?? null);
+    setExternalPatternImagePreviewUrl(
+      initialRoom.pattern_external_image_path ? getPatternImageUrl(initialRoom.pattern_external_image_path) : ""
+    );
+    setExternalPatternImagePreviewFailed(false);
+    setSummary(initialRoom.summary ?? "");
+    setStartDate(initialRoom.start_date ?? "");
+    setEndDate(initialRoom.end_date ?? "");
+    setRecruitUntil(initialRoom.recruit_until ?? "");
+    setLevel(initialRoom.level ?? companionLevels[0]);
+    setTags(initialRoom.tags ?? []);
+
+    setCustomPatternTitle(customPattern?.title ?? "");
+    setCustomPatternLevel(customPattern?.level ?? levelOptions[0]);
+    setCustomPatternCategory((customPattern?.category as (typeof categoryOptions)[number]) ?? categoryOptions[0]);
+    setCustomPatternDescription(customPattern?.description ?? "");
+    setCustomPatternTags(customPattern?.tags ?? []);
+    setCustomPatternYarn(customPattern?.yarn ?? "");
+    setCustomPatternNeedleType(parsedNeedle.type);
+    setCustomPatternNeedleSize(parsedNeedle.size);
+    setCustomPatternTotalYarnAmount(customPattern?.totalYarnAmount ?? "");
+    setCustomPatternDuration(customPattern?.duration ?? "");
+    setCustomPatternWidth(parsedSize.width);
+    setCustomPatternHeight(parsedSize.height);
+    setCustomPatternGaugeStitches(parsedSize.gaugeStitches);
+    setCustomPatternGaugeRows(parsedSize.gaugeRows);
+    setCustomPatternCopyright({
+      source: customPattern?.copyrightSource ?? "본인",
+      sourceUrl: customPattern?.copyrightSourceUrl ?? "",
+      hobbyOnly: customPattern?.copyrightHobbyOnly ? "o" : "x",
+      colorVariation: customPattern?.copyrightColorVariation ? "o" : "x",
+      sizeVariation: customPattern?.copyrightSizeVariation ? "o" : "x",
+      commercialUse: customPattern?.copyrightCommercialUse ? "o" : "x",
+      redistribution: customPattern?.copyrightRedistribution ? "o" : "x",
+      modificationResale: customPattern?.copyrightModificationResale ? "o" : "x",
+    });
+    setCustomPatternDetailRows(customPattern?.detailRows ?? []);
+    setCustomPatternDetailContent(customPattern?.detailContent ?? "");
+    setCustomPatternImageFile(null);
+    setCustomPatternImagePath(customPattern?.imagePath ?? null);
+    setCustomPatternImagePreviewUrl(customPattern?.imagePath ? getPatternImageUrl(customPattern.imagePath) : "");
+    setCustomPatternImagePreviewFailed(false);
+  }, [initialRoom]);
 
   useEffect(() => {
     async function loadUser() {
@@ -413,8 +530,6 @@ export default function CompanionRoomForm() {
 
   useEffect(() => {
     if (!customPatternImageFile) {
-      setCustomPatternImagePreviewUrl("");
-      setCustomPatternImagePreviewFailed(false);
       return;
     }
 
@@ -424,6 +539,18 @@ export default function CompanionRoomForm() {
 
     return () => URL.revokeObjectURL(objectUrl);
   }, [customPatternImageFile]);
+
+  useEffect(() => {
+    if (!externalPatternImageFile) {
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(externalPatternImageFile);
+    setExternalPatternImagePreviewUrl(objectUrl);
+    setExternalPatternImagePreviewFailed(false);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [externalPatternImageFile]);
 
   function addTag() {
     const normalized = normalizeTag(tagInput);
@@ -467,8 +594,8 @@ export default function CompanionRoomForm() {
     addCustomPatternTag();
   }
 
-  function updateCopyrightSetting(
-    key: keyof Omit<CopyrightSettings, "source">,
+function updateCopyrightSetting(
+    key: keyof Omit<CopyrightSettings, "source" | "sourceUrl">,
     value: CopyrightChoice
   ) {
     setCustomPatternCopyright((current) => ({ ...current, [key]: value }));
@@ -480,10 +607,24 @@ export default function CompanionRoomForm() {
     setCustomPatternImageFile(file);
   }
 
+  function handleExternalPatternImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0] ?? null;
+    setExternalPatternImagePreviewFailed(false);
+    setExternalPatternImageFile(file);
+  }
+
   function removeCustomPatternImage() {
     setCustomPatternImageFile(null);
+    setCustomPatternImagePath(null);
     setCustomPatternImagePreviewUrl("");
     setCustomPatternImagePreviewFailed(false);
+  }
+
+  function removeExternalPatternImage() {
+    setExternalPatternImageFile(null);
+    setExternalPatternImagePath(null);
+    setExternalPatternImagePreviewUrl("");
+    setExternalPatternImagePreviewFailed(false);
   }
 
   async function handleSubmit() {
@@ -535,25 +676,61 @@ export default function CompanionRoomForm() {
       }
 
       if (!user) {
-        alert("로그인 후 동행방을 만들 수 있어요.");
-        router.push("/login?returnTo=%2Fcompanion%2Fnew");
+        alert(`로그인 후 동행방을 ${isEditMode ? "수정" : "만들"} 수 있어요.`);
+        router.push(
+          isEditMode && initialRoom?.id
+            ? `/login?returnTo=${encodeURIComponent(`/companion/${initialRoom.id}/edit`)}`
+            : "/login?returnTo=%2Fcompanion%2Fnew"
+        );
         return;
       }
 
-      const roomId = createCompanionRoomId(title);
+      const roomId = isEditMode && initialRoom?.id ? initialRoom.id : createCompanionRoomId(title);
       let patternName = "";
       let patternId: string | null = null;
       let patternExternalUrl: string | null = null;
+      let patternExternalImagePath: string | null = externalPatternImagePath;
       let customPatternData: CompanionCustomPatternData | null = null;
 
       if (patternSourceType === "site") {
         patternName = selectedPattern?.title ?? "";
         patternId = selectedPatternId;
       } else if (patternSourceType === "external") {
+        const previousExternalImagePath = externalPatternImagePath;
+
+        if (externalPatternImageFile) {
+          const ext = externalPatternImageFile.name.split(".").pop()?.toLowerCase() || "jpg";
+          const fileName = `${Date.now()}.${ext}`;
+          patternExternalImagePath = `companion-external-patterns/${user.id}/${roomId}/${fileName}`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("pattern-images")
+            .upload(patternExternalImagePath, externalPatternImageFile, {
+              cacheControl: "3600",
+              upsert: false,
+            });
+
+          if (uploadError) {
+            throw new Error(uploadError.message);
+          }
+        }
+
+        if (previousExternalImagePath && previousExternalImagePath !== patternExternalImagePath) {
+          const { error: removeError } = await supabase.storage
+            .from("pattern-images")
+            .remove([previousExternalImagePath]);
+
+          if (removeError) {
+            console.error("기존 외부 도안 이미지를 삭제하지 못했어요.", removeError);
+          }
+        }
+
         patternName = externalPatternName.trim();
         patternExternalUrl = externalPatternUrl.trim();
+        setExternalPatternImagePath(patternExternalImagePath);
       } else {
-        let customImagePath: string | null = null;
+        const previousCustomImagePath = customPatternImagePath;
+        let customImagePath: string | null = customPatternImagePath;
 
         if (customPatternImageFile) {
           const ext = customPatternImageFile.name.split(".").pop()?.toLowerCase() || "jpg";
@@ -572,6 +749,16 @@ export default function CompanionRoomForm() {
           }
         }
 
+        if (previousCustomImagePath && previousCustomImagePath !== customImagePath) {
+          const { error: removeError } = await supabase.storage
+            .from("pattern-images")
+            .remove([previousCustomImagePath]);
+
+          if (removeError) {
+            console.error("기존 동행 도안 이미지를 삭제하지 못했어요.", removeError);
+          }
+        }
+
         patternName = customPatternTitle.trim();
         customPatternData = {
           title: customPatternTitle.trim(),
@@ -587,6 +774,10 @@ export default function CompanionRoomForm() {
           detailContent: customPatternDetailContent.trim() || null,
           detailRows: customPatternDetailRows,
           copyrightSource: customPatternCopyright.source,
+          copyrightSourceUrl:
+            customPatternCopyright.source === "무료배포"
+              ? customPatternCopyright.sourceUrl.trim() || null
+              : null,
           copyrightHobbyOnly: customPatternCopyright.hobbyOnly === "o",
           copyrightColorVariation: customPatternCopyright.colorVariation === "o",
           copyrightSizeVariation: customPatternCopyright.sizeVariation === "o",
@@ -595,30 +786,16 @@ export default function CompanionRoomForm() {
           copyrightModificationResale: customPatternCopyright.modificationResale === "o",
           imagePath: customImagePath,
         };
+
+        setCustomPatternImagePath(customImagePath);
       }
 
-      const defaultNotices = [
-        {
-          room_id: roomId,
-          author_user_id: user.id,
-          title: "동행 시작 안내",
-          content: `${hostName}님이 연 동행방이에요. ${startDate}부터 함께 시작합니다.`,
-          is_pinned: true,
-        },
-      ];
-      const defaultSupplies = [
-        { room_id: roomId, label: `${patternName} 도안 확인`, sort_order: 0 },
-        { room_id: roomId, label: "사용 실 준비", sort_order: 1 },
-        { room_id: roomId, label: "바늘 호수 확인", sort_order: 2 },
-        { room_id: roomId, label: "체크인 일정 확인", sort_order: 3 },
-      ];
-
-      const { error: roomError } = await supabase.from("companion_rooms").insert({
-        id: roomId,
+      const roomPayload = {
         host_user_id: user.id,
         pattern_id: patternId,
         pattern_source_type: patternSourceType,
         pattern_external_url: patternExternalUrl,
+        pattern_external_image_path: patternExternalImagePath,
         custom_pattern_data: customPatternData,
         title: title.trim(),
         pattern_name: patternName,
@@ -628,45 +805,78 @@ export default function CompanionRoomForm() {
         recruit_until: recruitUntil,
         level,
         capacity: 9999,
-        status: "모집중",
+        status: "모집중" as const,
         tags,
-      });
+      };
 
-      if (roomError) {
-        throw new Error(roomError.message);
+      if (isEditMode) {
+        const { error: roomError } = await supabase
+          .from("companion_rooms")
+          .update(roomPayload)
+          .eq("id", roomId)
+          .eq("host_user_id", user.id);
+
+        if (roomError) {
+          throw new Error(roomError.message);
+        }
+      } else {
+        const defaultNotices = [
+          {
+            room_id: roomId,
+            author_user_id: user.id,
+            title: "동행 시작 안내",
+            content: `${hostName}님이 연 동행방이에요. ${startDate}부터 함께 시작합니다.`,
+            is_pinned: true,
+          },
+        ];
+        const defaultSupplies = [
+          { room_id: roomId, label: `${patternName} 도안 확인`, sort_order: 0 },
+          { room_id: roomId, label: "사용 실 준비", sort_order: 1 },
+          { room_id: roomId, label: "바늘 호수 확인", sort_order: 2 },
+          { room_id: roomId, label: "체크인 일정 확인", sort_order: 3 },
+        ];
+
+        const { error: roomError } = await supabase.from("companion_rooms").insert({
+          id: roomId,
+          ...roomPayload,
+        });
+
+        if (roomError) {
+          throw new Error(roomError.message);
+        }
+
+        const { error: participantError } = await supabase.from("companion_participants").insert({
+          room_id: roomId,
+          user_id: user.id,
+          role: "host",
+        });
+
+        if (participantError) {
+          throw new Error(participantError.message);
+        }
+
+        const { error: noticesError } = await supabase.from("companion_notices").insert(defaultNotices);
+
+        if (noticesError) {
+          throw new Error(noticesError.message);
+        }
+
+        const { error: suppliesError } = await supabase.from("companion_supplies").insert(defaultSupplies);
+
+        if (suppliesError) {
+          throw new Error(suppliesError.message);
+        }
       }
 
-      const { error: participantError } = await supabase.from("companion_participants").insert({
-        room_id: roomId,
-        user_id: user.id,
-        role: "host",
-      });
-
-      if (participantError) {
-        throw new Error(participantError.message);
-      }
-
-      const { error: noticesError } = await supabase.from("companion_notices").insert(defaultNotices);
-
-      if (noticesError) {
-        throw new Error(noticesError.message);
-      }
-
-      const { error: suppliesError } = await supabase.from("companion_supplies").insert(defaultSupplies);
-
-      if (suppliesError) {
-        throw new Error(suppliesError.message);
-      }
-
-      if (typeof window !== "undefined") {
+      if (!isEditMode && typeof window !== "undefined") {
         window.localStorage.removeItem(companionDraftStorageKey);
       }
 
       router.push(`/companion/${roomId}`);
       router.refresh();
     } catch (error) {
-      console.error("동행방 생성 실패", error);
-      alert(error instanceof Error ? error.message : "동행방 생성에 실패했어요.");
+      console.error(`동행방 ${isEditMode ? "수정" : "생성"} 실패`, error);
+      alert(error instanceof Error ? error.message : `동행방 ${isEditMode ? "수정" : "생성"}에 실패했어요.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -683,11 +893,14 @@ export default function CompanionRoomForm() {
                 <div className={styles.heroHeader}>
                   <div className={styles.heroBody}>
                     <span className={styles.eyebrow}>New Companion Room</span>
-                    <h1 className={styles.heroTitle}>동행방 만들기</h1>
+                    <h1 className={styles.heroTitle}>{isEditMode ? "동행 수정하기" : "동행방 만들기"}</h1>
                   </div>
 
                   <div className={styles.heroActions}>
-                    <Link href="/companion" className={styles.secondaryButton}>
+                    <Link
+                      href={isEditMode && initialRoom?.id ? `/companion/${initialRoom.id}` : "/companion"}
+                      className={styles.secondaryButton}
+                    >
                       취소
                     </Link>
                     <button
@@ -696,7 +909,7 @@ export default function CompanionRoomForm() {
                       onClick={handleSubmit}
                       disabled={isSubmitting}
                     >
-                      {isSubmitting ? "등록 중..." : "동행방 등록"}
+                      {isSubmitting ? (isEditMode ? "수정 중..." : "등록 중...") : isEditMode ? "동행방 수정" : "동행방 등록"}
                     </button>
                   </div>
                 </div>
@@ -705,7 +918,6 @@ export default function CompanionRoomForm() {
               <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.introCard}`}>
                 <div className={styles.basicsHeader}>
                   <div className={styles.sectionHead}>
-                    <span className={styles.eyebrow}>Basics</span>
                     <h2 className={styles.sectionTitle}>기본 정보</h2>
                   </div>
                   <div className={styles.inlineModeHead}>
@@ -814,31 +1026,99 @@ export default function CompanionRoomForm() {
               {patternSourceType === "external" ? (
                 <section className={`${styles.sectionCard} ${styles.metaCard}`}>
                   <div className={styles.sectionHead}>
-                    <span className={styles.eyebrow}>External</span>
                     <h2 className={styles.sectionTitle}>외부 도안 연결</h2>
                     <p className={styles.sectionDescription}>
                       블로그, PDF, 영상 등 외부에 있는 도안도 제목과 링크만으로 연결할 수 있어요.
                     </p>
                   </div>
-                  <div className={styles.fieldGrid}>
-                    <label className={styles.field}>
-                      <span className={styles.fieldLabel}>도안 제목</span>
-                      <input
-                        className={styles.input}
-                        value={externalPatternName}
-                        onChange={(event) => setExternalPatternName(event.target.value)}
-                        placeholder="예: My Private Sweater Pattern"
-                      />
-                    </label>
-                    <label className={styles.field}>
-                      <span className={styles.fieldLabel}>도안 링크</span>
-                      <input
-                        className={styles.input}
-                        value={externalPatternUrl}
-                        onChange={(event) => setExternalPatternUrl(event.target.value)}
-                        placeholder="https://..."
-                      />
-                    </label>
+                  <div className={styles.externalPatternGrid}>
+                    <div className={patternStyles.uploadCard}>
+                      <div className={patternStyles.uploadPreview}>
+                        {externalPatternImagePreviewUrl && !externalPatternImagePreviewFailed ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={externalPatternImagePreviewUrl}
+                            alt="업로드한 외부 도안 이미지 미리보기"
+                            className={patternStyles.uploadPreviewImage}
+                            onError={() => setExternalPatternImagePreviewFailed(true)}
+                          />
+                        ) : (
+                          <div className={patternStyles.uploadPreviewEmpty}>
+                            <div>
+                              {externalPatternImageFile && externalPatternImagePreviewFailed
+                                ? isExternalHeicImage
+                                  ? "HEIC 미리보기를 이 환경에서 바로 보여주지 못하고 있어요."
+                                  : "이미지 미리보기를 불러오지 못했어요."
+                                : "외부 도안용 대표 이미지를 등록할 수 있어요."}
+                              <p>
+                                {externalPatternImageFile && externalPatternImagePreviewFailed
+                                  ? isExternalHeicImage
+                                    ? "JPG, PNG, WEBP 형식으로 올리면 바로 미리보기가 보여요."
+                                    : "다른 이미지 파일로 다시 시도해 주세요."
+                                  : "이미지가 없으면 상세 탭에 사진없음으로 표시돼요."}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={patternStyles.uploadActions}>
+                        <label htmlFor="companion-external-pattern-image" className={patternStyles.uploadButton}>
+                          이미지 선택
+                        </label>
+                        <input
+                          id="companion-external-pattern-image"
+                          type="file"
+                          accept="image/*"
+                          hidden
+                          onChange={handleExternalPatternImageChange}
+                        />
+
+                        {externalPatternImageFile || externalPatternImagePath ? (
+                          <>
+                            {externalPatternImageFile ? (
+                              <div className={patternStyles.imageMeta}>
+                                <p className={patternStyles.imageName}>{externalPatternImageFile.name}</p>
+                                <p className={patternStyles.imageSize}>{formatFileSize(externalPatternImageFile)}</p>
+                              </div>
+                            ) : externalPatternImagePath ? (
+                              <div className={patternStyles.imageMeta}>
+                                <p className={patternStyles.imageName}>현재 저장된 이미지</p>
+                                <p className={patternStyles.imageSize}>{externalPatternImagePath}</p>
+                              </div>
+                            ) : null}
+                            <button
+                              type="button"
+                              className={patternStyles.imageRemoveButton}
+                              onClick={removeExternalPatternImage}
+                            >
+                              제거
+                            </button>
+                          </>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className={styles.externalPatternFields}>
+                      <label className={styles.field}>
+                        <span className={styles.fieldLabel}>도안 제목</span>
+                        <input
+                          className={styles.input}
+                          value={externalPatternName}
+                          onChange={(event) => setExternalPatternName(event.target.value)}
+                          placeholder="예: My Private Sweater Pattern"
+                        />
+                      </label>
+                      <label className={styles.field}>
+                        <span className={styles.fieldLabel}>도안 링크</span>
+                        <input
+                          className={styles.input}
+                          value={externalPatternUrl}
+                          onChange={(event) => setExternalPatternUrl(event.target.value)}
+                          placeholder="https://..."
+                        />
+                      </label>
+                    </div>
                   </div>
                 </section>
               ) : null}
@@ -847,7 +1127,6 @@ export default function CompanionRoomForm() {
                 <>
                   <section className={`${patternStyles.sectionCard} ${patternStyles.introCard}`}>
                     <div className={patternStyles.sectionHeader}>
-                      <span className={patternStyles.eyebrow}>Story</span>
                       <h2 className={patternStyles.sectionTitle}>도안 소개</h2>
                     </div>
 
@@ -1019,7 +1298,6 @@ export default function CompanionRoomForm() {
 
                   <section className={`${patternStyles.sectionCard} ${patternStyles.prepCard}`}>
                     <div className={patternStyles.sectionHeader}>
-                      <span className={patternStyles.eyebrow}>Material</span>
                       <h2 className={patternStyles.sectionTitle}>제작 준비</h2>
                     </div>
 
@@ -1088,7 +1366,6 @@ export default function CompanionRoomForm() {
 
                   <section className={`${patternStyles.sectionCard} ${patternStyles.policyCard}`}>
                     <div className={patternStyles.sectionHeader}>
-                      <span className={patternStyles.eyebrow}>Policy</span>
                       <h2 className={patternStyles.sectionTitle}>이용 범위</h2>
                     </div>
 
@@ -1109,6 +1386,7 @@ export default function CompanionRoomForm() {
                                 setCustomPatternCopyright((current) => ({
                                   ...current,
                                   source: item,
+                                  sourceUrl: item === "무료배포" ? current.sourceUrl : "",
                                 }))
                               }
                             >
@@ -1117,6 +1395,23 @@ export default function CompanionRoomForm() {
                           ))}
                         </div>
                       </div>
+
+                      {customPatternCopyright.source === "무료배포" ? (
+                        <div className={patternStyles.field}>
+                          <label className={patternStyles.fieldLabel}>출처 링크</label>
+                          <input
+                            className={patternStyles.input}
+                            value={customPatternCopyright.sourceUrl}
+                            onChange={(event) =>
+                              setCustomPatternCopyright((current) => ({
+                                ...current,
+                                sourceUrl: event.target.value,
+                              }))
+                            }
+                            placeholder="https://..."
+                          />
+                        </div>
+                      ) : null}
 
                       {copyrightRules.map((rule) => (
                         <div key={rule.key} className={patternStyles.policyRow}>
@@ -1152,7 +1447,6 @@ export default function CompanionRoomForm() {
 
                   <section className={`${patternStyles.sectionCard} ${patternStyles.sectionSpanFull}`}>
                     <div className={patternStyles.sectionHeader}>
-                      <span className={patternStyles.eyebrow}>Media</span>
                       <h2 className={patternStyles.sectionTitle}>이미지와 세부 내용</h2>
                     </div>
 
@@ -1199,12 +1493,19 @@ export default function CompanionRoomForm() {
                             onChange={handleCustomPatternImageChange}
                           />
 
-                          {customPatternImageFile ? (
+                          {customPatternImageFile || customPatternImagePath ? (
                             <>
-                              <div className={patternStyles.imageMeta}>
-                                <p className={patternStyles.imageName}>{customPatternImageFile.name}</p>
-                                <p className={patternStyles.imageSize}>{formatFileSize(customPatternImageFile)}</p>
-                              </div>
+                              {customPatternImageFile ? (
+                                <div className={patternStyles.imageMeta}>
+                                  <p className={patternStyles.imageName}>{customPatternImageFile.name}</p>
+                                  <p className={patternStyles.imageSize}>{formatFileSize(customPatternImageFile)}</p>
+                                </div>
+                              ) : customPatternImagePath ? (
+                                <div className={patternStyles.imageMeta}>
+                                  <p className={patternStyles.imageName}>현재 저장된 이미지</p>
+                                  <p className={patternStyles.imageSize}>{customPatternImagePath}</p>
+                                </div>
+                              ) : null}
                               <button
                                 type="button"
                                 className={patternStyles.imageRemoveButton}
