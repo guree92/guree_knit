@@ -1,11 +1,13 @@
 ﻿"use client";
 
+import Image from "next/image";
 import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthStatus from "@/components/auth/AuthStatus";
 import { subscribeToMediaQuery } from "@/lib/media-query";
 import styles from "./header.module.css";
+import headerLogo from "../../Image/headerlogo.png";
 
 type MenuItem = {
   href: string;
@@ -159,9 +161,8 @@ export default function Header() {
       >
         <div className={styles.topSection}>
           <Link href="/" className={styles.brand} prefetch={false}>
-            <span className={styles.brandMark}>K</span>
             <span className={styles.brandText}>
-              <strong className={styles.brandName}>Knit.GUREE</strong>
+              <Image src={headerLogo} alt="Knit.GUREE" className={styles.brandLogo} priority />
             </span>
           </Link>
 

@@ -142,7 +142,7 @@
 }
 
 .adminLink {
-  color: #775f4d;
+  color: var(--app-text-soft);
 }
 
 .userBadge {
@@ -193,6 +193,28 @@
   font-weight: 700;
 }
 
+/* Keep the bottom auth controls fixed in place even when the sidebar expands. */
+.root {
+  justify-items: stretch;
+  padding: 0 14px;
+  box-sizing: border-box;
+}
+
+.loginLink,
+.adminLink,
+.logoutButton,
+.userBadge {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 0 10px 0 8px;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease,
+    color 140ms ease,
+    opacity 140ms ease,
+    border-color 140ms ease;
+}
+
 .logoutButton {
   cursor: pointer;
 }
@@ -201,9 +223,6 @@
 :global([data-sidebar-shell]:hover) .logoutButton,
 :global([data-sidebar-shell]:hover) .userBadge,
 :global([data-sidebar-shell]:hover) .adminLink {
-  width: calc(100% - 28px);
-  justify-content: flex-start;
-  padding: 0 10px 0 8px;
   border-color: var(--app-border);
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
 }
@@ -222,7 +241,7 @@
 }
 
 :global([data-sidebar-shell]:hover) .adminLink .icon {
-  background: rgba(255, 255, 255, 0.42);
+  background: #f8fafc;
   color: inherit;
   box-shadow: none;
 }

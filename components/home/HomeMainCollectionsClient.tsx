@@ -78,7 +78,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         </div>
 
         <div className={styles.popularShowcaseList}>
-          {topPatterns.slice(0, isCompactTabletViewport ? 4 : 5).map((pattern, index) => {
+          {topPatterns.slice(0, isCompactTabletViewport ? 4 : 5).map((pattern) => {
             const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
 
             return (
@@ -89,7 +89,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
                 className={styles.popularShowcaseCard}
               >
                 <div className={styles.popularShowcaseThumb}>
-                  <span className={styles.popularShowcaseRank}>{index + 1}</span>
                   {imageUrl ? (
                     <Image
                       src={imageUrl}

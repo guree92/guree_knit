@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { unstable_cache } from "next/cache";
 import HomeMainCollectionsClient, {
   type MainPatternCard,
@@ -115,6 +116,56 @@ export default async function HomePage() {
             myWorkCount={0}
           />
         </section>
+
+        <footer className={styles.footer}>
+          <div className={styles.footerBrand}>
+            <strong className={styles.footerTitle}>Knit.GUREE</strong>
+            <p className={styles.footerDescription}>
+              뜨개 패턴과 작업 기록, 커뮤니티를 한곳에서 연결하는 공간입니다.
+            </p>
+          </div>
+
+          <div className={styles.footerNav}>
+            <div className={styles.footerGroup}>
+              <span className={styles.footerHeading}>Service</span>
+              <Link href="#" className={styles.footerLink}>
+                Home
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Patterns
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Community
+              </Link>
+            </div>
+
+            <div className={styles.footerGroup}>
+              <span className={styles.footerHeading}>Support</span>
+              <Link href="#" className={styles.footerLink}>
+                Help
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Terms
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Privacy
+              </Link>
+            </div>
+
+            <div className={styles.footerGroup}>
+              <span className={styles.footerHeading}>Contact</span>
+              <Link href="#" className={styles.footerLink}>
+                Instagram
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Email
+              </Link>
+              <Link href="#" className={styles.footerLink}>
+                Newsletter
+              </Link>
+            </div>
+          </div>
+        </footer>
       </section>
     </main>
   );
