@@ -1,4 +1,5 @@
-﻿import Image from "next/image";
+import Image from "next/image";
+import { unstable_cache } from "next/cache";
 import HomeMainCollectionsClient, {
   type MainPatternCard,
 } from "@/components/home/HomeMainCollectionsClient";
@@ -7,6 +8,7 @@ import SideColumnClient, {
 } from "@/components/home/SideColumnClient";
 import Header from "@/components/layout/Header";
 import { workItems } from "@/data/my-work";
+import { createPublicServerClient } from "@/lib/supabase/public-server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import styles from "./home-dashboard.module.css";
 import heroHeaderImage from "../Image/headerlogo.png";
@@ -18,13 +20,57 @@ type PatternSummary = {
   level: string | null;
   like_count: number | null;
   image_path?: string | null;
-  created_at?: string | null;
-  author_nickname?: string | null;
 };
 
-function escapeFilterValue(value: string) {
-  return value.replace(/"/g, '\\"');
-}
+const getCachedTopPatterns = unstable_cache(
+  async () => {
+    const supabase = createPublicServerClient();
+    const topPatternsResult = await supabase
+      .from("patterns")
+      .select("id, title, category, level, like_count, image_path, user_id")
+      .eq("is_hidden", false)
+      .order("like_count", { ascending: false })
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    const topPatternsRows = (topPatternsResult.data ?? []) as Array<
+      PatternSummary & { user_id?: string | null }
+    >;
+    const topPatternUserIds = Array.from(
+      new Set(topPatternsRows.map((item) => item.user_id).filter(Boolean))
+    ) as string[];
+
+    let nicknameMap = new Map<string, string | null>();
+
+    if (topPatternUserIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, nickname")
+        .in("id", topPatternUserIds);
+
+      nicknameMap = new Map(
+        ((profiles ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
+          profile.id,
+          profile.nickname,
+        ])
+      );
+    }
+
+    return topPatternsRows.map(
+      (item): MainPatternCard => ({
+        id: item.id,
+        title: item.title,
+        category: item.category,
+        level: item.level,
+        like_count: item.like_count ?? 0,
+        image_path: item.image_path ?? null,
+        author_nickname: item.user_id ? nicknameMap.get(item.user_id) ?? null : null,
+      })
+    );
+  },
+  ["home-top-patterns"],
+  { revalidate: 300 }
+);
 
 export default async function HomePage() {
   const supabase = await createServerClient();
@@ -37,8 +83,6 @@ export default async function HomePage() {
     (user?.user_metadata?.name as string | undefined) ??
     null;
 
-  let candidateNames = [] as string[];
-
   if (user && !nickname) {
     const { data: profile } = await supabase
       .from("profiles")
@@ -49,54 +93,13 @@ export default async function HomePage() {
     nickname = profile?.nickname ?? null;
   }
 
-  candidateNames = Array.from(
+  const candidateNames = Array.from(
     new Set(
       [nickname, user?.user_metadata?.name as string | undefined, user?.email?.split("@")[0]].filter(Boolean)
     )
   ) as string[];
 
-  const topPatternsResult = await supabase
-    .from("patterns")
-    .select("id, title, category, level, like_count, image_path, user_id")
-    .eq("is_hidden", false)
-    .order("like_count", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(5);
-
-  const topPatternsRows = (topPatternsResult.data ?? []) as Array<
-    PatternSummary & { user_id?: string | null }
-  >;
-
-  const topPatternUserIds = Array.from(
-    new Set(topPatternsRows.map((item) => item.user_id).filter(Boolean))
-  ) as string[];
-
-  let nicknameMap = new Map<string, string | null>();
-
-  if (topPatternUserIds.length > 0) {
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, nickname")
-      .in("id", topPatternUserIds);
-
-    nicknameMap = new Map(
-      ((profiles ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
-        profile.id,
-        profile.nickname,
-      ])
-    );
-  }
-
-  const topPatterns: MainPatternCard[] = topPatternsRows.map((item) => ({
-    id: item.id,
-    title: item.title,
-    category: item.category,
-    level: item.level,
-    like_count: item.like_count ?? 0,
-    image_path: item.image_path ?? null,
-    author_nickname: item.user_id ? nicknameMap.get(item.user_id) ?? null : null,
-  }));
-
+  const topPatterns = await getCachedTopPatterns();
   const profileName = nickname ?? user?.email?.split("@")[0] ?? "게스트";
   const profileEmail = user?.email ?? "";
   const avatarSeed = profileName.trim().charAt(0).toUpperCase() || "G";
