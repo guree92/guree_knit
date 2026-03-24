@@ -158,7 +158,7 @@ export default function Header() {
         aria-label="주요 메뉴"
       >
         <div className={styles.topSection}>
-          <Link href="/" className={styles.brand}>
+          <Link href="/" className={styles.brand} prefetch={false}>
             <span className={styles.brandMark}>K</span>
             <span className={styles.brandText}>
               <strong className={styles.brandName}>Knit.GUREE</strong>
@@ -180,6 +180,7 @@ export default function Header() {
                 <Link
                   key={menu.href}
                   href={menu.href}
+                  prefetch={false}
                   className={isActive ? styles.navLinkActive : styles.navLink}
                   aria-label={menu.label}
                   onClick={() => setMobileMenuPath(null)}
