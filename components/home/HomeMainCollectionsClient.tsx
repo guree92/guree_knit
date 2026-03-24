@@ -1,10 +1,11 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { subscribeToMediaQuery } from "@/lib/media-query";
 import { getPatternImageUrl } from "@/lib/patterns";
+import { createClient } from "@/lib/supabase/client";
 import styles from "@/app/home-dashboard.module.css";
 
 export type MainProgressItem = {
@@ -27,15 +28,12 @@ export type MainPatternCard = {
 type Props = {
   topPatterns: MainPatternCard[];
   progressItems: MainProgressItem[];
-  isLoggedIn: boolean;
 };
 
-export default function HomeMainCollectionsClient({
-  topPatterns,
-  progressItems,
-  isLoggedIn,
-}: Props) {
+export default function HomeMainCollectionsClient({ topPatterns, progressItems }: Props) {
+  const supabase = useMemo(() => createClient(), []);
   const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -47,6 +45,26 @@ export default function HomeMainCollectionsClient({
     return subscribeToMediaQuery(mediaQuery, syncViewport);
   }, []);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function loadUser() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!isCancelled) {
+        setIsLoggedIn(Boolean(user));
+      }
+    }
+
+    void loadUser();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [supabase]);
+
   return (
     <section className={styles.mainCollectionsGrid}>
       <section className={styles.popularShowcase}>
@@ -54,7 +72,7 @@ export default function HomeMainCollectionsClient({
           <div>
             <h2 className={styles.sectionTitle}>인기 도안</h2>
           </div>
-          <Link href="/patterns" className={styles.sectionLink}>
+          <Link href="/patterns" prefetch={false} className={styles.sectionLink}>
             전체 보기
           </Link>
         </div>
@@ -67,6 +85,7 @@ export default function HomeMainCollectionsClient({
               <Link
                 key={pattern.id}
                 href={`/patterns/${pattern.id}`}
+                prefetch={false}
                 className={styles.popularShowcaseCard}
               >
                 <div className={styles.popularShowcaseThumb}>
@@ -76,8 +95,9 @@ export default function HomeMainCollectionsClient({
                       src={imageUrl}
                       alt={pattern.title}
                       fill
+                      unoptimized
                       className={styles.popularShowcaseImage}
-                      sizes="(max-width: 900px) 100vw, 240px"
+                      sizes="(max-width: 640px) 108px, (max-width: 900px) 50vw, 240px"
                     />
                   ) : (
                     <div className={styles.popularShowcaseFallback} />

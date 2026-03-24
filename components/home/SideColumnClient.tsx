@@ -6,6 +6,7 @@ import HomeNotificationBell, {
   type HomeNotification,
   type LikeSource,
 } from "@/components/home/HomeNotificationBell";
+import { workItems } from "@/data/my-work";
 import { createClient } from "@/lib/supabase/client";
 import styles from "@/app/home-dashboard.module.css";
 
@@ -61,18 +62,87 @@ export default function SideColumnClient({
   myWorkCount,
 }: Props) {
   const supabase = useMemo(() => createClient(), []);
-  const isGuest = profileName === "게스트";
+  const [resolvedUserId, setResolvedUserId] = useState(userId);
+  const [resolvedCandidateNames, setResolvedCandidateNames] = useState(candidateNames);
+  const [resolvedProfileName, setResolvedProfileName] = useState(profileName);
+  const [resolvedProfileEmail, setResolvedProfileEmail] = useState(profileEmail);
+  const [resolvedAvatarSeed, setResolvedAvatarSeed] = useState(avatarSeed);
+  const [resolvedMyWorkCount, setResolvedMyWorkCount] = useState(myWorkCount);
   const [myPatternCount, setMyPatternCount] = useState(initialPatternCount);
   const [myCommunityCount, setMyCommunityCount] = useState(0);
   const [notifications, setNotifications] = useState<HomeNotification[]>([]);
   const [communityLikeSources, setCommunityLikeSources] = useState<LikeSource[]>([]);
   const [patternLikeSources, setPatternLikeSources] = useState<LikeSource[]>([]);
 
+  const isGuest = !resolvedUserId;
+
   useEffect(() => {
-    if (isGuest || !userId) return;
+    let isCancelled = false;
+
+    async function loadViewer() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (isCancelled) return;
+
+      if (!user) {
+        setResolvedUserId(null);
+        setResolvedCandidateNames([]);
+        setResolvedProfileName("게스트");
+        setResolvedProfileEmail("");
+        setResolvedAvatarSeed("게");
+        setResolvedMyWorkCount(0);
+        return;
+      }
+
+      let nickname =
+        (user.user_metadata?.nickname as string | undefined) ??
+        (user.user_metadata?.name as string | undefined) ??
+        null;
+
+      if (!nickname) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("nickname")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (isCancelled) return;
+        nickname = profile?.nickname ?? null;
+      }
+
+      const nextProfileName = nickname ?? user.email?.split("@")[0] ?? "게스트";
+      const nextCandidateNames = Array.from(
+        new Set(
+          [
+            nickname,
+            user.user_metadata?.name as string | undefined,
+            user.email?.split("@")[0],
+          ].filter(Boolean)
+        )
+      ) as string[];
+
+      setResolvedUserId(user.id);
+      setResolvedCandidateNames(nextCandidateNames);
+      setResolvedProfileName(nextProfileName);
+      setResolvedProfileEmail(user.email ?? "");
+      setResolvedAvatarSeed(nextProfileName.trim().charAt(0).toUpperCase() || "G");
+      setResolvedMyWorkCount(workItems.length);
+    }
+
+    void loadViewer();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [supabase]);
+
+  useEffect(() => {
+    if (isGuest || !resolvedUserId) return;
 
     let isCancelled = false;
-    const filters = candidateNames
+    const filters = resolvedCandidateNames
       .filter(Boolean)
       .map((name) => `author_name.eq.${escapeFilterValue(name)}`)
       .join(",");
@@ -90,7 +160,7 @@ export default function SideColumnClient({
           .from("patterns")
           .select("id", { count: "exact", head: true })
           .eq("is_hidden", false)
-          .eq("user_id", userId),
+          .eq("user_id", resolvedUserId),
         filters
           ? supabase
               .from("community_posts")
@@ -112,14 +182,14 @@ export default function SideColumnClient({
         supabase
           .from("patterns")
           .select("id, title, hidden_at")
-          .eq("user_id", userId)
+          .eq("user_id", resolvedUserId)
           .eq("is_hidden", true)
           .order("hidden_at", { ascending: false })
           .limit(3),
         supabase
           .from("patterns")
           .select("id, title, like_count")
-          .eq("user_id", userId)
+          .eq("user_id", resolvedUserId)
           .eq("is_hidden", false)
           .order("created_at", { ascending: false })
           .limit(12),
@@ -150,14 +220,14 @@ export default function SideColumnClient({
 
       const postTitleMap = new Map(ownPosts.map((post) => [post.id, post.title]));
       const commentNotifications = ((recentCommentsResult.data ?? []) as CommunityCommentSummary[])
-        .filter((comment) => !candidateNames.includes(comment.author_name?.trim() ?? ""))
+        .filter((comment) => !resolvedCandidateNames.includes(comment.author_name?.trim() ?? ""))
         .map(
           (comment): HomeNotification => ({
             id: `community-comment-${comment.id}`,
             kind: "community",
             title: postTitleMap.get(comment.post_id) ?? "내 게시글",
             description: postTitleMap.get(comment.post_id)
-              ? "새 댓글이 달렸어요."
+              ? "내 게시글에 댓글이 달렸어요."
               : "내 게시글에 새 댓글이 달렸어요.",
             href: `/community/${comment.post_id}`,
             createdAt: comment.created_at ?? new Date().toISOString(),
@@ -168,7 +238,7 @@ export default function SideColumnClient({
         (post): HomeNotification => ({
           id: `community-hidden-${post.id}`,
           kind: "community",
-          title: "내 게시글 상태가 바뀌었어요",
+          title: "뜨개마당 글 상태가 바뀌었어요",
           description: `"${post.title}" 게시글이 숨김 처리되었어요.`,
           href: "/community",
           createdAt: post.hidden_at ?? new Date().toISOString(),
@@ -179,7 +249,7 @@ export default function SideColumnClient({
         (pattern): HomeNotification => ({
           id: `pattern-hidden-${pattern.id}`,
           kind: "pattern",
-          title: "내 도안 상태가 바뀌었어요",
+          title: "도안 상태가 바뀌었어요",
           description: `"${pattern.title}" 도안이 숨김 처리되었어요.`,
           href: `/patterns/${pattern.id}`,
           createdAt: pattern.hidden_at ?? new Date().toISOString(),
@@ -218,19 +288,19 @@ export default function SideColumnClient({
     return () => {
       isCancelled = true;
     };
-  }, [candidateNames, isGuest, supabase, userId]);
+  }, [isGuest, resolvedCandidateNames, resolvedUserId, supabase]);
 
   return (
     <aside className={styles.sideColumn}>
       <section className={`${styles.profileCard} ${styles.desktopProfileCard}`}>
         <div className={styles.profileBody}>
-          <div className={styles.profileAvatar}>{avatarSeed}</div>
+          <div className={styles.profileAvatar}>{resolvedAvatarSeed}</div>
           <div className={styles.profileIdentity}>
             <div
               className={`${styles.profileIdentityMain} ${isGuest ? styles.profileIdentityMainGuest : ""}`}
             >
               <div className={styles.profileNameRow}>
-                <h2 className={styles.profileName}>{profileName}</h2>
+                <h2 className={styles.profileName}>{resolvedProfileName}</h2>
                 {!isGuest ? (
                   <HomeNotificationBell
                     notifications={notifications}
@@ -240,7 +310,7 @@ export default function SideColumnClient({
                   />
                 ) : null}
               </div>
-              <p className={styles.profileLocation}>{profileEmail}</p>
+              <p className={styles.profileLocation}>{resolvedProfileEmail}</p>
             </div>
           </div>
         </div>
@@ -261,7 +331,7 @@ export default function SideColumnClient({
             </div>
             <div>
               <span className={styles.metaLabel}>기록</span>
-              <strong className={styles.metaValue}>{myWorkCount}</strong>
+              <strong className={styles.metaValue}>{resolvedMyWorkCount}</strong>
             </div>
           </div>
         )}

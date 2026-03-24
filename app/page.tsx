@@ -7,11 +7,11 @@ import SideColumnClient, {
   type SideProgressItem,
 } from "@/components/home/SideColumnClient";
 import Header from "@/components/layout/Header";
-import { workItems } from "@/data/my-work";
 import { createPublicServerClient } from "@/lib/supabase/public-server";
-import { createClient as createServerClient } from "@/lib/supabase/server";
 import styles from "./home-dashboard.module.css";
 import heroHeaderImage from "../Image/headerlogo.png";
+
+export const dynamic = "force-static";
 
 type PatternSummary = {
   id: string;
@@ -73,38 +73,7 @@ const getCachedTopPatterns = unstable_cache(
 );
 
 export default async function HomePage() {
-  const supabase = await createServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  let nickname =
-    (user?.user_metadata?.nickname as string | undefined) ??
-    (user?.user_metadata?.name as string | undefined) ??
-    null;
-
-  if (user && !nickname) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("nickname")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    nickname = profile?.nickname ?? null;
-  }
-
-  const candidateNames = Array.from(
-    new Set(
-      [nickname, user?.user_metadata?.name as string | undefined, user?.email?.split("@")[0]].filter(Boolean)
-    )
-  ) as string[];
-
   const topPatterns = await getCachedTopPatterns();
-  const profileName = nickname ?? user?.email?.split("@")[0] ?? "게스트";
-  const profileEmail = user?.email ?? "";
-  const avatarSeed = profileName.trim().charAt(0).toUpperCase() || "G";
-  const initialPatternCount = 0;
-  const myWorkCount = user ? workItems.length : 0;
 
   const progressItems: SideProgressItem[] = [
     { id: "net-bag-project", title: "네트백", percent: 68, note: "손잡이 길이와 마감 디테일 조정 중" },
@@ -124,6 +93,7 @@ export default async function HomePage() {
                 src={heroHeaderImage}
                 alt="Hero header"
                 priority
+                unoptimized
                 className={styles.heroTitleImageAsset}
               />
             </div>
@@ -132,21 +102,17 @@ export default async function HomePage() {
 
         <section className={styles.dashboard}>
           <div className={styles.mainColumn}>
-            <HomeMainCollectionsClient
-              topPatterns={topPatterns}
-              progressItems={progressItems}
-              isLoggedIn={Boolean(user)}
-            />
+            <HomeMainCollectionsClient topPatterns={topPatterns} progressItems={progressItems} />
           </div>
 
           <SideColumnClient
-            userId={user?.id ?? null}
-            candidateNames={candidateNames}
-            profileName={profileName}
-            profileEmail={profileEmail}
-            avatarSeed={avatarSeed}
-            initialPatternCount={initialPatternCount}
-            myWorkCount={myWorkCount}
+            userId={null}
+            candidateNames={[]}
+            profileName="게스트"
+            profileEmail=""
+            avatarSeed="게"
+            initialPatternCount={0}
+            myWorkCount={0}
           />
         </section>
       </section>
