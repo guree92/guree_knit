@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthStatus from "@/components/auth/AuthStatus";
+import { subscribeToMediaQuery } from "@/lib/media-query";
 import styles from "./header.module.css";
 
 type MenuItem = {
@@ -107,11 +108,7 @@ export default function Header() {
     };
 
     syncViewport();
-    mediaQuery.addEventListener("change", syncViewport);
-
-    return () => {
-      mediaQuery.removeEventListener("change", syncViewport);
-    };
+    return subscribeToMediaQuery(mediaQuery, syncViewport);
   }, []);
 
   useEffect(() => {

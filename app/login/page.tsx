@@ -5,6 +5,7 @@ import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { subscribeToMediaQuery } from "@/lib/media-query";
 import styles from "./login.module.css";
 import headerLogo from "../../Image/headerlogo.png";
 
@@ -37,10 +38,10 @@ function LoginPageContent() {
     };
 
     syncOverflow();
-    mediaQuery.addEventListener("change", syncOverflow);
+    const unsubscribe = subscribeToMediaQuery(mediaQuery, syncOverflow);
 
     return () => {
-      mediaQuery.removeEventListener("change", syncOverflow);
+      unsubscribe();
       document.body.style.overflow = previousOverflow;
     };
   }, []);

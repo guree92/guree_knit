@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { subscribeToMediaQuery } from "@/lib/media-query";
 import { getPatternImageUrl } from "@/lib/patterns";
 import styles from "@/app/home-dashboard.module.css";
 
@@ -41,11 +42,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
     const syncViewport = () => setIsCompactTabletViewport(mediaQuery.matches);
 
     syncViewport();
-    mediaQuery.addEventListener("change", syncViewport);
-
-    return () => {
-      mediaQuery.removeEventListener("change", syncViewport);
-    };
+    return subscribeToMediaQuery(mediaQuery, syncViewport);
   }, []);
 
   useEffect(() => {

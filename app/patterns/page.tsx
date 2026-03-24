@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import Header from "@/components/layout/Header";
+import { subscribeToMediaQuery } from "@/lib/media-query";
 import {
   FavoritePatternAuthError,
   FAVORITE_PATTERNS_CHANGED_EVENT,
@@ -154,18 +155,16 @@ export default function PatternsPage() {
     };
 
     syncViewport();
-    mobileMediaQuery.addEventListener("change", syncViewport);
-    midTabletMediaQuery.addEventListener("change", syncViewport);
-    narrowDesktopMediaQuery.addEventListener("change", syncViewport);
-    midDesktopMediaQuery.addEventListener("change", syncViewport);
-    mediaQuery.addEventListener("change", syncViewport);
+    const unsubscribers = [
+      subscribeToMediaQuery(mobileMediaQuery, syncViewport),
+      subscribeToMediaQuery(midTabletMediaQuery, syncViewport),
+      subscribeToMediaQuery(narrowDesktopMediaQuery, syncViewport),
+      subscribeToMediaQuery(midDesktopMediaQuery, syncViewport),
+      subscribeToMediaQuery(mediaQuery, syncViewport),
+    ];
 
     return () => {
-      mobileMediaQuery.removeEventListener("change", syncViewport);
-      midTabletMediaQuery.removeEventListener("change", syncViewport);
-      narrowDesktopMediaQuery.removeEventListener("change", syncViewport);
-      midDesktopMediaQuery.removeEventListener("change", syncViewport);
-      mediaQuery.removeEventListener("change", syncViewport);
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
   }, []);
 

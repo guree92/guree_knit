@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
+import { subscribeToMediaQuery } from "@/lib/media-query";
 import {
   FavoritePatternAuthError,
   toggleFavoritePattern,
@@ -59,11 +60,7 @@ export default function FavoritePatternsClient({
     };
 
     syncPageSize();
-    mediaQuery.addEventListener("change", syncPageSize);
-
-    return () => {
-      mediaQuery.removeEventListener("change", syncPageSize);
-    };
+    return subscribeToMediaQuery(mediaQuery, syncPageSize);
   }, []);
 
   const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
