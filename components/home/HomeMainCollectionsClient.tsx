@@ -2,9 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 import { subscribeToMediaQuery } from "@/lib/media-query";
 import { getPatternImageUrl } from "@/lib/patterns";
 import styles from "@/app/home-dashboard.module.css";
@@ -29,12 +27,15 @@ export type MainPatternCard = {
 type Props = {
   topPatterns: MainPatternCard[];
   progressItems: MainProgressItem[];
+  isLoggedIn: boolean;
 };
 
-export default function HomeMainCollectionsClient({ topPatterns, progressItems }: Props) {
-  const supabase = useMemo(() => createClient(), []);
+export default function HomeMainCollectionsClient({
+  topPatterns,
+  progressItems,
+  isLoggedIn,
+}: Props) {
   const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -45,28 +46,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
     syncViewport();
     return subscribeToMediaQuery(mediaQuery, syncViewport);
   }, []);
-
-  useEffect(() => {
-    async function syncAuthStatus() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      setIsLoggedIn(Boolean(user));
-    }
-
-    void syncAuthStatus();
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event: AuthChangeEvent, session: Session | null) => {
-        setIsLoggedIn(Boolean(session?.user));
-      }
-    );
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, [supabase]);
 
   return (
     <section className={styles.mainCollectionsGrid}>
