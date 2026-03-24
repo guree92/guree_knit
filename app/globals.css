@@ -1,21 +1,21 @@
 ﻿@import "tailwindcss";
 :root {
-  --app-bg: #f3f0ea;
-  --app-shell: rgba(248, 246, 242, 0.82);
+  --app-bg: #ffffff;
+  --app-shell: rgba(255, 255, 255, 0.92);
   --app-panel: #ffffff;
-  --app-panel-soft: #f7f2eb;
-  --app-panel-muted: #efe5d8;
-  --app-border: #e5ddd3;
-  --app-border-strong: #d8cec2;
-  --app-text: #3d3128;
-  --app-text-soft: #75685c;
-  --app-text-muted: #9b8d80;
-  --app-sage: #8a9b84;
-  --app-sage-deep: #6f806a;
-  --app-sage-soft: #e7eee5;
-  --app-beige: #efe4d8;
-  --app-shadow: 0 24px 60px rgba(91, 74, 60, 0.1);
-  --app-shadow-soft: 0 14px 34px rgba(91, 74, 60, 0.06);
+  --app-panel-soft: #f8fafc;
+  --app-panel-muted: #eef2f7;
+  --app-border: #e5e7eb;
+  --app-border-strong: #d1d5db;
+  --app-text: #111827;
+  --app-text-soft: #6b7280;
+  --app-text-muted: #94a3b8;
+  --app-sage: #b8caa5;
+  --app-sage-deep: #a8bc93;
+  --app-sage-soft: #edf4e8;
+  --app-beige: #f3f4f6;
+  --app-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+  --app-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.05);
   --font-sans: var(--font-nps);
   --font-mono: var(--font-geist-mono);
   --sidebar-collapsed: 92px;
@@ -35,10 +35,7 @@ body {
   min-height: 100vh;
   margin: 0;
   padding: 24px 24px 24px calc(var(--sidebar-collapsed) + 42px);
-  background:
-    radial-gradient(circle at top left, rgba(229, 236, 229, 0.5), transparent 22%),
-    radial-gradient(circle at top right, rgba(242, 233, 221, 0.48), transparent 20%),
-    linear-gradient(180deg, #f4efe7 0%, #f4efe7 100%);
+  background: #ffffff;
   color: var(--app-text);
   font-family: var(--font-sans), "Segoe UI", sans-serif;
   line-height: 1.45;
@@ -62,7 +59,7 @@ main {
 }
 
 ::selection {
-  background: rgba(138, 155, 132, 0.24);
+  background: rgba(184, 202, 165, 0.28);
   color: var(--app-text);
 }
 

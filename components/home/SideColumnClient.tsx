@@ -1,10 +1,8 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
-import HomeNotificationBell, {
-  type HomeNotification,
-  type LikeSource,
-} from "@/components/home/HomeNotificationBell";
+import { useState } from "react";
+import type { HomeNotification } from "@/components/home/HomeNotificationBell";
 import styles from "@/app/home-dashboard.module.css";
 
 export type SideProgressItem = {
@@ -22,8 +20,8 @@ type Props = {
   myWorkCount: number;
   myCommunityCount: number;
   notifications: HomeNotification[];
-  communityLikeSources: LikeSource[];
-  patternLikeSources: LikeSource[];
+  communityLikeSources: unknown[];
+  patternLikeSources: unknown[];
   calendarItems: Array<{ time: string; title: string; color: "sage" | "beige" | "line" }>;
 };
 
@@ -35,10 +33,10 @@ export default function SideColumnClient({
   myWorkCount,
   myCommunityCount,
   notifications,
-  communityLikeSources,
-  patternLikeSources,
   calendarItems,
 }: Props) {
+  const [activeTab, setActiveTab] = useState<"alarm" | "schedule">("alarm");
+
   return (
     <aside className={styles.sideColumn}>
       <section className={`${styles.profileCard} ${styles.desktopProfileCard}`}>
@@ -50,11 +48,6 @@ export default function SideColumnClient({
               <h2 className={styles.profileName}>{profileName}</h2>
               <p className={styles.profileLocation}>{profileEmail}</p>
             </div>
-            <HomeNotificationBell
-              notifications={notifications}
-              communityLikeSources={communityLikeSources}
-              patternLikeSources={patternLikeSources}
-            />
           </div>
         </div>
 
@@ -74,91 +67,80 @@ export default function SideColumnClient({
         </div>
       </section>
 
-      <section className={`${styles.heroMakerCard} ${styles.sideMakerCard}`}>
-        <div className={styles.heroMakerTopRow}>
-          <div className={styles.heroMakerTextBlock}>
-            <h2 className={styles.heroMakerTitle}>도트메이커</h2>
-            <p className={styles.makerDescription}>
-              격자 위에 도트를 직접 찍으면서 쉽고 빠르게 뜨개 도안 초안을 만들어보세요.
-            </p>
-          </div>
+      <section className={styles.inlinePanel}>
+        <div className={styles.inlineTabs}>
+          <button
+            type="button"
+            className={activeTab === "alarm" ? styles.inlineTabActive : styles.inlineTab}
+            onClick={() => setActiveTab("alarm")}
+          >
+            알림
+          </button>
+          <button
+            type="button"
+            className={activeTab === "schedule" ? styles.inlineTabActive : styles.inlineTab}
+            onClick={() => setActiveTab("schedule")}
+          >
+            일정
+          </button>
+        </div>
 
-          <div className={styles.heroMakerPreviewStack}>
-            <div className={styles.heroMakerPreviewCard}>
-              <div className={styles.heroMakerToolbar}>
-                <span className={styles.heroMakerToolPencil} />
-                <span className={styles.heroMakerSwatchYellow} />
-                <span className={styles.heroMakerSwatchGreen} />
-                <span className={styles.heroMakerSwatchPeach} />
+        <div className={styles.inlinePanelBody}>
+          {activeTab === "alarm" ? (
+            notifications.length > 0 ? (
+              notifications.slice(0, 3).map((item) => (
+                <Link key={item.id} href={item.href} className={styles.inlineNoticeItem}>
+                  <div className={styles.inlineNoticeIcon}>
+                    <span className={styles.inlineNoticeDot} />
+                  </div>
+                  <div className={styles.inlineNoticeText}>
+                    <strong>{item.title}</strong>
+                    <p>{item.description}</p>
+                  </div>
+                  <span className={styles.inlineNoticeTime}>{formatRelativeTime(item.createdAt)}</span>
+                </Link>
+              ))
+            ) : (
+              <div className={styles.inlineNoticeEmpty}>표시할 알림이 아직 없어요.</div>
+            )
+          ) : calendarItems.length > 0 ? (
+            calendarItems.map((item) => (
+              <div key={`${item.time}-${item.title}`} className={styles.inlineNoticeItem}>
+                <div className={styles.inlineNoticeIcon}>
+                  <span
+                    className={
+                      item.color === "sage"
+                        ? styles.dotSage
+                        : item.color === "beige"
+                          ? styles.dotBeige
+                          : styles.dotLine
+                    }
+                  />
+                </div>
+                <div className={styles.inlineNoticeText}>
+                  <strong>{item.title}</strong>
+                  <p>{item.time}</p>
+                </div>
               </div>
-              <div className={styles.heroMakerGridEditor}>
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelYellow} />
-                <span className={styles.heroMakerPixelGreen} />
-                <span className={styles.heroMakerPixelGreen} />
-                <span className={styles.heroMakerPixelGreen} />
-                <span className={styles.heroMakerPixelGreen} />
-                <span className={styles.heroMakerPixelGreen} />
-              </div>
-            </div>
-          </div>
-        </div>
-        <Link href="/dot-maker" className={styles.heroMakerAction}>
-          도트메이커 시작하기
-        </Link>
-      </section>
-
-      <section className={styles.calendarCard}>
-        <div className={styles.calendarHeader}>
-          <h2>MY CALENDAR</h2>
-          <span>April</span>
-        </div>
-
-        <div className={styles.calendarDays}>
-          <span>Sun</span>
-          <span className={styles.dayActive}>Mon</span>
-          <span>Tue</span>
-          <span>Wed</span>
-          <span>Thu</span>
-          <span>Fri</span>
-          <span>Sat</span>
-        </div>
-
-        <div className={styles.calendarNumbers}>
-          <span>12</span>
-          <span className={styles.numberActive}>13</span>
-          <span>14</span>
-          <span>15</span>
-          <span>16</span>
-          <span>17</span>
-          <span>18</span>
-        </div>
-
-        <div className={styles.scheduleList}>
-          {calendarItems.map((item) => (
-            <div key={`${item.time}-${item.title}`} className={styles.scheduleItem}>
-              <span className={styles.scheduleTime}>{item.time}</span>
-              <span
-                className={
-                  item.color === "sage"
-                    ? styles.dotSage
-                    : item.color === "beige"
-                      ? styles.dotBeige
-                      : styles.dotLine
-                }
-              />
-              <span className={styles.scheduleTitle}>{item.title}</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className={styles.inlineNoticeEmpty}>등록된 일정이 없어요.</div>
+          )}
         </div>
       </section>
     </aside>
   );
+}
+
+function formatRelativeTime(value: string) {
+  const createdAt = new Date(value).getTime();
+  if (Number.isNaN(createdAt)) return "방금 전";
+
+  const diffMinutes = Math.max(1, Math.round((Date.now() - createdAt) / 60000));
+  if (diffMinutes < 60) return `${diffMinutes}분 전`;
+
+  const diffHours = Math.round(diffMinutes / 60);
+  if (diffHours < 24) return `약 ${diffHours}시간 전`;
+
+  return `${Math.round(diffHours / 24)}일 전`;
 }

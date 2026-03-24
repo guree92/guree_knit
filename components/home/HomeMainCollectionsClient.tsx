@@ -142,9 +142,12 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
                 <div className={styles.popularShowcaseBody}>
                   <strong>{pattern.title}</strong>
                   <p>
-                    {pattern.category ?? "기타"} · {pattern.level ?? "난이도 미정"} · @{pattern.author_nickname ?? "닉네임 없음"}
+                    <span className={styles.popularMetaTags}>
+                      <span className={styles.popularMetaTag}>{pattern.category ?? "기타"}</span>
+                      <span className={styles.popularMetaTag}>{pattern.level ?? "난이도 미정"}</span>
+                    </span>
+                    <span className={styles.popularLikeCount}>♥ {pattern.like_count ?? 0}</span>
                   </p>
-                  <span>♥ {pattern.like_count ?? 0}</span>
                 </div>
               </Link>
             );

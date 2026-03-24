@@ -318,36 +318,38 @@ export default async function HomePage() {
     <main className={styles.page}>
       <Header />
 
-      <section className={styles.dashboard}>
-        <div className={styles.mainColumn}>
-          <section className={styles.heroPanel}>
-            <div className={styles.heroCopy}>
-              <div className={styles.heroTitleImage}>
-                <Image
-                  src={heroHeaderImage}
-                  alt="Hero header"
-                  priority
-                  className={styles.heroTitleImageAsset}
-                />
-              </div>
+      <section className={styles.pageShell}>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image
+                src={heroHeaderImage}
+                alt="Hero header"
+                priority
+                className={styles.heroTitleImageAsset}
+              />
             </div>
-          </section>
+          </div>
+        </section>
 
-          <HomeMainCollectionsClient topPatterns={topPatterns} progressItems={progressItems} />
-        </div>
+        <section className={styles.dashboard}>
+          <div className={styles.mainColumn}>
+            <HomeMainCollectionsClient topPatterns={topPatterns} progressItems={progressItems} />
+          </div>
 
-        <SideColumnClient
-          profileName={profileName}
-          profileEmail={profileEmail}
-          avatarSeed={avatarSeed}
-          myPatternCount={myPatternCount}
-          myWorkCount={myWorkCount}
-          myCommunityCount={myCommunityCount}
-          notifications={notifications}
-          communityLikeSources={communityLikeSources}
-          patternLikeSources={patternLikeSources}
-          calendarItems={calendarItems}
-        />
+          <SideColumnClient
+            profileName={profileName}
+            profileEmail={profileEmail}
+            avatarSeed={avatarSeed}
+            myPatternCount={myPatternCount}
+            myWorkCount={myWorkCount}
+            myCommunityCount={myCommunityCount}
+            notifications={notifications}
+            communityLikeSources={communityLikeSources}
+            patternLikeSources={patternLikeSources}
+            calendarItems={calendarItems}
+          />
+        </section>
       </section>
     </main>
   );

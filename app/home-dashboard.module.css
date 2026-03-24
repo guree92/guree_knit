@@ -79,7 +79,7 @@
   grid-template-columns: 1fr;
   justify-items: center;
   gap: 0;
-  padding: 0 0 28px;
+  padding: 18px 0 40px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -97,7 +97,7 @@
 .heroTitleImage {
   display: flex;
   justify-content: center;
-  width: min(100%, 920px);
+  width: min(100%, 307px);
   margin: 0 auto;
 }
 
@@ -1169,6 +1169,222 @@
   background: #b9b1a6;
 }
 
+.page {
+  --app-border: #e5e7eb;
+  --app-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.05);
+  --app-text-soft: #6b7280;
+  --app-text-muted: #94a3b8;
+  --app-sage: #b8caa5;
+  --app-sage-deep: #a8bc93;
+}
+
+.page .popularShowcase,
+.page .progressFeatureCard,
+.page .favoriteFeatureCard,
+.page .profileCard,
+.page .calendarCard {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(255, 255, 255, 0.97));
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+}
+
+.page .iconButton,
+.page .sectionLink,
+.page .sideSectionLink,
+.page .notificationCloseButton,
+.page .filterButton,
+.page .notificationDeleteButton {
+  border-color: #e5e7eb;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: #6b7280;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(15, 23, 42, 0.05);
+}
+
+.page .topAlertBadge {
+  border-color: #ffffff;
+  background: #a8bc93;
+  box-shadow: 0 10px 18px rgba(168, 188, 147, 0.24);
+}
+
+.page .popularShowcaseCard,
+.page .progressFeatureItem,
+.page .favoriteFeatureItem,
+.page .favoriteFeatureEmpty,
+.page .notificationEmpty,
+.page .notificationItemUnread,
+.page .notificationItemRead {
+  border-color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.page .popularShowcaseThumb,
+.page .favoriteFeatureThumb {
+  background: linear-gradient(145deg, #f3f4f6, #e5e7eb);
+}
+
+.page .popularShowcaseFallback,
+.page .favoriteFeatureFallback {
+  background:
+    radial-gradient(circle at top right, rgba(223, 232, 214, 0.72), transparent 32%),
+    linear-gradient(145deg, #f8fafc, #e5e7eb);
+}
+
+.page .popularShowcaseRank {
+  background: rgba(255, 255, 255, 0.96);
+  color: #8da07c;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05);
+}
+
+.page .heroMakerCard {
+  border-color: #e5e7eb;
+  background:
+    radial-gradient(circle at top right, rgba(223, 232, 214, 0.82), transparent 38%),
+    radial-gradient(circle at bottom left, rgba(248, 250, 252, 0.9), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.99) 0%, rgba(247, 250, 246, 0.97) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.75),
+    0 24px 50px rgba(15, 23, 42, 0.06);
+}
+
+.page .heroMakerEyebrow {
+  color: #94a3b8;
+}
+
+.page .heroMakerTitle,
+.page .sectionTitle,
+.page .sideSectionTitle,
+.page .popularShowcaseBody strong,
+.page .progressFeatureTop strong,
+.page .favoriteFeatureBody strong,
+.page .favoriteFeatureEmpty p,
+.page .notificationEmpty p,
+.page .notificationMainLine strong {
+  color: #111827;
+}
+
+.page .makerDescription,
+.page .heroMakerCard .makerDescription,
+.page .popularShowcaseBody p,
+.page .progressFeatureItem p,
+.page .favoriteFeatureBody p,
+.page .favoriteFeatureEmpty span,
+.page .profileLocation,
+.page .notificationMainLine p,
+.page .scheduleTitle,
+.page .calendarNumbers span,
+.page .calendarHeader span {
+  color: #6b7280;
+}
+
+.page .popularShowcaseBody span,
+.page .favoriteFeatureLikes,
+.page .progressFeatureTop span {
+  color: #9db08a;
+}
+
+.page .progressFeatureBar {
+  background: #e5e7eb;
+}
+
+.page .progressFeatureFill,
+.page .heroMakerAction,
+.page .filterButtonActive,
+.page .profileHeader,
+.page .notificationPillUnread,
+.page .dayActive,
+.page .numberActive {
+  background: linear-gradient(135deg, #b8caa5 0%, #a8bc93 100%);
+}
+
+.page .heroMakerPreviewCard,
+.page .heroMakerGridEditor,
+.page .heroMakerGridPattern {
+  border-color: #dbe1e7;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.page .heroMakerGridEditor::after,
+.page .heroMakerGridPattern::after {
+  background:
+    linear-gradient(rgba(203, 213, 225, 0.75) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(203, 213, 225, 0.75) 1px, transparent 1px);
+  background-size: calc(100% / 12) calc(100% / 7);
+  background-position: -1px -1px;
+}
+
+.page .heroMakerSwatchYellow,
+.page .heroMakerPixelYellow {
+  background: linear-gradient(180deg, #dce8cf 0%, #c9d9b4 100%);
+}
+
+.page .heroMakerSwatchGreen,
+.page .heroMakerPixelGreen {
+  background: linear-gradient(180deg, #b7ca9d 0%, #a8bc93 100%);
+}
+
+.page .heroMakerSwatchPeach {
+  background: #e5e7eb;
+}
+
+.page .heroMakerToolPencil {
+  background: #f3f4f6;
+}
+
+.page .heroMakerToolPencil::before {
+  background: #7c8795;
+}
+
+.page .heroMakerToolPencil::after {
+  border-left-color: #cbd5e1;
+}
+
+.page .notificationModal {
+  border-color: #e5e7eb;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(248, 250, 252, 0.98)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.55), rgba(223, 232, 214, 0.18));
+  box-shadow:
+    0 30px 60px rgba(15, 23, 42, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.page .notificationModalOverlay {
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.16), transparent 38%),
+    rgba(15, 23, 42, 0.32);
+}
+
+.page .notificationPillUnread {
+  color: #ffffff;
+}
+
+.page .notificationPillRead {
+  background: #f3f4f6;
+  color: #94a3b8;
+}
+
+.page .notificationTime,
+.page .sideSectionEyebrow,
+.page .sectionEyebrow,
+.page .calendarDays span,
+.page .scheduleTime,
+.page .metaLabel {
+  color: #94a3b8;
+}
+
+.page .dotSage {
+  background: #a8bc93;
+}
+
+.page .dotBeige {
+  background: #cbd5e1;
+}
+
+.page .dotLine {
+  background: #9ca3af;
+}
+
 @media (max-width: 1180px) {
   .dashboard {
     grid-template-columns: minmax(0, 1fr) 286px;
@@ -1642,4 +1858,279 @@
   .scheduleTitle {
     font-size: 0.7rem;
   }
+}
+
+/* Home page white-theme overrides */
+.page {
+  padding: 0 0 24px;
+  background: #ffffff;
+  border-radius: 32px;
+  --app-border: #e5e7eb;
+  --app-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.05);
+  --app-text-soft: #6b7280;
+  --app-text-muted: #94a3b8;
+  --app-sage: #b8caa5;
+  --app-sage-deep: #a8bc93;
+}
+
+.page .dashboard,
+.page .mainColumn,
+.page .sideColumn,
+.page .heroPanel,
+.page .heroCopy {
+  background: #ffffff;
+}
+
+.page .popularShowcase,
+.page .progressFeatureCard,
+.page .favoriteFeatureCard,
+.page .profileCard,
+.page .calendarCard,
+.page .popularShowcaseCard,
+.page .progressFeatureItem,
+.page .favoriteFeatureItem,
+.page .favoriteFeatureEmpty,
+.page .notificationEmpty,
+.page .notificationItemUnread,
+.page .notificationItemRead,
+.page .notificationModal {
+  background: #ffffff;
+}
+
+.page .profileCard {
+  margin-top: 8px;
+  border: 1px solid #dfe5ea;
+  border-radius: 16px;
+}
+
+.page .profileAvatar {
+  background: #ffffff;
+  border: 1px solid #dfe5ea;
+}
+
+.page .profileMetaGrid > div + div::before {
+  background: #d1d5db;
+}
+
+.inlinePanel {
+  border: 1px solid #dfe5ea;
+  border-radius: 16px;
+  background: #ffffff;
+  overflow: hidden;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.inlineTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.inlineTab,
+.inlineTabActive {
+  min-height: 42px;
+  border: 0;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.inlineTabActive {
+  background: #fbfcf8;
+  box-shadow: inset 0 -2px 0 #b8caa5;
+}
+
+.inlinePanelBody {
+  display: grid;
+  gap: 8px;
+  min-height: 300px;
+  padding: 10px;
+}
+
+.inlineNoticeItem {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 12px;
+  background: #fbfbfa;
+  color: inherit;
+  text-decoration: none;
+}
+
+.inlineNoticeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #f2f5ed;
+}
+
+.inlineNoticeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #a8bc93;
+}
+
+.inlineNoticeText strong {
+  display: block;
+  color: #111827;
+  font-size: 0.84rem;
+  font-weight: 700;
+  line-height: 1.08;
+}
+
+.inlineNoticeText p {
+  margin: 1px 0 0;
+  color: #6b7280;
+  font-size: 0.71rem;
+  line-height: 1.1;
+}
+
+.inlineNoticeTime {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  justify-self: end;
+  margin-top: 0;
+  color: #9ca3af;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+.inlineNoticeEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  color: #6b7280;
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.page .popularShowcase {
+  border: 0;
+  box-shadow: none;
+  padding-top: 6px;
+}
+
+.page .sectionTitle,
+.page .sideSectionTitle {
+  margin-top: 0;
+}
+
+.page .popularShowcaseList,
+.page .progressFeatureList,
+.page .favoriteFeatureList {
+  margin-top: 12px;
+}
+
+.page .popularShowcaseList {
+  gap: 12px;
+}
+
+.page .popularShowcaseCard {
+  gap: 0;
+  padding: 0;
+  border: 1px solid #dfe5ea;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.page .popularShowcaseThumb {
+  aspect-ratio: 1 / 1;
+  border-radius: 0;
+  background: linear-gradient(145deg, #eef2f7, #e5e7eb);
+}
+
+.page .popularShowcaseBody {
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+
+.page .popularShowcaseBody strong {
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
+  word-break: keep-all;
+}
+
+.page .popularShowcaseBody p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.popularMetaTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.popularMetaTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #8b96a3;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.popularLikeCount {
+  flex-shrink: 0;
+  color: #afba99;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.page .heroMakerCard {
+  border-color: #e5e7eb;
+  background:
+    radial-gradient(circle at top right, rgba(223, 232, 214, 0.82), transparent 38%),
+    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.96), transparent 42%),
+    linear-gradient(145deg, rgba(255, 255, 255, 1) 0%, rgba(249, 251, 250, 0.98) 100%);
+}
+
+.page .iconButton,
+.page .sectionLink,
+.page .sideSectionLink,
+.page .notificationCloseButton,
+.page .filterButton,
+.page .notificationDeleteButton {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.page .notificationModal {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(249, 250, 251, 0.99)),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.65), rgba(223, 232, 214, 0.14));
+}
+
+.pageShell {
+  display: grid;
+  gap: 8px;
+}
+
+.page .heroPanel {
+  width: 100%;
+  min-height: 118px;
+  padding: 14px 24px 10px;
+  background: #ffffff;
+  border-top: 0;
+  border-bottom: 1px solid #e5e7eb;
 }
