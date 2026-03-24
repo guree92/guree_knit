@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import Header from "@/components/layout/Header";
+import { getCachedAdminStatus } from "@/lib/admin-status";
 import {
   FavoritePatternAuthError,
   isFavoritePattern,
@@ -83,16 +84,7 @@ export default function PatternDetailPage() {
         return;
       }
 
-      const response = await fetch("/api/admin/status", { cache: "no-store" });
-
-      if (!response.ok) {
-        setIsAdmin(false);
-        setIsAdminChecked(true);
-        return;
-      }
-
-      const result = (await response.json()) as { isAdmin?: boolean };
-      setIsAdmin(Boolean(result.isAdmin));
+      setIsAdmin(await getCachedAdminStatus(user.email));
       setIsAdminChecked(true);
     }
 

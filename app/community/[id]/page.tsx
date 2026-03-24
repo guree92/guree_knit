@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import Header from "@/components/layout/Header";
+import { getCachedAdminStatus } from "@/lib/admin-status";
 import { communityExtraFieldConfig } from "@/lib/community-post-content";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -142,7 +143,6 @@ export default function CommunityDetailPage() {
         },
         { data: postData, error: postError },
         { data: commentRows, error: commentError },
-        adminStatusResponse,
       ] = await Promise.all([
         supabase.auth.getUser(),
         supabase
@@ -155,7 +155,6 @@ export default function CommunityDetailPage() {
           .select("*")
           .eq("post_id", id)
           .order("created_at", { ascending: true }),
-        fetch("/api/admin/status", { cache: "no-store" }),
       ]);
 
       setCurrentUserId(user?.id ?? null);
@@ -174,9 +173,7 @@ export default function CommunityDetailPage() {
         ) as string[]
       );
 
-      const nextIsAdmin = adminStatusResponse.ok
-        ? Boolean(((await adminStatusResponse.json()) as { isAdmin?: boolean }).isAdmin)
-        : false;
+      const nextIsAdmin = await getCachedAdminStatus(user?.email);
       setIsAdmin(nextIsAdmin);
 
       if (postError || !postData) {

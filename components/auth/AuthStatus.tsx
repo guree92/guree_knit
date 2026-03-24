@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { getCachedAdminStatus } from "@/lib/admin-status";
 import { workItems } from "@/data/my-work";
 import styles from "./auth-status.module.css";
 
@@ -108,17 +109,19 @@ export default function AuthStatus({
         return;
       }
 
+      if (compact) {
+        setIsAdmin(false);
+        setPatternCount(0);
+        setCommunityCount(0);
+        setLoading(false);
+        return;
+      }
+
       if (!profileCard) {
-        const response = await fetch("/api/admin/status", { cache: "no-store" });
+        const nextIsAdmin = await getCachedAdminStatus(nextUser.email);
         if (isCancelled) return;
 
-        if (response.ok) {
-          const result = (await response.json()) as { isAdmin?: boolean };
-          if (isCancelled) return;
-          setIsAdmin(Boolean(result.isAdmin));
-        } else {
-          setIsAdmin(false);
-        }
+        setIsAdmin(nextIsAdmin);
 
         setPatternCount(0);
         setCommunityCount(0);
@@ -126,8 +129,8 @@ export default function AuthStatus({
         return;
       }
 
-      const [adminResponse, profileResult, patternCountResult] = await Promise.all([
-        fetch("/api/admin/status", { cache: "no-store" }),
+      const [nextIsAdmin, profileResult, patternCountResult] = await Promise.all([
+        getCachedAdminStatus(nextUser.email),
         supabase.from("profiles").select("nickname").eq("id", nextUser.id).maybeSingle(),
         supabase
           .from("patterns")
@@ -137,13 +140,7 @@ export default function AuthStatus({
       ]);
       if (isCancelled) return;
 
-      if (adminResponse.ok) {
-        const result = (await adminResponse.json()) as { isAdmin?: boolean };
-        if (isCancelled) return;
-        setIsAdmin(Boolean(result.isAdmin));
-      } else {
-        setIsAdmin(false);
-      }
+      setIsAdmin(nextIsAdmin);
 
       const candidateNames = Array.from(
         new Set(
@@ -191,7 +188,7 @@ export default function AuthStatus({
       isCancelled = true;
       listener.subscription.unsubscribe();
     };
-  }, [profileCard, router, supabase]);
+  }, [compact, profileCard, router, supabase]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
