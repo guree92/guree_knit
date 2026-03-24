@@ -1,12 +1,13 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import styles from "@/app/home-dashboard.module.css";
 import {
   NOTIFICATION_DISMISSED_STORAGE_KEY,
   NOTIFICATION_READ_STORAGE_KEY,
   readStoredStringList,
+  subscribeStoredStringList,
   writeStoredStringList,
 } from "@/lib/home-notifications";
 
@@ -111,9 +112,6 @@ export default function HomeNotificationBell({
 }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "community" | "pattern">("all");
-  const [hasMounted, setHasMounted] = useState(false);
-  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
-  const [dismissedNotificationIds, setDismissedNotificationIds] = useState<string[]>([]);
   const [selectedNotificationIds, setSelectedNotificationIds] = useState<string[]>([]);
 
   const likeNotifications = useMemo(() => {
@@ -132,12 +130,6 @@ export default function HomeNotificationBell({
 
     return [...communityNotifications, ...patternNotifications];
   }, [communityLikeSources, patternLikeSources]);
-
-  useEffect(() => {
-    setHasMounted(true);
-    setReadNotificationIds(readStoredStringList(NOTIFICATION_READ_STORAGE_KEY));
-    setDismissedNotificationIds(readStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY));
-  }, []);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -161,19 +153,28 @@ export default function HomeNotificationBell({
     [notifications, likeNotifications]
   );
 
-  const visibleNotifications = allNotifications.filter(
-    (item) => !dismissedNotificationIds.includes(item.id)
+  const activeReadNotificationIds = useSyncExternalStore(
+    (onChange) => subscribeStoredStringList(NOTIFICATION_READ_STORAGE_KEY, onChange),
+    () => readStoredStringList(NOTIFICATION_READ_STORAGE_KEY),
+    () => []
   );
-  const unreadCount = hasMounted
-    ? visibleNotifications.filter((item) => !readNotificationIds.includes(item.id)).length
-    : allNotifications.length;
+  const activeDismissedNotificationIds = useSyncExternalStore(
+    (onChange) => subscribeStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY, onChange),
+    () => readStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY),
+    () => []
+  );
+  const visibleNotifications = allNotifications.filter(
+    (item) => !activeDismissedNotificationIds.includes(item.id)
+  );
+  const unreadCount = visibleNotifications.filter(
+    (item) => !activeReadNotificationIds.includes(item.id)
+  ).length;
   const filteredNotifications = visibleNotifications.filter((item) =>
     activeFilter === "all" ? true : item.kind === activeFilter
   );
 
   function markNotificationAsRead(notificationId: string) {
-    const nextIds = Array.from(new Set([...readNotificationIds, notificationId]));
-    setReadNotificationIds(nextIds);
+    const nextIds = Array.from(new Set([...activeReadNotificationIds, notificationId]));
     writeStoredStringList(NOTIFICATION_READ_STORAGE_KEY, nextIds);
   }
 
@@ -189,9 +190,8 @@ export default function HomeNotificationBell({
     if (selectedNotificationIds.length === 0) return;
 
     const nextDismissedIds = Array.from(
-      new Set([...dismissedNotificationIds, ...selectedNotificationIds])
+      new Set([...activeDismissedNotificationIds, ...selectedNotificationIds])
     );
-    setDismissedNotificationIds(nextDismissedIds);
     setSelectedNotificationIds([]);
     writeStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY, nextDismissedIds);
   }
@@ -273,7 +273,7 @@ export default function HomeNotificationBell({
             <div className={styles.notificationList}>
               {filteredNotifications.length > 0 ? (
                 filteredNotifications.map((item) => {
-                  const isUnread = !readNotificationIds.includes(item.id);
+                  const isUnread = !activeReadNotificationIds.includes(item.id);
                   const isSelected = selectedNotificationIds.includes(item.id);
 
                   return (

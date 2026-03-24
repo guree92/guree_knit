@@ -1,0 +1,336 @@
+.page {
+  min-height: calc(100vh - 48px);
+  padding: 0 0 24px;
+  background: #ffffff;
+  border-radius: 32px;
+  --login-border: #e5e7eb;
+  --login-border-strong: #dfe5ea;
+  --login-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+  --login-text: #111827;
+  --login-text-soft: #6b7280;
+  --login-sage: #b8caa5;
+  --login-sage-deep: #a8bc93;
+}
+
+.shell {
+  display: grid;
+  min-height: calc(100vh - 48px);
+  place-items: center;
+  padding: 40px 24px;
+  transform: translateX(calc((var(--sidebar-collapsed) + 18px) / -2));
+}
+
+.formCard {
+  display: grid;
+  align-content: start;
+  width: min(100%, 468px);
+  margin-inline: auto;
+  gap: 20px;
+  padding: 50px 24px 24px;
+  border: 1px solid var(--login-border);
+  border-radius: 28px;
+  background: #ffffff;
+  box-shadow: var(--login-shadow);
+}
+
+.formHeader {
+  display: grid;
+  justify-items: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  display: block;
+  width: min(100%, 250px);
+  height: auto;
+}
+
+.form {
+  display: grid;
+  width: 100%;
+  gap: 18px;
+}
+
+.passwordField {
+  margin-bottom: 12px;
+}
+
+.input,
+.passwordShell {
+  border: 1px solid var(--login-border-strong);
+  background: #f8fafc;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 18px;
+  border-radius: 18px;
+  color: var(--login-text);
+  outline: none;
+}
+
+.input::placeholder,
+.passwordInput::placeholder {
+  color: #9ca3af;
+}
+
+.input:focus,
+.passwordShell:focus-within {
+  border-color: var(--login-sage-deep);
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(184, 202, 165, 0.2);
+}
+
+.passwordShell {
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  padding-right: 8px;
+  border-radius: 18px;
+}
+
+.passwordInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 18px;
+  border: 0;
+  background: transparent;
+  color: var(--login-text);
+  outline: none;
+}
+
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 78px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--login-border);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #5f725e;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.message {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--login-border);
+  border-radius: 18px;
+  background: #f8fafc;
+  color: var(--login-text-soft);
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--login-sage) 0%, var(--login-sage-deep) 100%);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 12px 26px rgba(168, 188, 147, 0.28);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.primaryButton:hover,
+.toggleButton:hover {
+  transform: translateY(-1px);
+}
+
+.buttonGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.inlineLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 2px;
+  padding: 0 4px;
+}
+
+.inlineLink {
+  color: var(--login-text-soft);
+  font-size: 0.78rem;
+  font-weight: 500;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.inlineLink:hover {
+  color: var(--login-text);
+}
+
+@media (max-width: 900px) {
+  .page,
+  .shell {
+    min-height: auto;
+  }
+
+  .shell {
+    padding: 24px 16px 20px;
+    transform: none;
+  }
+
+  .formCard {
+    width: min(100%, 440px);
+    border-radius: 24px;
+    padding: 42px 22px 22px;
+  }
+
+  .inlineLinks {
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    border-radius: 20px;
+  }
+
+  .shell {
+    min-height: auto;
+    place-items: start center;
+    padding: 16px 8px 12px;
+    transform: none;
+  }
+
+  .formCard {
+    width: 100%;
+    gap: 16px;
+    padding: 24px 12px 16px;
+    border-radius: 20px;
+  }
+
+  .formHeader {
+    margin-bottom: 14px;
+  }
+
+  .logo {
+    width: min(100%, 190px);
+  }
+
+  .input,
+  .passwordShell,
+  .primaryButton {
+    min-height: 46px;
+    border-radius: 16px;
+  }
+
+  .passwordShell {
+    padding-right: 6px;
+  }
+
+  .passwordInput,
+  .input {
+    padding-inline: 14px;
+  }
+
+  .toggleButton {
+    min-width: 72px;
+    height: 36px;
+    padding: 0 12px;
+    font-size: 0.72rem;
+  }
+
+  .buttonGroup {
+    gap: 6px;
+  }
+
+  .inlineLinks {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+    column-gap: 12px;
+    margin-top: 4px;
+    padding: 0;
+  }
+
+  .inlineLink {
+    font-size: 0.76rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .shell {
+    padding-inline: 6px;
+  }
+
+  .formCard {
+    width: min(100%, 292px);
+    gap: 12px;
+    padding: 18px 8px 12px;
+  }
+
+  .logo {
+    width: min(100%, 132px);
+  }
+
+  .formHeader {
+    margin-bottom: 10px;
+  }
+
+  .form {
+    gap: 12px;
+  }
+
+  .passwordField {
+    margin-bottom: 8px;
+  }
+
+  .input,
+  .passwordShell {
+    min-height: 38px;
+    border-radius: 14px;
+  }
+
+  .input,
+  .passwordInput {
+    padding-inline: 12px;
+    font-size: 0.72rem;
+  }
+
+  .passwordShell {
+    padding-right: 4px;
+  }
+
+  .toggleButton {
+    min-width: 60px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+  }
+
+  .primaryButton {
+    min-height: 40px;
+    font-size: 0.8rem;
+  }
+
+  .inlineLink {
+    font-size: 0.66rem;
+  }
+}
