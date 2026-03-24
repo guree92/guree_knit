@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { subscribeToMediaQuery } from "@/lib/media-query";
 import { getPatternImageUrl } from "@/lib/patterns";
@@ -56,9 +57,11 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
 
     void syncAuthStatus();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(Boolean(session?.user));
-    });
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        setIsLoggedIn(Boolean(session?.user));
+      }
+    );
 
     return () => {
       listener.subscription.unsubscribe();

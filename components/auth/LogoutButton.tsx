@@ -13,7 +13,7 @@ export default function LogoutButton() {
       ? "/companion"
       : safePathname.startsWith("/patterns/") || safePathname === "/patterns"
         ? "/patterns"
-      : "/";
+        : "/";
 
   async function handleLogout() {
     await supabase.auth.signOut();

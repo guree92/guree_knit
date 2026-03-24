@@ -19,8 +19,7 @@ function getSafeReturnTo(value: string | null) {
 function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const supabase = createClient();
-
+  const [supabase] = useState(() => createClient());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -46,8 +45,8 @@ function LoginPageContent() {
     };
   }, []);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
     setMessage("");
 
     if (!email.trim() || !password.trim()) {
@@ -93,7 +92,7 @@ function LoginPageContent() {
               type="email"
               placeholder="knitter@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               disabled={loading}
               className={styles.input}
             />
@@ -105,7 +104,7 @@ function LoginPageContent() {
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호 입력"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(event) => setPassword(event.target.value)}
                   disabled={loading}
                   className={styles.passwordInput}
                 />
@@ -129,10 +128,10 @@ function LoginPageContent() {
 
               <div className={styles.inlineLinks}>
                 <Link href="/terms" className={styles.inlineLink}>
-                  회원가입
+                  이용약관
                 </Link>
                 <Link href="#" className={styles.inlineLink}>
-                  아이디 · 비밀번호 찾기
+                  아이디·비밀번호 찾기
                 </Link>
               </div>
             </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import type { AuthChangeEvent } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
 import { workItems } from "@/data/my-work";
 import styles from "./auth-status.module.css";
@@ -88,9 +89,15 @@ export default function AuthStatus({
   const [communityCount, setCommunityCount] = useState(0);
 
   useEffect(() => {
+    let isCancelled = false;
+
     async function loadUser() {
+      setLoading(true);
+
       const { data } = await supabase.auth.getUser();
       const nextUser = (data.user as AuthUser | null) ?? null;
+      if (isCancelled) return;
+
       setUser(nextUser);
 
       if (!nextUser) {
@@ -101,24 +108,26 @@ export default function AuthStatus({
         return;
       }
 
-      const response = await fetch("/api/admin/status", { cache: "no-store" });
-
-      if (response.ok) {
-        const result = (await response.json()) as { isAdmin?: boolean };
-        setIsAdmin(Boolean(result.isAdmin));
-      } else {
-        setIsAdmin(false);
-      }
-
-      // Only the expanded profile card needs expensive count queries.
       if (!profileCard) {
+        const response = await fetch("/api/admin/status", { cache: "no-store" });
+        if (isCancelled) return;
+
+        if (response.ok) {
+          const result = (await response.json()) as { isAdmin?: boolean };
+          if (isCancelled) return;
+          setIsAdmin(Boolean(result.isAdmin));
+        } else {
+          setIsAdmin(false);
+        }
+
         setPatternCount(0);
         setCommunityCount(0);
         setLoading(false);
         return;
       }
 
-      const [profileResult, patternCountResult] = await Promise.all([
+      const [adminResponse, profileResult, patternCountResult] = await Promise.all([
+        fetch("/api/admin/status", { cache: "no-store" }),
         supabase.from("profiles").select("nickname").eq("id", nextUser.id).maybeSingle(),
         supabase
           .from("patterns")
@@ -126,6 +135,15 @@ export default function AuthStatus({
           .eq("user_id", nextUser.id)
           .eq("is_hidden", false),
       ]);
+      if (isCancelled) return;
+
+      if (adminResponse.ok) {
+        const result = (await adminResponse.json()) as { isAdmin?: boolean };
+        if (isCancelled) return;
+        setIsAdmin(Boolean(result.isAdmin));
+      } else {
+        setIsAdmin(false);
+      }
 
       const candidateNames = Array.from(
         new Set(
@@ -148,6 +166,7 @@ export default function AuthStatus({
           .select("id", { count: "exact", head: true })
           .eq("is_hidden", false)
           .or(filters);
+        if (isCancelled) return;
 
         setCommunityCount(communityCountResult.count ?? 0);
       } else {
@@ -160,8 +179,8 @@ export default function AuthStatus({
 
     loadUser();
 
-    const { data: listener } = supabase.auth.onAuthStateChange((event) => {
-      loadUser();
+    const { data: listener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent) => {
+      void loadUser();
 
       if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
         router.refresh();
@@ -169,6 +188,7 @@ export default function AuthStatus({
     });
 
     return () => {
+      isCancelled = true;
       listener.subscription.unsubscribe();
     };
   }, [profileCard, router, supabase]);

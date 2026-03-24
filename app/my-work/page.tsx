@@ -8,13 +8,14 @@ import {
   workFilters,
   workItems,
   type WorkFilter,
-  type WorkItem,
   type WorkProgress,
 } from "@/data/my-work";
-
-type LocalWorkItem = WorkItem & {
-  source?: "seed" | "local";
-};
+import {
+  mergeStoredAndSeedWorkItems,
+  readStoredWorkItems,
+  writeStoredWorkItems,
+  type StoredWorkItem,
+} from "@/lib/my-work-storage";
 
 function slugify(text: string) {
   return (
@@ -22,62 +23,34 @@ function slugify(text: string) {
       .toLowerCase()
       .trim()
       .replace(/\s+/g, "-")
-      .replace(/[^\w-가-힣]/g, "")
+      .replace(/[^\w-\uac00-\ud7a3]/g, "")
       .slice(0, 40) || String(Date.now())
   );
 }
 
+const seedWorkItems: StoredWorkItem[] = workItems.map((item) => ({
+  ...item,
+  source: "seed",
+}));
+
 export default function MyWorkPage() {
-const [works, setWorks] = useState<LocalWorkItem[]>(
-  workItems.map((item) => ({
-    ...item,
-    source: "seed",
-  }))
-);
+  const [works, setWorks] = useState<StoredWorkItem[]>(seedWorkItems);
   const [selectedFilter, setSelectedFilter] = useState<WorkFilter>("전체");
   const [isAdding, setIsAdding] = useState(false);
-
   const [title, setTitle] = useState("");
   const [progress, setProgress] = useState<WorkProgress>("진행 중");
   const [yarn, setYarn] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("knit_my_work_extra");
-      if (!raw) return;
-
-const parsed = JSON.parse(raw) as LocalWorkItem[];
-if (!Array.isArray(parsed) || parsed.length === 0) return;
-
-setWorks((prev) => {
-  const localItems: LocalWorkItem[] = parsed.map((item) => ({
-    ...item,
-    source: "local" as const,
-  }));
-
-  const baseItems: LocalWorkItem[] = prev.map((item) => ({
-    ...item,
-    source: item.source ?? "seed",
-  }));
-
-  const merged: LocalWorkItem[] = [...localItems, ...baseItems];
-
-  const unique = merged.filter(
-    (item, index, arr) => arr.findIndex((v) => v.id === item.id) === index
-  );
-
-  return unique;
-});
-    } catch (error) {
-      console.error(error);
-    }
+    const localItems = readStoredWorkItems();
+    setWorks(mergeStoredAndSeedWorkItems(localItems, seedWorkItems));
   }, []);
 
   const filteredWorks = useMemo(() => {
     if (selectedFilter === "전체") return works;
     return works.filter((work) => work.progress === selectedFilter);
-  }, [works, selectedFilter]);
+  }, [selectedFilter, works]);
 
   const summary = useMemo(() => {
     const total = works.length;
@@ -87,53 +60,49 @@ setWorks((prev) => {
     return { total, working, done };
   }, [works]);
 
-  const handleOpenAdd = () => {
-    setIsAdding(true);
-  };
-
-  const resetForm = () => {
+  function resetForm() {
     setTitle("");
     setProgress("진행 중");
     setYarn("");
     setNote("");
-  };
+  }
 
-  const handleCancelAdd = () => {
+  function handleCancelAdd() {
     setIsAdding(false);
     resetForm();
-  };
+  }
 
-  const handleSubmitWork = () => {
+  function handleSubmitWork() {
     const trimmedTitle = title.trim();
     const trimmedYarn = yarn.trim();
     const trimmedNote = note.trim();
-  
 
     if (!trimmedTitle || !trimmedYarn || !trimmedNote) {
-      alert("작품명, 사용 실, 메모를 모두 입력해줘.");
+      alert("작품명, 사용 실, 메모를 모두 입력해 주세요.");
       return;
     }
 
     const today = new Date().toISOString().slice(0, 10);
+    const newWork: StoredWorkItem = {
+      id: `${slugify(trimmedTitle)}-${Date.now()}`,
+      title: trimmedTitle,
+      progress,
+      yarn: trimmedYarn,
+      note: trimmedNote,
+      needle: "미정",
+      startedAt: today,
+      updatedAt: today,
+      detail: trimmedNote,
+      checklist: ["새 작품 생성", "다음 단계 계획 세우기"],
+      source: "local",
+    };
 
-const newWork: LocalWorkItem = {
-  id: `${slugify(trimmedTitle)}-${Date.now()}`,
-  title: trimmedTitle,
-  progress,
-  yarn: trimmedYarn,
-  note: trimmedNote,
-  needle: "미정",
-  startedAt: today,
-  updatedAt: today,
-  detail: trimmedNote,
-  checklist: ["새 작품 생성", "세부 단계는 나중에 추가"],
-  source: "local",
-};
-
-    setWorks((prev) => [newWork, ...prev]);
+    const nextLocalItems = [newWork, ...readStoredWorkItems()];
+    writeStoredWorkItems(nextLocalItems);
+    setWorks(mergeStoredAndSeedWorkItems(nextLocalItems, seedWorkItems));
     setSelectedFilter("전체");
     handleCancelAdd();
-  };
+  }
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f8f4ff_48%,#eef8f2_100%)] px-6 py-8 text-slate-800 md:px-8 md:py-10">
@@ -146,19 +115,17 @@ const newWork: LocalWorkItem = {
               MY WORK
             </div>
 
-            <h1 className="mt-4 text-4xl font-black text-slate-800">
-              내 작품 기록
-            </h1>
+            <h1 className="mt-4 text-4xl font-black text-slate-800">작업기록</h1>
 
             <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-              사용한 실, 바늘 호수, 진행률, 수정 메모, 완성 사진까지
-              내 뜨개 작업을 기록하고 정리할 수 있는 공간이야.
+              사용한 실과 바늘 호수, 진행 상태, 작업 메모를 한곳에 정리해 두는 공간이에요.
             </p>
 
             <div className="mt-6">
               {!isAdding ? (
                 <button
-                  onClick={handleOpenAdd}
+                  type="button"
+                  onClick={() => setIsAdding(true)}
                   className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
                 >
                   작품 추가
@@ -167,25 +134,21 @@ const newWork: LocalWorkItem = {
                 <div className="rounded-[2rem] border border-slate-200 bg-slate-50 p-5">
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        작품명
-                      </label>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">작품명</label>
                       <input
                         type="text"
                         value={title}
-                        onChange={(e) => setTitle(e.target.value)}
+                        onChange={(event) => setTitle(event.target.value)}
                         placeholder="예: 리본 머플러"
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                       />
                     </div>
 
                     <div>
-                      <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        상태
-                      </label>
+                      <label className="mb-2 block text-sm font-semibold text-slate-700">상태</label>
                       <select
                         value={progress}
-                        onChange={(e) => setProgress(e.target.value as WorkProgress)}
+                        onChange={(event) => setProgress(event.target.value as WorkProgress)}
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                       >
                         <option value="진행 중">진행 중</option>
@@ -196,26 +159,22 @@ const newWork: LocalWorkItem = {
                   </div>
 
                   <div className="mt-4">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      사용 실
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">사용 실</label>
                     <input
                       type="text"
                       value={yarn}
-                      onChange={(e) => setYarn(e.target.value)}
-                      placeholder="예: 코튼사 / 린넨 혼방"
+                      onChange={(event) => setYarn(event.target.value)}
+                      placeholder="예: 코튼 실 / 메리노 혼방"
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     />
                   </div>
 
                   <div className="mt-4">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      메모
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">메모</label>
                     <textarea
                       value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="작업하면서 남기고 싶은 내용을 적어줘"
+                      onChange={(event) => setNote(event.target.value)}
+                      placeholder="작업하면서 남기고 싶은 내용을 적어 주세요."
                       rows={5}
                       className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     />
@@ -223,6 +182,7 @@ const newWork: LocalWorkItem = {
 
                   <div className="mt-4 flex flex-wrap gap-3">
                     <button
+                      type="button"
                       onClick={handleSubmitWork}
                       className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-md"
                     >
@@ -230,6 +190,7 @@ const newWork: LocalWorkItem = {
                     </button>
 
                     <button
+                      type="button"
                       onClick={handleCancelAdd}
                       className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:shadow-sm"
                     >
@@ -244,23 +205,17 @@ const newWork: LocalWorkItem = {
           <div className="mt-8 grid gap-5 md:grid-cols-3">
             <div className="rounded-[2rem] bg-violet-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="text-sm text-violet-700">전체 작품</div>
-              <div className="mt-2 text-3xl font-black text-slate-800">
-                {summary.total}
-              </div>
+              <div className="mt-2 text-3xl font-black text-slate-800">{summary.total}</div>
             </div>
 
             <div className="rounded-[2rem] bg-emerald-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
               <div className="text-sm text-emerald-700">진행 중</div>
-              <div className="mt-2 text-3xl font-black text-slate-800">
-                {summary.working}
-              </div>
+              <div className="mt-2 text-3xl font-black text-slate-800">{summary.working}</div>
             </div>
 
             <div className="rounded-[2rem] bg-amber-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <div className="text-sm text-amber-700">완성작</div>
-              <div className="mt-2 text-3xl font-black text-slate-800">
-                {summary.done}
-              </div>
+              <div className="text-sm text-amber-700">완성</div>
+              <div className="mt-2 text-3xl font-black text-slate-800">{summary.done}</div>
             </div>
           </div>
 
@@ -271,6 +226,7 @@ const newWork: LocalWorkItem = {
               return (
                 <button
                   key={filter}
+                  type="button"
                   onClick={() => setSelectedFilter(filter)}
                   className={[
                     "rounded-full px-4 py-2 text-sm font-semibold shadow-sm transition",
@@ -294,9 +250,7 @@ const newWork: LocalWorkItem = {
                   className="block rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
                 >
                   <div className="flex flex-wrap items-center gap-3">
-                    <h2 className="text-xl font-bold text-slate-800">
-                      {work.title}
-                    </h2>
+                    <h2 className="text-xl font-bold text-slate-800">{work.title}</h2>
                     <span
                       className={[
                         "rounded-full px-3 py-1 text-xs font-semibold",
@@ -307,23 +261,17 @@ const newWork: LocalWorkItem = {
                     </span>
                   </div>
 
-                  <p className="mt-3 text-sm text-slate-500">
-                    사용 실: {work.yarn}
-                  </p>
+                  <p className="mt-3 text-sm text-slate-500">사용 실 {work.yarn}</p>
                   <p className="mt-2 leading-7 text-slate-600">{work.note}</p>
 
-                  <div className="mt-4 text-sm font-semibold text-emerald-700">
-                    상세 보기 →
-                  </div>
+                  <div className="mt-4 text-sm font-semibold text-emerald-700">상세 보기</div>
                 </Link>
               ))
             ) : (
               <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white/70 px-6 py-14 text-center shadow-sm">
-                <p className="text-lg font-semibold text-slate-700">
-                  아직 이 상태의 작품이 없어
-                </p>
+                <p className="text-lg font-semibold text-slate-700">아직 해당 상태의 작품이 없어요.</p>
                 <p className="mt-2 text-sm text-slate-500">
-                  작품을 추가하거나 다른 필터를 눌러봐.
+                  작품을 추가하거나 다른 필터를 눌러서 다시 확인해 보세요.
                 </p>
               </div>
             )}

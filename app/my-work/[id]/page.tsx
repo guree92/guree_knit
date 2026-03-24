@@ -7,75 +7,55 @@ import Header from "@/components/layout/Header";
 import {
   getProgressBadgeClass,
   workItems,
-  type WorkItem,
   type WorkProgress,
 } from "@/data/my-work";
+import { readStoredWorkItems, writeStoredWorkItems, type StoredWorkItem } from "@/lib/my-work-storage";
 
-type EditableWorkItem = WorkItem & {
-  source?: "seed" | "local";
-};
+const seedWorkItems: StoredWorkItem[] = workItems.map((item) => ({
+  ...item,
+  source: "seed",
+}));
 
 export default function MyWorkDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
 
-  const [work, setWork] = useState<EditableWorkItem | null>(null);
+  const [work, setWork] = useState<StoredWorkItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
-
   const [title, setTitle] = useState("");
   const [progress, setProgress] = useState<WorkProgress>("진행 중");
   const [yarn, setYarn] = useState("");
   const [note, setNote] = useState("");
 
   useEffect(() => {
-    const base = workItems.find((item) => item.id === id);
-    let localMatch: EditableWorkItem | null = null;
+    const seedMatch = seedWorkItems.find((item) => item.id === id) ?? null;
+    const localMatch = readStoredWorkItems().find((item) => item.id === id) ?? null;
+    const nextWork = localMatch ?? seedMatch;
 
-    try {
-      const raw = localStorage.getItem("knit_my_work_extra");
-      if (raw) {
-        const parsed = JSON.parse(raw) as EditableWorkItem[];
-        if (Array.isArray(parsed)) {
-          const found = parsed.find((item) => item.id === id);
-          if (found) {
-            localMatch = { ...found, source: "local" };
-          }
-        }
-      }
-    } catch (error) {
-      console.error(error);
-    }
+    setWork(nextWork);
 
-    const finalWork = localMatch ?? (base ? { ...base, source: "seed" as const } : null);
-
-    setWork(finalWork);
-
-    if (finalWork) {
-      setTitle(finalWork.title);
-      setProgress(finalWork.progress);
-      setYarn(finalWork.yarn);
-      setNote(finalWork.note);
+    if (nextWork) {
+      setTitle(nextWork.title);
+      setProgress(nextWork.progress);
+      setYarn(nextWork.yarn);
+      setNote(nextWork.note);
     }
   }, [id]);
 
   const isLocalWork = useMemo(() => work?.source === "local", [work]);
 
-  const handleStartEdit = () => {
-    if (!work || !isLocalWork) return;
-    setIsEditing(true);
-  };
-
-  const handleCancelEdit = () => {
+  function handleCancelEdit() {
     if (!work) return;
+
     setTitle(work.title);
     setProgress(work.progress);
     setYarn(work.yarn);
     setNote(work.note);
     setIsEditing(false);
-  };
+  }
 
-  const handleSaveEdit = () => {
+  function handleSaveEdit() {
     if (!work || !isLocalWork) return;
 
     const trimmedTitle = title.trim();
@@ -83,60 +63,48 @@ export default function MyWorkDetailPage() {
     const trimmedNote = note.trim();
 
     if (!trimmedTitle || !trimmedYarn || !trimmedNote) {
-      alert("작품명, 사용 실, 메모를 모두 입력해줘.");
+      alert("작품명, 사용 실, 메모를 모두 입력해 주세요.");
       return;
     }
 
-    try {
-      const raw = localStorage.getItem("knit_my_work_extra");
-      const parsed = raw ? (JSON.parse(raw) as EditableWorkItem[]) : [];
+    const today = new Date().toISOString().slice(0, 10);
+    const updatedItem: StoredWorkItem = {
+      ...work,
+      title: trimmedTitle,
+      progress,
+      yarn: trimmedYarn,
+      note: trimmedNote,
+      detail: trimmedNote,
+      updatedAt: today,
+      source: "local",
+    };
 
-      const today = new Date().toISOString().slice(0, 10);
+    const nextLocalItems = readStoredWorkItems();
+    const nextIndex = nextLocalItems.findIndex((item) => item.id === work.id);
 
-      const updatedItem: EditableWorkItem = {
-        ...work,
-        title: trimmedTitle,
-        progress,
-        yarn: trimmedYarn,
-        note: trimmedNote,
-        detail: trimmedNote,
-        updatedAt: today,
-        source: "local",
-      };
-
-      const next = parsed.map((item) =>
-        item.id === work.id ? updatedItem : item
-      );
-
-      localStorage.setItem("knit_my_work_extra", JSON.stringify(next));
-      setWork(updatedItem);
-      setIsEditing(false);
-      alert("작품 정보를 수정했어.");
-    } catch (error) {
-      console.error(error);
-      alert("수정 중 오류가 발생했어.");
+    if (nextIndex >= 0) {
+      nextLocalItems[nextIndex] = updatedItem;
+    } else {
+      nextLocalItems.unshift(updatedItem);
     }
-  };
 
-  const handleDelete = () => {
+    writeStoredWorkItems(nextLocalItems);
+    setWork(updatedItem);
+    setIsEditing(false);
+    alert("작품 정보를 수정했어요.");
+  }
+
+  function handleDelete() {
     if (!work || !isLocalWork) return;
 
-    const ok = window.confirm("이 작품을 삭제할까?");
-    if (!ok) return;
+    const shouldDelete = window.confirm("이 작품을 삭제할까요?");
+    if (!shouldDelete) return;
 
-    try {
-      const raw = localStorage.getItem("knit_my_work_extra");
-      const parsed = raw ? (JSON.parse(raw) as EditableWorkItem[]) : [];
-      const next = parsed.filter((item) => item.id !== work.id);
-
-      localStorage.setItem("knit_my_work_extra", JSON.stringify(next));
-      alert("작품을 삭제했어.");
-      router.push("/my-work");
-    } catch (error) {
-      console.error(error);
-      alert("삭제 중 오류가 발생했어.");
-    }
-  };
+    const nextLocalItems = readStoredWorkItems().filter((item) => item.id !== work.id);
+    writeStoredWorkItems(nextLocalItems);
+    alert("작품을 삭제했어요.");
+    router.push("/my-work");
+  }
 
   if (!work) {
     return (
@@ -145,17 +113,13 @@ export default function MyWorkDetailPage() {
           <Header />
 
           <section className="mt-12 rounded-[2rem] border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm">
-            <h1 className="text-2xl font-black text-slate-800">
-              없는 작품이야
-            </h1>
-            <p className="mt-3 text-slate-600">
-              요청한 작품 기록 정보를 찾지 못했어.
-            </p>
+            <h1 className="text-2xl font-black text-slate-800">작품을 찾을 수 없어요.</h1>
+            <p className="mt-3 text-slate-600">요청한 작업기록 정보가 없거나 이미 삭제되었어요.</p>
             <Link
               href="/my-work"
               className="mt-6 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white"
             >
-              작품기록으로 돌아가기
+              작업기록으로 돌아가기
             </Link>
           </section>
         </div>
@@ -170,17 +134,12 @@ export default function MyWorkDetailPage() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-sm">
-            <Link
-              href="/my-work"
-              className="mb-6 inline-flex text-sm font-semibold text-emerald-700"
-            >
-              ← 작품기록으로
+            <Link href="/my-work" className="mb-6 inline-flex text-sm font-semibold text-emerald-700">
+              작업기록으로
             </Link>
 
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-4xl font-black text-slate-800">
-                {work.title}
-              </h1>
+              <h1 className="text-4xl font-black text-slate-800">{work.title}</h1>
               <span
                 className={[
                   "rounded-full px-3 py-1 text-xs font-semibold",
@@ -191,9 +150,7 @@ export default function MyWorkDetailPage() {
               </span>
             </div>
 
-            <p className="mt-4 max-w-2xl leading-7 text-slate-600">
-              {work.detail}
-            </p>
+            <p className="mt-4 max-w-2xl leading-7 text-slate-600">{work.detail}</p>
 
             <div className="mt-8 h-64 rounded-[2rem] bg-[linear-gradient(135deg,#eefcf5,#f3f0ff,#fff7ee)]" />
           </div>
@@ -207,7 +164,8 @@ export default function MyWorkDetailPage() {
                   <div className="flex gap-2">
                     {!isEditing ? (
                       <button
-                        onClick={handleStartEdit}
+                        type="button"
+                        onClick={() => setIsEditing(true)}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                       >
                         수정
@@ -215,12 +173,14 @@ export default function MyWorkDetailPage() {
                     ) : (
                       <>
                         <button
+                          type="button"
                           onClick={handleSaveEdit}
                           className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white"
                         >
                           저장
                         </button>
                         <button
+                          type="button"
                           onClick={handleCancelEdit}
                           className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                         >
@@ -230,6 +190,7 @@ export default function MyWorkDetailPage() {
                     )}
 
                     <button
+                      type="button"
                       onClick={handleDelete}
                       className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"
                     >
@@ -247,36 +208,26 @@ export default function MyWorkDetailPage() {
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>상태</span>
-                    <span className="font-semibold text-slate-800">
-                      {work.progress}
-                    </span>
+                    <span className="font-semibold text-slate-800">{work.progress}</span>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>사용 실</span>
-                    <span className="font-semibold text-slate-800">
-                      {work.yarn}
-                    </span>
+                    <span className="font-semibold text-slate-800">{work.yarn}</span>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>바늘</span>
-                    <span className="font-semibold text-slate-800">
-                      {work.needle}
-                    </span>
+                    <span className="font-semibold text-slate-800">{work.needle}</span>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>시작일</span>
-                    <span className="font-semibold text-slate-800">
-                      {work.startedAt}
-                    </span>
+                    <span className="font-semibold text-slate-800">{work.startedAt}</span>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
-                    <span>최근 수정일</span>
-                    <span className="font-semibold text-slate-800">
-                      {work.updatedAt}
-                    </span>
+                    <span>마지막 수정일</span>
+                    <span className="font-semibold text-slate-800">{work.updatedAt}</span>
                   </div>
                   <div className="border-t border-slate-100 pt-3">
-                    <div className="mb-2 text-sm text-slate-500">한줄 메모</div>
+                    <div className="mb-2 text-sm text-slate-500">메모</div>
                     <p className="rounded-2xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
                       {work.note}
                     </p>
@@ -285,24 +236,20 @@ export default function MyWorkDetailPage() {
               ) : (
                 <div className="mt-4 space-y-4">
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      작품명
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">작품명</label>
                     <input
                       type="text"
                       value={title}
-                      onChange={(e) => setTitle(e.target.value)}
+                      onChange={(event) => setTitle(event.target.value)}
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      상태
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">상태</label>
                     <select
                       value={progress}
-                      onChange={(e) => setProgress(e.target.value as WorkProgress)}
+                      onChange={(event) => setProgress(event.target.value as WorkProgress)}
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     >
                       <option value="진행 중">진행 중</option>
@@ -312,25 +259,21 @@ export default function MyWorkDetailPage() {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      사용 실
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">사용 실</label>
                     <input
                       type="text"
                       value={yarn}
-                      onChange={(e) => setYarn(e.target.value)}
+                      onChange={(event) => setYarn(event.target.value)}
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     />
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                      메모
-                    </label>
+                    <label className="mb-2 block text-sm font-semibold text-slate-700">메모</label>
                     <textarea
                       rows={5}
                       value={note}
-                      onChange={(e) => setNote(e.target.value)}
+                      onChange={(event) => setNote(event.target.value)}
                       className="w-full resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-emerald-400"
                     />
                   </div>

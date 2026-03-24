@@ -78,7 +78,12 @@ async function attachNicknames(patterns: PatternItem[]): Promise<PatternItem[]> 
     return patterns;
   }
 
-  const nicknameMap = new Map((data ?? []).map((profile) => [profile.id, profile.nickname]));
+  const nicknameMap = new Map(
+    ((data ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
+      profile.id,
+      profile.nickname,
+    ])
+  );
 
   return patterns.map((pattern) => ({
     ...pattern,
