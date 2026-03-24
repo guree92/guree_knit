@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import styles from "@/app/home-dashboard.module.css";
+import {
+  NOTIFICATION_DISMISSED_STORAGE_KEY,
+  NOTIFICATION_READ_STORAGE_KEY,
+  readStoredStringList,
+  writeStoredStringList,
+} from "@/lib/home-notifications";
 
 export type HomeNotification = {
   id: string;
@@ -24,10 +30,8 @@ type Props = {
   notifications: HomeNotification[];
   communityLikeSources: LikeSource[];
   patternLikeSources: LikeSource[];
+  buttonClassName?: string;
 };
-
-const NOTIFICATION_READ_STORAGE_KEY = "home-notification-read-ids";
-const NOTIFICATION_DISMISSED_STORAGE_KEY = "home-notification-dismissed-ids";
 
 function BellIcon() {
   return (
@@ -79,20 +83,6 @@ function formatNotificationTime(value: string) {
   }).format(date);
 }
 
-function readStringList(key: string) {
-  if (typeof window === "undefined") return [] as string[];
-
-  try {
-    const raw = window.localStorage.getItem(key);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed)
-      ? parsed.filter((value): value is string => typeof value === "string")
-      : [];
-  } catch {
-    return [];
-  }
-}
-
 function buildLikeNotifications(
   sources: LikeSource[],
   prefix: string,
@@ -117,6 +107,7 @@ export default function HomeNotificationBell({
   notifications,
   communityLikeSources,
   patternLikeSources,
+  buttonClassName,
 }: Props) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState<"all" | "community" | "pattern">("all");
@@ -144,8 +135,8 @@ export default function HomeNotificationBell({
 
   useEffect(() => {
     setHasMounted(true);
-    setReadNotificationIds(readStringList(NOTIFICATION_READ_STORAGE_KEY));
-    setDismissedNotificationIds(readStringList(NOTIFICATION_DISMISSED_STORAGE_KEY));
+    setReadNotificationIds(readStoredStringList(NOTIFICATION_READ_STORAGE_KEY));
+    setDismissedNotificationIds(readStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY));
   }, []);
 
   useEffect(() => {
@@ -183,10 +174,7 @@ export default function HomeNotificationBell({
   function markNotificationAsRead(notificationId: string) {
     const nextIds = Array.from(new Set([...readNotificationIds, notificationId]));
     setReadNotificationIds(nextIds);
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(NOTIFICATION_READ_STORAGE_KEY, JSON.stringify(nextIds));
-    }
+    writeStoredStringList(NOTIFICATION_READ_STORAGE_KEY, nextIds);
   }
 
   function toggleNotificationSelection(notificationId: string) {
@@ -205,20 +193,14 @@ export default function HomeNotificationBell({
     );
     setDismissedNotificationIds(nextDismissedIds);
     setSelectedNotificationIds([]);
-
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(
-        NOTIFICATION_DISMISSED_STORAGE_KEY,
-        JSON.stringify(nextDismissedIds)
-      );
-    }
+    writeStoredStringList(NOTIFICATION_DISMISSED_STORAGE_KEY, nextDismissedIds);
   }
 
   return (
     <>
       <button
         type="button"
-        className={styles.iconButton}
+        className={buttonClassName ? `${styles.iconButton} ${buttonClassName}` : styles.iconButton}
         aria-label="알림"
         onClick={() => {
           setActiveFilter("all");

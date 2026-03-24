@@ -41,13 +41,6 @@ type CommunityCommentSummary = {
   created_at: string | null;
 };
 
-const calendarItems: Array<{ time: string; title: string; color: "sage" | "beige" | "line" }> = [
-  { time: "2:00 pm", title: "도안 업로드 정리", color: "sage" },
-  { time: "3:30 pm", title: "뜨개마당 답변 확인", color: "beige" },
-  { time: "5:00 pm", title: "작품 기록 업데이트", color: "line" },
-  { time: "8:00 pm", title: "같이뜨기 글 작성", color: "sage" },
-];
-
 function escapeFilterValue(value: string) {
   return value.replace(/"/g, '\\"');
 }
@@ -301,7 +294,7 @@ export default async function HomePage() {
   );
 
   const profileName = nickname ?? user?.email?.split("@")[0] ?? "게스트";
-  const profileEmail = user?.email ?? "로그인 후 내 아카이브를 더 풍성하게 관리해보세요.";
+  const profileEmail = user?.email ?? "";
   const avatarSeed = profileName.trim().charAt(0).toUpperCase() || "G";
 
   const myPatternCount = patternCountResult.count ?? 0;
@@ -347,7 +340,6 @@ export default async function HomePage() {
             notifications={notifications}
             communityLikeSources={communityLikeSources}
             patternLikeSources={patternLikeSources}
-            calendarItems={calendarItems}
           />
         </section>
       </section>

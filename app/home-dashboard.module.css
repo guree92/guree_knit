@@ -13,7 +13,7 @@
 .mainColumn,
 .sideColumn {
   display: grid;
-  gap: 10px;
+  gap: 18px;
   align-content: start;
   align-items: start;
 }
@@ -79,7 +79,7 @@
   grid-template-columns: 1fr;
   justify-items: center;
   gap: 0;
-  padding: 18px 0 40px;
+  padding: 18px 0 48px;
   background: transparent;
   border: 0;
   box-shadow: none;
@@ -370,9 +370,9 @@
 .sectionTitle {
   margin: 10px 0 0;
   color: #30251c;
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: 800;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 
 .mainCollectionsGrid {
@@ -391,7 +391,7 @@
 }
 
 .popularShowcase {
-  padding: 22px;
+  padding: 34px 22px 22px;
 }
 
 .popularShowcaseList {
@@ -476,8 +476,8 @@
 
 .mainSupportColumn {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-  gap: 18px;
+  grid-template-columns: 1fr;
+  gap: 16px;
   align-content: start;
 }
 
@@ -499,6 +499,14 @@
   display: grid;
   gap: 12px;
   margin-top: 18px;
+}
+
+.progressFeatureList {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.favoriteFeatureList {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .progressFeatureItem,
@@ -557,19 +565,20 @@
 
 .favoriteFeatureItem {
   display: grid;
-  grid-template-columns: 84px minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px;
+  gap: 10px;
+  padding: 10px;
   color: inherit;
   text-decoration: none;
+  border: 1px solid #efe6db;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.86);
 }
 
 .favoriteFeatureThumb {
   position: relative;
-  width: 84px;
-  height: 84px;
-  border-radius: 18px;
+  aspect-ratio: 1 / 1.08;
+  width: 100%;
+  border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(145deg, #f1ede4, #e2e8de);
 }
@@ -587,16 +596,49 @@
 }
 
 .favoriteFeatureBody {
+  display: grid;
+  gap: 4px;
   min-width: 0;
 }
 
 .favoriteFeatureBody strong {
   color: #30251c;
-  font-size: 0.96rem;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.favoriteFeatureBody p {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.favoriteFeatureMetaTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.favoriteFeatureMetaTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #6b7280;
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .favoriteFeatureLikes {
-  color: var(--app-sage-deep);
+  flex-shrink: 0;
+  color: #ff6f7d;
   font-size: 0.82rem;
   font-weight: 800;
 }
@@ -681,6 +723,18 @@
   min-width: 0;
 }
 
+.profileIdentityMain {
+  width: 100%;
+  min-width: 0;
+}
+
+.profileIdentityMainGuest {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 72px;
+}
+
 .profileAvatar {
   display: inline-flex;
   align-items: center;
@@ -699,10 +753,61 @@
   font-size: 1.2rem;
 }
 
+.profileNameRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+
+.profileNotificationButton {
+  margin-left: auto;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  border-radius: 12px;
+  color: #6b7280;
+  box-shadow: none;
+}
+
+.profileNotificationButton .toolbarIconShell,
+.profileNotificationButton .toolbarIconShell svg {
+  width: 16px;
+  height: 16px;
+}
+
+.profileNotificationButton .topAlertBadge {
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-width: 1.5px;
+  font-size: 0.62rem;
+  line-height: 15px;
+}
+
 .profileLocation {
   margin: 4px 0 0;
   color: var(--app-text-soft);
   font-size: 0.76rem;
+}
+
+.profileLoginBand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: #ffffff;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 10px 20px rgba(168, 188, 147, 0.18);
 }
 
 .profileMetaGrid {
@@ -711,7 +816,7 @@
   gap: 0;
   margin-top: 14px;
   padding-top: 14px;
-  border-top: 1px solid #ede4d9;
+  border-top: 1px solid #d1d5db;
 }
 
 .profileMetaGrid > div {
@@ -764,6 +869,11 @@
   color: #30251c;
   font-size: 1.3rem;
   font-weight: 800;
+}
+
+.progressFeatureCard .sideSectionTitle {
+  font-size: 1.3rem;
+  letter-spacing: -0.03em;
 }
 
 .sideSectionLink,
@@ -1370,7 +1480,7 @@
 .page .calendarDays span,
 .page .scheduleTime,
 .page .metaLabel {
-  color: #94a3b8;
+  color: #d1d5db;
 }
 
 .page .dotSage {
@@ -1562,6 +1672,10 @@
     gap: 12px;
   }
 
+  .progressFeatureList {
+    grid-template-columns: 1fr;
+  }
+
   .popularShowcaseCard {
     padding: 9px;
   }
@@ -1571,12 +1685,16 @@
     gap: 14px;
   }
 
+  .favoriteFeatureList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .favoriteFeatureItem {
-    grid-template-columns: 72px minmax(0, 1fr);
+    gap: 0;
   }
 
   .favoriteFeatureLikes {
-    grid-column: 2;
+    grid-column: auto;
   }
 
   .profileBody {
@@ -1816,19 +1934,22 @@
     font-size: 0.94rem;
   }
 
+  .favoriteFeatureList {
+    grid-template-columns: 1fr;
+  }
+
   .favoriteFeatureItem {
-    grid-template-columns: 64px minmax(0, 1fr);
-    gap: 10px;
-    padding: 10px;
+    gap: 0;
+    padding: 0;
   }
 
   .favoriteFeatureThumb {
-    width: 64px;
-    height: 64px;
+    width: 100%;
+    height: auto;
   }
 
   .favoriteFeatureLikes {
-    grid-column: 2;
+    grid-column: auto;
   }
 
   .calendarHeader h2 {
@@ -1903,6 +2024,17 @@
   border-radius: 16px;
 }
 
+.page .progressFeatureCard,
+.page .favoriteFeatureCard {
+  border-radius: 16px;
+}
+
+.page .progressFeatureCard {
+  border: 0;
+  background: #ffffff;
+  box-shadow: none;
+}
+
 .page .profileAvatar {
   background: #ffffff;
   border: 1px solid #dfe5ea;
@@ -1913,6 +2045,7 @@
 }
 
 .inlinePanel {
+  margin-top: 12px;
   border: 1px solid #dfe5ea;
   border-radius: 16px;
   background: #ffffff;
@@ -1922,13 +2055,18 @@
 
 .inlineTabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .inlineTab,
 .inlineTabActive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
   min-height: 42px;
+  padding: 0 14px;
   border: 0;
   background: #ffffff;
   color: #4b5563;
@@ -1945,18 +2083,29 @@
 .inlinePanelBody {
   display: grid;
   gap: 8px;
+  align-content: start;
   min-height: 300px;
   padding: 10px;
 }
 
 .inlineNoticeItem {
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 12px;
+  background: #fbfbfa;
+  color: inherit;
+  text-decoration: none;
+}
+
+.inlineNoticeLink {
+  display: grid;
   grid-template-columns: 26px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
-  padding: 5px 10px;
-  border-radius: 12px;
-  background: #fbfbfa;
+  min-width: 0;
   color: inherit;
   text-decoration: none;
 }
@@ -2004,6 +2153,26 @@
   white-space: nowrap;
 }
 
+.inlineNoticeDeleteButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  min-height: 28px;
+  padding: 0 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: #6b7280;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.inlineNoticeDeleteButton:hover {
+  background: linear-gradient(180deg, #ffffff, #f3f4f6);
+}
+
 .inlineNoticeEmpty {
   display: flex;
   align-items: center;
@@ -2025,6 +2194,7 @@
   margin-top: 0;
 }
 
+
 .page .popularShowcaseList,
 .page .progressFeatureList,
 .page .favoriteFeatureList {
@@ -2035,7 +2205,22 @@
   gap: 12px;
 }
 
+.page .favoriteFeatureList {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+
 .page .popularShowcaseCard {
+  gap: 0;
+  padding: 0;
+  border: 1px solid #dfe5ea;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #ffffff;
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+}
+
+.page .favoriteFeatureItem {
   gap: 0;
   padding: 0;
   border: 1px solid #dfe5ea;
@@ -2051,7 +2236,19 @@
   background: linear-gradient(145deg, #eef2f7, #e5e7eb);
 }
 
+.page .favoriteFeatureThumb {
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  border-radius: 0;
+  background: linear-gradient(145deg, #eef2f7, #e5e7eb);
+}
+
 .page .popularShowcaseBody {
+  gap: 6px;
+  padding: 10px 12px 12px;
+}
+
+.page .favoriteFeatureBody {
   gap: 6px;
   padding: 10px 12px 12px;
 }
@@ -2079,23 +2276,41 @@
   min-width: 0;
 }
 
-.popularMetaTag {
+.popularShowcaseBody .popularMetaTag {
   display: inline-flex;
   align-items: center;
   min-height: 22px;
   padding: 0 8px;
   border-radius: 999px;
-  background: #f3f4f6;
-  color: #8b96a3;
+  background: #f8fafc;
+  color: #6b7280;
   font-size: 0.68rem;
   font-weight: 700;
 }
 
-.popularLikeCount {
+.page .popularShowcaseBody .popularMetaTag {
+  background: #f8fafc;
+  color: #6b7280;
+}
+
+.page .favoriteFeatureMetaTag {
+  background: #f8fafc;
+  color: #6b7280;
+}
+
+.popularShowcaseBody .popularLikeCount {
   flex-shrink: 0;
-  color: #afba99;
+  color: #ff6f7d;
   font-size: 0.82rem;
   font-weight: 700;
+}
+
+.page .popularShowcaseBody .popularLikeCount {
+  color: #ff6f7d;
+}
+
+.page .favoriteFeatureLikes {
+  color: #ff6f7d;
 }
 
 .page .heroMakerCard {
@@ -2123,13 +2338,13 @@
 
 .pageShell {
   display: grid;
-  gap: 8px;
+  gap: 20px;
 }
 
 .page .heroPanel {
   width: 100%;
   min-height: 118px;
-  padding: 14px 24px 10px;
+  padding: 16px 24px 22px;
   background: #ffffff;
   border-top: 0;
   border-bottom: 1px solid #e5e7eb;

@@ -4,11 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import {
-  FAVORITE_PATTERNS_CHANGED_EVENT,
-  getFavoritePatterns,
-  type FavoritePatternCard,
-} from "@/lib/favorite-patterns";
 import { getPatternImageUrl } from "@/lib/patterns";
 import styles from "@/app/home-dashboard.module.css";
 
@@ -36,7 +31,6 @@ type Props = {
 
 export default function HomeMainCollectionsClient({ topPatterns, progressItems }: Props) {
   const supabase = useMemo(() => createClient(), []);
-  const [favoritePatterns, setFavoritePatterns] = useState<FavoritePatternCard[]>([]);
   const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -70,34 +64,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
     });
 
     return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, [supabase]);
-
-  useEffect(() => {
-    async function loadFavoritePatterns() {
-      try {
-        const rows = await getFavoritePatterns();
-        setFavoritePatterns(rows);
-      } catch (error) {
-        console.error("찜한 도안을 불러오지 못했어요.", error);
-        setFavoritePatterns([]);
-      }
-    }
-
-    function handleFavoritesChanged() {
-      void loadFavoritePatterns();
-    }
-
-    void loadFavoritePatterns();
-    window.addEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
-
-    const { data: listener } = supabase.auth.onAuthStateChange(() => {
-      void loadFavoritePatterns();
-    });
-
-    return () => {
-      window.removeEventListener(FAVORITE_PATTERNS_CHANGED_EVENT, handleFavoritesChanged);
       listener.subscription.unsubscribe();
     };
   }, [supabase]);
@@ -181,69 +147,6 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
           ) : (
             <div className={styles.favoriteFeatureEmpty}>
               <p>로그인을 해주세요.</p>
-            </div>
-          )}
-        </section>
-
-        <section className={styles.favoriteFeatureCard}>
-          <div className={styles.sideSectionHeader}>
-            <div>
-              <h2 className={styles.sideSectionTitle}>찜한 도안</h2>
-            </div>
-            <Link href="/patterns/favorites" className={styles.sideSectionLink}>
-              전체 보기
-            </Link>
-          </div>
-
-          {isLoggedIn ? (
-            favoritePatterns.length > 0 ? (
-              <div className={styles.favoriteFeatureList}>
-                {favoritePatterns.slice(0, 3).map((pattern) => {
-                  const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
-
-                  return (
-                    <Link
-                      key={pattern.id}
-                      href={`/patterns/${pattern.id}`}
-                      className={styles.favoriteFeatureItem}
-                    >
-                      <div className={styles.favoriteFeatureThumb}>
-                        {imageUrl ? (
-                          <Image
-                            src={imageUrl}
-                            alt={pattern.title}
-                            fill
-                            className={styles.favoriteFeatureImage}
-                            sizes="84px"
-                          />
-                        ) : (
-                          <div className={styles.favoriteFeatureFallback} />
-                        )}
-                      </div>
-
-                      <div className={styles.favoriteFeatureBody}>
-                        <strong>{pattern.title}</strong>
-                        <p>
-                          {pattern.category ?? "기타"} · {pattern.level ?? "난이도 미정"}
-                        </p>
-                      </div>
-
-                      <span className={styles.favoriteFeatureLikes}>♥ {pattern.like_count ?? 0}</span>
-                    </Link>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className={styles.favoriteFeatureEmpty}>
-                <p>아직 찜한 도안이 없어요.</p>
-                <span>도안 상세에서 찜하기를 누르면 계정별로 여기에 모아볼 수 있어요.</span>
-              </div>
-            )
-          ) : (
-            <div className={styles.favoriteFeatureList}>
-              <div className={styles.favoriteFeatureEmpty}>
-                <p>로그인을 해주세요.</p>
-              </div>
             </div>
           )}
         </section>
