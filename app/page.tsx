@@ -23,52 +23,78 @@ type PatternSummary = {
   image_path?: string | null;
 };
 
-const getCachedTopPatterns = unstable_cache(
-  async () => {
-    const supabase = createPublicServerClient();
-    const topPatternsResult = await supabase
-      .from("patterns")
-      .select("id, title, category, level, like_count, image_path, user_id")
-      .eq("is_hidden", false)
-      .order("like_count", { ascending: false })
-      .order("created_at", { ascending: false })
-      .limit(5);
+const HOME_QUERY_TIMEOUT_MS = 4000;
 
-    const topPatternsRows = (topPatternsResult.data ?? []) as Array<
-      PatternSummary & { user_id?: string | null }
-    >;
-    const topPatternUserIds = Array.from(
-      new Set(topPatternsRows.map((item) => item.user_id).filter(Boolean))
-    ) as string[];
+async function loadTopPatternsFromSupabase(): Promise<MainPatternCard[]> {
+  const supabase = createPublicServerClient();
+  const topPatternsResult = await supabase
+    .from("patterns")
+    .select("id, title, category, level, like_count, image_path, user_id")
+    .eq("is_hidden", false)
+    .order("like_count", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(5);
 
-    let nicknameMap = new Map<string, string | null>();
+  if (topPatternsResult.error) {
+    return [];
+  }
 
-    if (topPatternUserIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, nickname")
-        .in("id", topPatternUserIds);
+  const topPatternsRows = (topPatternsResult.data ?? []) as Array<
+    PatternSummary & { user_id?: string | null }
+  >;
+  const topPatternUserIds = Array.from(
+    new Set(topPatternsRows.map((item) => item.user_id).filter(Boolean))
+  ) as string[];
 
+  let nicknameMap = new Map<string, string | null>();
+
+  if (topPatternUserIds.length > 0) {
+    const profilesResult = await supabase
+      .from("profiles")
+      .select("id, nickname")
+      .in("id", topPatternUserIds);
+
+    if (!profilesResult.error) {
       nicknameMap = new Map(
-        ((profiles ?? []) as Array<{ id: string; nickname: string | null }>).map((profile) => [
-          profile.id,
-          profile.nickname,
-        ])
+        ((profilesResult.data ?? []) as Array<{ id: string; nickname: string | null }>).map(
+          (profile) => [profile.id, profile.nickname]
+        )
       );
     }
+  }
 
-    return topPatternsRows.map(
-      (item): MainPatternCard => ({
-        id: item.id,
-        title: item.title,
-        category: item.category,
-        level: item.level,
-        like_count: item.like_count ?? 0,
-        image_path: item.image_path ?? null,
-        author_nickname: item.user_id ? nicknameMap.get(item.user_id) ?? null : null,
-      })
-    );
-  },
+  return topPatternsRows.map(
+    (item): MainPatternCard => ({
+      id: item.id,
+      title: item.title,
+      category: item.category,
+      level: item.level,
+      like_count: item.like_count ?? 0,
+      image_path: item.image_path ?? null,
+      author_nickname: item.user_id ? nicknameMap.get(item.user_id) ?? null : null,
+    })
+  );
+}
+
+async function getTopPatternsSafely(): Promise<MainPatternCard[]> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      loadTopPatternsFromSupabase(),
+      new Promise<MainPatternCard[]>((resolve) => {
+        timeoutId = setTimeout(() => resolve([]), HOME_QUERY_TIMEOUT_MS);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+  }
+}
+
+const getCachedTopPatterns = unstable_cache(
+  async () => getTopPatternsSafely(),
   ["home-top-patterns"],
   { revalidate: 300 }
 );
