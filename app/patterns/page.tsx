@@ -243,11 +243,6 @@ export default function PatternsPage() {
         <div className={styles.sideFavoriteHeader}>
           <div className={styles.sideFavoriteHeading}>
             <h2 className={styles.sideFavoriteTitle}>{"\uCC1C\uD55C \uB3C4\uC548"}</h2>
-            <p className={styles.sideFavoriteDescription}>
-              {isAuthenticated
-                ? "\uC800\uC7A5\uD574\uB454 \uB3C4\uC548\uC744 \uD655\uC778\uD558\uC138\uC694"
-                : "\uB85C\uADF8\uC778\uD558\uBA74 \uC88B\uC544\uD558\uB294 \uB3C4\uC548\uC744 \uB530\uB85C \uBAA8\uC544\uB458 \uC218 \uC788\uC5B4\uC694."}
-            </p>
           </div>
 
           <div className={styles.sideFavoriteActions}>
@@ -261,7 +256,7 @@ export default function PatternsPage() {
 
         {favoritePatterns.length > 0 ? (
           <div className={styles.sideFavoriteList}>
-            {favoritePatterns.slice(0, 4).map((pattern) => {
+            {favoritePatterns.slice(0, 3).map((pattern) => {
               const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
 
               return (
@@ -350,72 +345,6 @@ export default function PatternsPage() {
             </section>
 
             <section className={`${styles.sectionBlock} ${styles.archiveSection}`}>
-              <div className={styles.archiveControls}>
-                <div className={styles.archiveSearchWrap}>
-                  <div className={styles.sideSearchPanel}>
-                    <div className={styles.sideSearchBox}>
-                      <input
-                        ref={searchInputRef}
-                        id="pattern-search"
-                        type="text"
-                        value={keyword}
-                        onChange={(event) => setKeyword(event.target.value)}
-                        placeholder="여기에서 도안을 검색하세요"
-                        className={styles.sideSearchInput}
-                      />
-                      {hasSearch ? (
-                        <button
-                          type="button"
-                          onClick={() => setKeyword("")}
-                          className={styles.sideSearchClear}
-                        >
-                          {"\uC9C0\uC6B0\uAE30"}
-                        </button>
-                      ) : (
-                        <span className={styles.sideSearchIcon}>{"\uAC80\uC0C9"}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className={styles.archiveControlRow}>
-                  <div className={styles.categoryList}>
-                    {needleFilters.map((item) => (
-                      <button
-                        key={item}
-                        type="button"
-                        onClick={() => setSelectedNeedleFilter(item)}
-                        className={selectedNeedleFilter === item ? styles.categoryChipActive : styles.categoryChip}
-                      >
-                        {item}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className={styles.archiveSortGroup}>
-                    <button
-                      type="button"
-                      onClick={() => setArchiveSort("latest")}
-                      className={archiveSort === "latest" ? styles.archiveSortButtonActive : styles.archiveSortButton}
-                    >
-                      {"\uCD5C\uC2E0"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setArchiveSort("popular")}
-                      className={archiveSort === "popular" ? styles.archiveSortButtonActive : styles.archiveSortButton}
-                    >
-                      {"\uC778\uAE30"}
-                    </button>
-                  </div>
-                </div>
-
-                <div className={styles.archiveMeta}>
-                  <span>{"\uCD1D "}{archivePatterns.length.toLocaleString()}{"\uAC1C\uC758 \uACB0\uACFC"}</span>
-                  <span>{"\uD604\uC7AC \uC815\uB82C: "}{archiveSort === "latest" ? "\uCD5C\uC2E0\uC21C" : "\uC778\uAE30\uC21C"}</span>
-                </div>
-              </div>
-
               <div className={styles.featuredSection}>
                 <div className={styles.sectionHeading}>
                   <div className={styles.sectionHeadingCopy}>
@@ -587,33 +516,61 @@ export default function PatternsPage() {
           </div>
 
           <aside className={styles.sideColumn}>
-            <section className={styles.sidePanel}>
-              <div className={styles.sideFavoriteHeader}>
-                <div className={styles.sideFavoriteHeading}>
-                  <h2 className={styles.sideFavoriteTitle}>{"\uD0D0\uC0C9 \uD604\uD669"}</h2>
-                  <p className={styles.sideFavoriteDescription}>
-                    {"\uC9C0\uAE08 \uC801\uC6A9 \uC911\uC778 \uC870\uAC74\uC744 \uD55C\uB208\uC5D0 \uBCF4\uACE0 \uD0D0\uC0C9 \uBC29\uD5A5\uC744 \uC870\uC815\uD574 \uBCF4\uC138\uC694."}
-                  </p>
-                </div>
+            <section className={`${styles.sidePanel} ${styles.explorePanel}`}>
+              <h2 className={styles.exploreTitle}>{"\uD0D0\uC0C9"}</h2>
+
+              <div className={styles.exploreSearchRow}>
+                <input
+                  ref={searchInputRef}
+                  id="pattern-search"
+                  type="text"
+                  value={keyword}
+                  onChange={(event) => setKeyword(event.target.value)}
+                  placeholder="여기에서 도안을 검색하세요"
+                  className={styles.exploreSearchInput}
+                />
+                <button
+                  type="button"
+                  onClick={hasSearch ? () => setKeyword("") : () => searchInputRef.current?.focus()}
+                  className={styles.exploreSearchButton}
+                >
+                  {hasSearch ? "\uC9C0\uC6B0\uAE30" : "\uAC80\uC0C9"}
+                </button>
               </div>
 
-              <div className={styles.sideInfoGrid}>
-                <div className={styles.sideInfoItem}>
-                  <span className={styles.sideInfoLabel}>{"\uAC80\uC0C9\uC5B4"}</span>
-                  <strong className={styles.sideInfoValue}>{hasSearch ? keyword : "\uC804\uCCB4"}</strong>
-                </div>
-                <div className={styles.sideInfoItem}>
-                  <span className={styles.sideInfoLabel}>{"\uBC14\uB298"}</span>
-                  <strong className={styles.sideInfoValue}>{selectedNeedleFilter}</strong>
-                </div>
-                <div className={styles.sideInfoItem}>
-                  <span className={styles.sideInfoLabel}>{"\uC815\uB82C"}</span>
-                  <strong className={styles.sideInfoValue}>{archiveSort === "latest" ? "\uCD5C\uC2E0\uC21C" : "\uC778\uAE30\uC21C"}</strong>
-                </div>
-                <div className={styles.sideInfoItem}>
-                  <span className={styles.sideInfoLabel}>{"\uACB0\uACFC \uC218"}</span>
-                  <strong className={styles.sideInfoValue}>{archivePatterns.length.toLocaleString()}{"\uAC1C"}</strong>
-                </div>
+              <div className={styles.exploreChipRow}>
+                {needleFilters.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => setSelectedNeedleFilter(item)}
+                    className={selectedNeedleFilter === item ? styles.exploreChipActive : styles.exploreChip}
+                  >
+                    {item}
+                  </button>
+                ))}
+              </div>
+
+              <div className={styles.exploreChipRow}>
+                <button
+                  type="button"
+                  onClick={() => setArchiveSort("latest")}
+                  className={archiveSort === "latest" ? styles.exploreChipActive : styles.exploreChip}
+                >
+                  {"\uCD5C\uC2E0"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setArchiveSort("popular")}
+                  className={archiveSort === "popular" ? styles.exploreChipActive : styles.exploreChip}
+                >
+                  {"\uC778\uAE30"}
+                </button>
+              </div>
+
+              <div className={styles.exploreMetaRow}>
+                <span>{"\uCD1D "}{archivePatterns.length.toLocaleString()}{"\uAC1C\uC758 \uACB0\uACFC"}</span>
+                <span>{"\uD604\uC7AC \uC815\uB82C: "}{archiveSort === "latest" ? "\uCD5C\uC2E0\uC21C" : "\uC778\uAE30\uC21C"}</span>
               </div>
             </section>
 
@@ -624,6 +581,3 @@ export default function PatternsPage() {
     </main>
   );
 }
-
-
-
