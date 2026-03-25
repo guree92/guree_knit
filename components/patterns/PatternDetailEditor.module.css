@@ -7,14 +7,14 @@
   display: grid;
   gap: 10px;
   padding: 10px 12px;
-  border: 1px solid #e5ddd2;
+  border: 1px solid #d9dee5;
   border-radius: 16px;
-  background: #fffdf9;
+  background: #ffffff;
 }
 
 .toolbarTitle {
   margin: 0;
-  color: #5f5044;
+  color: #4b5563;
   font-size: 0.84rem;
   font-weight: 800;
 }
@@ -27,7 +27,7 @@
 }
 
 .nextRowLabel {
-  color: #4a392f;
+  color: #374151;
   font-size: 0.95rem;
   font-weight: 800;
 }
@@ -40,11 +40,11 @@
 
 .rowNumberInput {
   width: 72px;
-  border: 1px solid #ddd3c8;
+  border: 1px solid #d9dee5;
   border-radius: 12px;
-  background: #fffdf9;
+  background: #ffffff;
   padding: 8px 10px;
-  color: #4b3a2f;
+  color: #374151;
   font-size: 0.88rem;
   font-weight: 700;
   text-align: right;
@@ -55,12 +55,12 @@
 }
 
 .rowNumberInput:focus {
-  border-color: #9aaa97;
-  box-shadow: 0 0 0 4px #dfe7db;
+  border-color: #8fa77d;
+  box-shadow: 0 0 0 4px #e3ebdd;
 }
 
 .rowNumberSuffix {
-  color: #4a392f;
+  color: #374151;
   font-size: 0.95rem;
   font-weight: 800;
 }
@@ -91,10 +91,10 @@
   overflow: auto;
   resize: none;
   padding: 12px;
-  border: 1px solid #ddd3c8;
+  border: 1px solid #d9dee5;
   border-radius: 16px;
-  background: #fffdf9;
-  color: #756457;
+  background: #ffffff;
+  color: #6b7280;
   font-size: 0.84rem;
   line-height: 1.7;
   outline: none;
@@ -105,8 +105,8 @@
 }
 
 .textBoard:focus {
-  border-color: #9aaa97;
-  box-shadow: 0 0 0 4px #dfe7db;
+  border-color: #8fa77d;
+  box-shadow: 0 0 0 4px #e3ebdd;
 }
 
 .actionButton,
@@ -119,9 +119,9 @@
   min-height: 32px;
   padding: 0 12px;
   border-radius: 999px;
-  border: 1px solid #ddd4c9;
-  background: #fffdf9;
-  color: #6f6257;
+  border: 1px solid #d9dee5;
+  background: #ffffff;
+  color: #6b7280;
   font-size: 0.78rem;
   font-weight: 700;
   cursor: pointer;
@@ -133,7 +133,7 @@
 
 .actionButtonPrimary {
   border: 1px solid transparent;
-  background: linear-gradient(135deg, #8a9b84, #70806b);
+  background: linear-gradient(135deg, #a7bc98, #8fa77d);
   color: white;
 }
 
@@ -153,9 +153,9 @@
   display: grid;
   gap: 10px;
   padding: 12px;
-  border: 1px solid #e5ddd2;
+  border: 1px solid #d9dee5;
   border-radius: 18px;
-  background: #fffdf9;
+  background: #ffffff;
 }
 
 .rowHeader {
@@ -167,7 +167,7 @@
 
 .rowTitle {
   margin: 0;
-  color: #4a392f;
+  color: #374151;
   font-size: 0.95rem;
   font-weight: 800;
 }
@@ -183,7 +183,7 @@
 }
 
 .label {
-  color: #5f5044;
+  color: #4b5563;
   font-size: 0.8rem;
   font-weight: 700;
 }
@@ -191,11 +191,11 @@
 .textarea,
 .input {
   width: 100%;
-  border: 1px solid #ddd3c8;
+  border: 1px solid #d9dee5;
   border-radius: 14px;
-  background: #fffdf9;
+  background: #ffffff;
   padding: 10px 12px;
-  color: #4b3a2f;
+  color: #374151;
   font-size: 0.88rem;
   outline: none;
   transition:
@@ -211,8 +211,8 @@
 
 .textarea:focus,
 .input:focus {
-  border-color: #9aaa97;
-  box-shadow: 0 0 0 4px #dfe7db;
+  border-color: #8fa77d;
+  box-shadow: 0 0 0 4px #e3ebdd;
 }
 
 .preview {
@@ -221,8 +221,8 @@
   gap: 6px;
   padding: 10px 12px;
   border-radius: 14px;
-  background: #f7f2eb;
-  color: #756457;
+  background: #f3f5f7;
+  color: #6b7280;
   font-size: 0.8rem;
   line-height: 1.6;
 }
@@ -232,13 +232,13 @@
   align-items: center;
   padding: 2px 7px;
   border-radius: 999px;
-  background: #edf3ea;
-  color: #5f7759;
+  background: #edf4e8;
+  color: #5f7552;
   font-weight: 700;
 }
 
 .hint {
-  color: #8b7b6e;
+  color: #9ca3af;
   font-size: 0.75rem;
   line-height: 1.45;
 }
@@ -246,8 +246,8 @@
 .collapsedSummary {
   padding: 10px 12px;
   border-radius: 14px;
-  background: #f8f4ee;
-  color: #756457;
+  background: #f3f5f7;
+  color: #6b7280;
   font-size: 0.8rem;
   line-height: 1.55;
 }

@@ -282,24 +282,27 @@ export default function NewPatternForm() {
           <div className={styles.workspace}>
             <div className={styles.mainColumn}>
               <section className={`${styles.hero} ${styles.heroCompact}`}>
-                <div className={styles.heroBody}>
-                  <span className={styles.eyebrow}>Pattern Studio</span>
-                  <h1 className={styles.heroTitle}>새 도안 등록</h1>
-                </div>
+                <div className={styles.heroTop}>
+                  <div className={styles.heroIntro}>
+                    <h1 className={styles.heroTitle}>새 도안 등록</h1>
+                    <p className={styles.heroDescription}>
+                      직접 만든 도안을 기록하고 공유할 수 있도록 필요한 정보를 편하게 입력해 주세요.
+                    </p>
+                  </div>
 
-                <div className={styles.heroActions}>
-                  <Link href="/patterns" className={styles.secondaryAction}>
-                    목록으로
-                  </Link>
-                  <button type="submit" className={styles.primaryAction} disabled={submitting}>
-                    {submitting ? "등록 중..." : "도안 등록"}
-                  </button>
+                  <div className={`${styles.heroActions} ${styles.heroActionsInline}`}>
+                    <Link href="/patterns" className={styles.secondaryAction}>
+                      목록으로
+                    </Link>
+                    <button type="submit" className={styles.primaryAction} disabled={submitting}>
+                      {submitting ? "등록 중..." : "도안 등록"}
+                    </button>
+                  </div>
                 </div>
               </section>
 
               <section className={`${styles.sectionCard} ${styles.introCard}`}>
                 <div className={styles.sectionHeader}>
-                  <span className={styles.eyebrow}>Story</span>
                   <h2 className={styles.sectionTitle}>도안 소개</h2>
                 </div>
 
@@ -478,7 +481,6 @@ export default function NewPatternForm() {
 
               <section className={`${styles.sectionCard} ${styles.prepCard}`}>
                 <div className={styles.sectionHeader}>
-                  <span className={styles.eyebrow}>Material</span>
                   <h2 className={styles.sectionTitle}>제작 준비</h2>
                 </div>
 
@@ -557,7 +559,6 @@ export default function NewPatternForm() {
 
               <section className={`${styles.sectionCard} ${styles.policyCard}`}>
                 <div className={styles.sectionHeader}>
-                  <span className={styles.eyebrow}>Policy</span>
                   <h2 className={styles.sectionTitle}>이용 범위</h2>
                 </div>
 
@@ -640,7 +641,6 @@ export default function NewPatternForm() {
 
               <section className={`${styles.sectionCard} ${styles.sectionSpanFull}`}>
                 <div className={styles.sectionHeader}>
-                  <span className={styles.eyebrow}>Media</span>
                   <h2 className={styles.sectionTitle}>이미지와 세부 내용</h2>
                 </div>
 
@@ -702,28 +702,37 @@ export default function NewPatternForm() {
                       onChange={setDetailRows}
                       textValue={detailContent}
                       onTextValueChange={setDetailContent}
+                      hideTextBoard
                     />
-
-                    <div className={styles.submitRow}>
-                      <button type="submit" className={styles.primaryAction} disabled={submitting}>
-                        {submitting ? "등록 중..." : "도안 등록하기"}
-                      </button>
-                    </div>
-
-                    {submitted ? (
-                      <p className={styles.successMessage}>
-                        도안을 저장하고 상세 페이지로 이동하고 있어요.
-                      </p>
-                    ) : null}
                   </div>
                 </div>
+
+                <div className={styles.detailTextCard}>
+                  <textarea
+                    className={styles.detailTextBoard}
+                    value={detailContent}
+                    onChange={(event) => setDetailContent(event.target.value)}
+                    placeholder="단 추가를 누르면 이곳에 1단, 2단, 3단 형식으로 쌓이고 자유롭게 수정할 수 있어요."
+                  />
+                </div>
+
+                <div className={styles.submitRow}>
+                  <button type="submit" className={styles.primaryAction} disabled={submitting}>
+                    {submitting ? "등록 중..." : "도안 등록하기"}
+                  </button>
+                </div>
+
+                {submitted ? (
+                  <p className={styles.successMessage}>
+                    도안을 저장하고 상세 페이지로 이동하고 있어요.
+                  </p>
+                ) : null}
               </section>
             </div>
 
             <aside className={styles.sideColumn}>
               <section className={`${styles.sectionCard} ${styles.previewCard}`}>
                 <div className={styles.previewHead}>
-                  <span className={styles.eyebrow}>Preview</span>
                   <div className={styles.previewImage}>
                     {imagePreviewUrl ? (
                       <Image src={imagePreviewUrl} alt="도안 미리보기" fill sizes="320px" />
@@ -733,9 +742,6 @@ export default function NewPatternForm() {
                   </div>
                   <div>
                     <h3 className={styles.previewTitle}>{title.trim() || "도안 제목 미리보기"}</h3>
-                    <p className={styles.previewDescription}>
-                      {description.trim() || "설명이 입력되면 카드 분위기를 여기서 바로 볼 수 있어요."}
-                    </p>
                   </div>
                 </div>
 
@@ -808,5 +814,3 @@ export default function NewPatternForm() {
     </div>
   );
 }
-
-

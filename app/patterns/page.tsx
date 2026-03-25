@@ -20,7 +20,7 @@ import heroHeaderImage from "../../Image/headerlogo.png";
 
 const needleFilters = ["\uC804\uCCB4", "\uCF54\uBC14\uB298", "\uB300\uBC14\uB298"] as const;
 type ArchiveSort = "latest" | "popular";
-const ARCHIVE_PAGE_SIZE = 8;
+const ARCHIVE_PAGE_SIZE = 10;
 const FEATURED_COUNT = 5;
 
 export default function PatternsPage() {
@@ -231,7 +231,7 @@ export default function PatternsPage() {
         {favoritePendingId === patternId
           ? "\uC800\uC7A5 \uC911..."
           : favoriteIds.includes(patternId)
-            ? "\uCC1C\uB428"
+            ? "\uCC1C"
             : "\uCC1C\uD558\uAE30"}
       </button>
     );
@@ -389,8 +389,11 @@ export default function PatternsPage() {
                                   <span className={styles.popularMetaTag}>{card.category ?? "\uAE30\uD0C0"}</span>
                                   <span className={styles.popularMetaTag}>{card.level ?? "\uB09C\uC774\uB3C4 \uBBF8\uC815"}</span>
                                 </span>
-                                <span className={styles.popularLikeCount}>{"\u2665"} {card.like_count ?? 0}</span>
                               </p>
+                              <div className={styles.featuredFooter}>
+                                <span className={styles.likeStat}>{"\u2665"} {card.like_count ?? 0}</span>
+                                {renderFavoriteButton(card.id)}
+                              </div>
                             </div>
                           </Link>
                         </article>
@@ -443,8 +446,11 @@ export default function PatternsPage() {
                                 <span className={styles.popularMetaTag}>{card.category ?? "\uAE30\uD0C0"}</span>
                                 <span className={styles.popularMetaTag}>{card.level ?? "\uB09C\uC774\uB3C4 \uBBF8\uC815"}</span>
                               </span>
-                              <span className={styles.popularLikeCount}>{"\u2665"} {card.like_count ?? 0}</span>
                             </p>
+                            <div className={styles.archiveCardFooter}>
+                              <span className={styles.likeStat}>{"\u2665"} {card.like_count ?? 0}</span>
+                              {renderFavoriteButton(card.id)}
+                            </div>
                           </div>
                         </Link>
                       </article>

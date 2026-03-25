@@ -1,10 +1,14 @@
+import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import Header from "@/components/layout/Header";
 import FavoritePatternsClient from "./FavoritePatternsClient";
+import FavoritesExplorePanel from "./FavoritesExplorePanel";
 import { isFavoritePatternsTableMissingError } from "@/lib/favorite-patterns";
 import { type PatternItem } from "@/lib/patterns";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import styles from "./favorites-page.module.css";
+import heroHeaderImage from "../../../Image/headerlogo.png";
 
 type FavoriteRow = {
   pattern_id: string;
@@ -16,6 +20,41 @@ type FavoritePatternsPageProps = {
     page?: string;
   }>;
 };
+
+function FavoritesFrame({
+  mainContent,
+  sideContent,
+}: {
+  mainContent: ReactNode;
+  sideContent?: ReactNode;
+}) {
+  return (
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <Header />
+
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image
+                src={heroHeaderImage}
+                alt="Hero header"
+                priority
+                unoptimized
+                className={styles.heroTitleImageAsset}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.workspace}>
+          <div className={styles.mainColumn}>{mainContent}</div>
+          {sideContent ? <aside className={styles.sideColumn}>{sideContent}</aside> : null}
+        </section>
+      </div>
+    </main>
+  );
+}
 
 export default async function FavoritePatternsPage({ searchParams }: FavoritePatternsPageProps) {
   const supabase = await createServerClient();
@@ -29,30 +68,23 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
 
   if (!user) {
     return (
-      <main className={styles.page}>
-        <div className={styles.shell}>
-          <Header />
-
-            <section className={styles.feedbackShell}>
-              <div className={styles.feedbackCard}>
-                <h1 className={styles.feedbackTitle}>
-                {"\ucc1c\ud55c \ub3c4\uc548\uc740 \ub85c\uadf8\uc778 \ud6c4 \ud655\uc778\ud560 \uc218 \uc788\uc5b4\uc694."}
-              </h1>
+      <FavoritesFrame
+        mainContent={
+          <section className={styles.feedbackShell}>
+            <div className={styles.feedbackCard}>
+              <h1 className={styles.feedbackTitle}>찜한 도안은 로그인 후 확인할 수 있어요.</h1>
               <div className={styles.feedbackActions}>
-                <Link
-                  href={`/login?returnTo=${encodeURIComponent(returnTo)}`}
-                  className={styles.primaryAction}
-                >
-                  {"\ub85c\uadf8\uc778\ud558\uae30"}
+                <Link href={`/login?returnTo=${encodeURIComponent(returnTo)}`} className={styles.primaryAction}>
+                  로그인하기
                 </Link>
                 <Link href="/patterns" className={styles.secondaryLinkAction}>
-                  {"\ub3c4\uc548 \ub458\ub7ec\ubcf4\uae30"}
+                  도안 둘러보기
                 </Link>
               </div>
             </div>
           </section>
-        </div>
-      </main>
+        }
+      />
     );
   }
 
@@ -65,27 +97,23 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
   if (favoriteError) {
     if (isFavoritePatternsTableMissingError(favoriteError)) {
       return (
-        <main className={styles.page}>
-          <div className={styles.shell}>
-            <Header />
-
+        <FavoritesFrame
+          mainContent={
             <section className={styles.feedbackShell}>
               <div className={styles.feedbackCard}>
-                <h1 className={styles.feedbackTitle}>
-                  {"\ucc1c \uae30\ub2a5\uc774 \uc544\uc9c1 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc5b4\uc694."}
-                </h1>
+                <h1 className={styles.feedbackTitle}>찜 기능이 아직 준비되지 않았어요.</h1>
                 <p className={styles.feedbackDescription}>
-                  {"Supabase\uc5d0 `pattern_favorites` \ud14c\uc774\ube14\uc744 \ub9cc\ub4e4\uba74 \uacc4\uc815\ubcc4 \ucc1c \ub3c4\uc548 \ubcf4\uad00\ud568\uc744 \ubc14\ub85c \uc0ac\uc6a9\ud560 \uc218 \uc788\uc5b4\uc694."}
+                  Supabase에 `pattern_favorites` 테이블을 만들면 계정별 보관함을 바로 사용할 수 있어요.
                 </p>
                 <div className={styles.feedbackActions}>
                   <Link href="/patterns" className={styles.secondaryLinkAction}>
-                    {"\ub3c4\uc548 \ubaa9\ub85d\uc73c\ub85c"}
+                    도안 목록으로
                   </Link>
                 </div>
               </div>
             </section>
-          </div>
-        </main>
+          }
+        />
       );
     }
 
@@ -94,7 +122,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
 
   const orderedFavorites = (favoriteRows ?? []) as FavoriteRow[];
   const favoriteIds = orderedFavorites.map((row) => row.pattern_id);
-
   let favoritePatterns: PatternItem[] = [];
 
   if (favoriteIds.length > 0) {
@@ -110,7 +137,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
 
     const patternItems = (patternRows ?? []) as PatternItem[];
     const userIds = Array.from(new Set(patternItems.map((item) => item.user_id).filter(Boolean))) as string[];
-
     let nicknameMap = new Map<string, string | null>();
 
     if (userIds.length > 0) {
@@ -157,73 +183,71 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
     saved_at: orderedFavorites.find((row) => row.pattern_id === pattern.id)?.created_at ?? null,
   }));
 
+  const explorePanel = <FavoritesExplorePanel initialItems={favoritePatternItems} />;
+
   const collectionPanel = (
     <section className={styles.sidePanel}>
-      <p className={styles.sectionEyebrow}>Collection</p>
-      <h2 className={styles.sideTitle}>{"\ub0b4 \ub3c4\uc548 \ubcf4\uad00\ud568"}</h2>
+      <h2 className={styles.sideTitle}>찜한 도안</h2>
+
       <div className={styles.sideInfoList}>
         <div className={styles.sideInfoItem}>
-          <span>{"\ucc1c\ud55c \ub3c4\uc548"}</span>
-          <strong>{`${favoritePatterns.length}\uac1c`}</strong>
+          <span>총 보관 수</span>
+          <strong>{favoritePatterns.length.toLocaleString()}개</strong>
         </div>
       </div>
+
       <p className={styles.sideDescription}>
-        {"\ub9c8\uc74c\uc5d0 \ub4dc\ub294 \ub3c4\uc548\uc744 \ubaa8\uc544 \ub450\uace0 \ub2e4\uc74c \uc791\uc5c5 \ud6c4\ubcf4\ub97c \ucc9c\ucc9c\ud788 \uace8\ub77c\ubcf4\uc138\uc694."}
+        마음에 드는 도안을 모아두고 다음 작업 후보를 빠르게 찾아보세요.
       </p>
+
       <div className={styles.sideActions}>
         <Link href="/patterns" className={styles.sideLink}>
-          {"\uc804\uccb4 \ub3c4\uc548 \ubcf4\uae30"}
+          전체 도안 보기
         </Link>
         <Link href="/patterns/new" className={styles.sideLink}>
-          {"\uc0c8 \ub3c4\uc548 \ub4f1\ub85d"}
+          도안 등록
         </Link>
       </div>
     </section>
   );
 
   return (
-    <main className={styles.page}>
-      <div className={styles.shell}>
-        <Header />
-
-        <section className={styles.workspace}>
-          <div className={styles.mainColumn}>
-            <section className={styles.hero}>
-              <div className={styles.heroTop}>
-                <div className={styles.heroBadge}>Pattern Archive</div>
-                <div className={styles.heroActions}>
-                  <Link href="/patterns" className={styles.secondaryLinkAction}>
-                    {"\uc804\uccb4 \ub3c4\uc548"}
-                  </Link>
-                  <Link href="/patterns/new" className={styles.primaryAction}>
-                    {"\ub3c4\uc548 \ub4f1\ub85d"}
-                  </Link>
-                </div>
-              </div>
-
+    <FavoritesFrame
+      mainContent={
+        <>
+          <section className={styles.hero}>
+            <div className={styles.heroTop}>
               <div className={styles.heroIntro}>
-                <h1 className={styles.heroTitle}>{"\ucc1c\ud55c \ub3c4\uc548"}</h1>
+                <h1 className={styles.heroTitle}>찜한 도안</h1>
+                <p className={styles.heroDescription}>
+                  저장한 도안을 한곳에서 확인하고, 다음 뜨개 작업을 더 빠르게 시작해 보세요.
+                </p>
               </div>
-            </section>
-
-            <div className={styles.mobileCollectionPanel}>{collectionPanel}</div>
-
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div>
-                  <h2 className={styles.sectionTitle}>{"\uc800\uc7a5\ud55c \ub3c4\uc548 \ubaa9\ub85d"}</h2>
-                </div>
+              <div className={`${styles.heroActions} ${styles.heroActionsInline}`}>
+                <Link href="/patterns" className={styles.secondaryLinkAction}>
+                  전체 도안
+                </Link>
+                <Link href="/patterns/new" className={styles.primaryAction}>
+                  도안 등록
+                </Link>
               </div>
+            </div>
+          </section>
 
-              <FavoritePatternsClient initialItems={favoritePatternItems} initialPage={page} />
-            </section>
-          </div>
+          <div className={styles.mobileCollectionPanel}>{explorePanel}</div>
+          <div className={styles.mobileCollectionPanel}>{collectionPanel}</div>
 
-          <aside className={styles.sideColumn}>
-            {collectionPanel}
-          </aside>
-        </section>
-      </div>
-    </main>
+          <section className={`${styles.sectionBlock} ${styles.favoritesListSection}`}>
+            <FavoritePatternsClient initialItems={favoritePatternItems} initialPage={page} />
+          </section>
+        </>
+      }
+      sideContent={
+        <>
+          {explorePanel}
+          {collectionPanel}
+        </>
+      }
+    />
   );
 }

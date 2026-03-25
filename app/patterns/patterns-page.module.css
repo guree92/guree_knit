@@ -781,3 +781,7 @@
 .desktopFavoritePanel {
   display: block;
 }
+
+.desktopFavoritePanel .sideFavoriteHeader {
+  margin-bottom: 8px;
+}

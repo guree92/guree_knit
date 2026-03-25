@@ -17,6 +17,7 @@ type PatternDetailEditorProps = {
   onChange: (rows: DetailRow[]) => void;
   textValue: string;
   onTextValueChange: (value: string) => void;
+  hideTextBoard?: boolean;
 };
 
 function extractCurrentToken(value: string) {
@@ -67,6 +68,7 @@ export default function PatternDetailEditor({
   onChange,
   textValue,
   onTextValueChange,
+  hideTextBoard = false,
 }: PatternDetailEditorProps) {
   const symbols = useMemo(() => getDetailSymbols(needleType), [needleType]);
   const [draftInstruction, setDraftInstruction] = useState("");
@@ -107,14 +109,16 @@ export default function PatternDetailEditor({
 
   return (
     <div className={styles.editor}>
-      <div className={styles.textSection}>
-        <textarea
-          className={styles.textBoard}
-          value={textValue}
-          onChange={(event) => onTextValueChange(event.target.value)}
-          placeholder="단 추가를 누르면 이곳에 1단, 2단, 3단 형식으로 쌓이고 자유롭게 수정할 수 있어요."
-        />
-      </div>
+      {hideTextBoard ? null : (
+        <div className={styles.textSection}>
+          <textarea
+            className={styles.textBoard}
+            value={textValue}
+            onChange={(event) => onTextValueChange(event.target.value)}
+            placeholder="단 추가를 누르면 이곳에 1단, 2단, 3단 형식으로 쌓이고 자유롭게 수정할 수 있어요."
+          />
+        </div>
+      )}
 
       <div className={styles.toolbar}>
         <p className={styles.toolbarTitle}>자동입력버튼</p>
