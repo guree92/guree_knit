@@ -20,7 +20,7 @@
   display: grid;
   grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.8fr);
   gap: 24px;
-  padding: 28px 24px 8px;
+  padding: 28px 30px 8px;
   border-top: 1px solid var(--app-border);
 }
 
@@ -84,7 +84,8 @@
 .dashboard {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) 320px;
-  gap: 18px;
+  gap: 30px;
+  padding: 0 30px;
   min-height: calc(100vh - 48px);
 }
 
@@ -102,7 +103,7 @@
   justify-items: center;
   width: 100%;
   min-height: 118px;
-  padding: 16px 24px 22px;
+  padding: 16px 30px 22px;
   background: #ffffff;
   border-bottom: 1px solid var(--app-border);
 }

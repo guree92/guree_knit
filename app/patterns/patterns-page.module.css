@@ -48,8 +48,9 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.55fr) 292px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1.55fr) 320px;
+  gap: 30px;
+  padding: 0 30px;
   min-height: calc(100vh - 48px);
 }
 
@@ -66,22 +67,34 @@
   top: 18px;
 }
 
+.sideColumn > .sidePanel:first-child {
+  margin-top: 12px;
+}
+
 .hero,
 .sectionBlock,
 .sidePanel {
   background: #ffffff;
-  border: 1px solid #dfe5ea;
   border-radius: 18px;
   box-shadow: var(--app-shadow-soft);
 }
 
 .hero {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
+.sectionBlock,
+.sidePanel {
+  border: 1px solid #dfe5ea;
+}
+
+.hero {
   display: grid;
-  gap: 14px;
-  padding: 20px 24px;
-  background:
-    radial-gradient(circle at top right, rgba(184, 202, 165, 0.14), transparent 28%),
-    linear-gradient(180deg, #ffffff, #fcfdfb);
+  gap: 8px;
+  padding: 42px 24px 2px;
+  margin-bottom: -7px;
 }
 
 .heroTop,
@@ -93,42 +106,8 @@
   gap: 14px;
 }
 
-.heroLead,
-.heroMetaList {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.heroBadge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 34px;
-  padding: 0 14px;
-  border-radius: 999px;
-  border: 1px solid var(--app-border);
-  background: linear-gradient(180deg, #ffffff, #f8fafc);
-  color: var(--app-text-soft);
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.heroMetaChip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 28px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid #e8edf1;
-  background: #ffffff;
-  color: var(--app-text-soft);
-  font-size: 0.74rem;
-  font-weight: 700;
+.heroTop {
+  align-items: flex-end;
 }
 
 .heroActions,
@@ -136,8 +115,7 @@
 .categoryList,
 .archivePageList,
 .emptyActions,
-.sideFavoriteActions,
-.archiveCardActions {
+.sideFavoriteActions {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -152,7 +130,6 @@
 .archiveSortButton,
 .archiveSortButtonActive,
 .sideFavoriteLink,
-.mobileToggleButton,
 .archivePageButton,
 .archivePageNumber,
 .archivePageNumberActive,
@@ -181,7 +158,6 @@
 .categoryChip,
 .archiveSortButton,
 .sideFavoriteLink,
-.mobileToggleButton,
 .archivePageButton,
 .archivePageNumber,
 .favoriteButton {
@@ -214,7 +190,6 @@
 .archiveSortButton:hover,
 .archiveSortButtonActive:hover,
 .sideFavoriteLink:hover,
-.mobileToggleButton:hover,
 .archivePageButton:hover:not(:disabled),
 .archivePageNumber:hover,
 .archivePageNumberActive:hover,
@@ -257,7 +232,6 @@
 .heroDescription,
 .sectionDescription,
 .sideFavoriteDescription,
-.archiveDescription,
 .featuredMeta,
 .sideFavoriteBody p,
 .feedbackDescription {
@@ -268,8 +242,27 @@
 
 .heroDescription,
 .sectionDescription,
-.sideFavoriteDescription {
+.sideFavoriteDescription,
+.feedbackDescription {
   font-size: 0.9rem;
+}
+
+.sideFavoriteLink {
+  white-space: nowrap;
+}
+
+.heroActionsInline {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  width: auto;
+  margin-top: 0;
+}
+
+.heroActionsInline .secondaryLinkAction,
+.heroActionsInline .primaryAction {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 1rem;
 }
 
 .sectionBlock,
@@ -300,12 +293,17 @@
 
 .featuredSection {
   gap: 14px;
+  border: 1px solid #dfe5ea;
+  border-radius: 18px;
+  padding: 14px;
+  background: #ffffff;
+  margin-top: 30px;
 }
 
 .featuredGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .featuredCard,
@@ -320,6 +318,7 @@
 .featuredCardLink,
 .archiveCardLink {
   display: grid;
+  gap: 0;
   color: inherit;
   text-decoration: none;
 }
@@ -333,11 +332,11 @@
 }
 
 .featuredThumb {
-  aspect-ratio: 1.45 / 1;
+  aspect-ratio: 1 / 1;
 }
 
 .archiveThumb {
-  aspect-ratio: 1.08 / 1;
+  aspect-ratio: 1 / 1;
 }
 
 .featuredImage,
@@ -363,25 +362,60 @@
 }
 
 .featuredBody {
-  padding: 12px;
+  gap: 6px;
+  padding: 10px 12px 12px;
 }
 
 .archiveBody {
-  padding: 14px;
+  gap: 6px;
+  padding: 10px 12px 12px;
 }
 
 .featuredBody strong,
 .archiveBody strong,
 .sideFavoriteBody strong {
   color: #111827;
-  font-size: 0.96rem;
-  font-weight: 800;
-  line-height: 1.32;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.3;
   word-break: keep-all;
 }
 
 .featuredMeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  color: var(--app-text-soft);
   font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.popularMetaTags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.popularMetaTag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: var(--app-text-soft);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.popularLikeCount {
+  color: #ff6f7d;
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .featuredFooter,
@@ -401,17 +435,22 @@
 
 .archiveSection {
   gap: 16px;
+  padding-top: 8px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
 }
 
 .archiveControls {
   display: grid;
-  gap: 12px;
-  margin-top: 12px;
-  margin-bottom: 16px;
+  gap: 8px;
+  margin-top: 24px;
+  margin-bottom: 10px;
 }
 
 .archiveSearchWrap {
-  width: min(100%, 560px);
+  width: 100%;
+  max-width: none;
 }
 
 .archiveControlRow {
@@ -444,7 +483,7 @@
   justify-content: space-between;
   gap: 10px;
   width: 100%;
-  padding: 14px 16px;
+  padding: 8px 20px 8px 14px;
   border: 1px solid var(--app-border);
   border-radius: 999px;
   background: linear-gradient(180deg, #ffffff, #f8fafc);
@@ -456,10 +495,13 @@
 .sideSearchInput {
   width: 100%;
   min-width: 0;
+  min-height: 0;
+  padding-left: 16px;
   border: 0;
   background: transparent;
   color: #111827;
-  font-size: 0.9rem;
+  font-size: 1.1rem;
+  line-height: 1.35;
   outline: none;
 }
 
@@ -468,11 +510,21 @@
 }
 
 .sideSearchClear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  height: 34px;
+  padding: 0 10px;
   border: 0;
-  background: transparent;
-  color: var(--app-text-soft);
-  font-size: 0.8rem;
+  border-radius: 999px;
+  background: rgba(168, 188, 147, 0.14);
+  color: #8ea37a;
+  border: 0;
+  font-size: 0.84rem;
   font-weight: 700;
+  white-space: nowrap;
+  box-shadow: none;
   cursor: pointer;
 }
 
@@ -480,73 +532,22 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
+  min-width: 46px;
   height: 34px;
+  padding: 0 10px;
   border-radius: 999px;
   background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
   color: #ffffff;
-  font-size: 1rem;
+  font-size: 0.84rem;
+  font-weight: 700;
   box-shadow: 0 10px 18px rgba(168, 188, 147, 0.22);
 }
 
 .archiveGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.archiveRank {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 26px;
-  padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.96);
-  color: #8da07c;
-  font-size: 0.72rem;
-  font-weight: 800;
-  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.05);
-}
-
-.archiveDescription {
-  font-size: 0.78rem;
-}
-
-.archiveBadgeRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.metaPill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 22px;
-  padding: 0 9px;
-  border-radius: 999px;
-  background: #f8fafc;
-  color: var(--app-text-soft);
-  font-size: 0.68rem;
-  font-weight: 700;
-}
-
-.archiveCardMeta {
-  display: grid;
-  gap: 4px;
-}
-
-.archiveAuthor,
-.archiveCardDate {
-  color: var(--app-text-muted);
-  font-size: 0.74rem;
-  font-weight: 700;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 20px;
 }
 
 .sideInfoGrid,
@@ -556,7 +557,12 @@
 }
 
 .sideInfoGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
+  gap: 0;
+  border: 1px solid #e7edf1;
+  border-radius: 14px;
+  background: #ffffff;
+  overflow: hidden;
 }
 
 .sideInfoItem,
@@ -568,9 +574,19 @@
 }
 
 .sideInfoItem {
-  display: grid;
-  gap: 6px;
-  padding: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid #eef2f6;
+  border-radius: 0;
+  background: transparent;
+}
+
+.sideInfoItem:last-child {
+  border-bottom: 0;
 }
 
 .sideInfoLabel {
@@ -649,193 +665,6 @@
   min-width: 38px;
 }
 
-.mobileFavoritePanel {
-  display: none;
-}
-
 .desktopFavoritePanel {
   display: block;
-}
-
-@media (max-width: 1450px) {
-  .featuredGrid,
-  .archiveGrid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1180px) {
-  .heroPanel {
-    padding-bottom: 8px;
-  }
-
-  .heroTitleImage {
-    width: min(100%, 168px);
-  }
-
-  .workspace {
-    grid-template-columns: minmax(0, 1fr) 270px;
-    gap: 12px;
-  }
-
-  .mainColumn,
-  .sideColumn {
-    gap: 12px;
-  }
-}
-
-@media (max-width: 920px) {
-  .heroTitleImage {
-    width: min(100%, 156px);
-  }
-
-  .workspace {
-    grid-template-columns: 1fr;
-    min-height: auto;
-  }
-
-  .sideColumn {
-    position: static;
-    display: none;
-  }
-
-  .mobileFavoritePanel {
-    display: block;
-  }
-
-  .desktopFavoritePanel {
-    display: none;
-  }
-
-  .featuredGrid,
-  .archiveGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .heroTop,
-  .sectionHeading,
-  .sideFavoriteHeader,
-  .archiveControlRow {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .heroLead {
-    width: 100%;
-  }
-
-  .heroActions,
-  .archiveSortGroup,
-  .categoryList,
-  .archiveSearchWrap {
-    width: 100%;
-  }
-
-  .archiveMeta {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 640px) {
-  .heroPanel {
-    padding: 4px 10px 8px;
-  }
-
-  .heroTitleImage {
-    width: min(100%, 144px);
-  }
-
-  .hero,
-  .sectionBlock,
-  .sidePanel {
-    border-radius: 22px;
-  }
-
-  .hero,
-  .sectionBlock,
-  .sidePanel {
-    padding: 16px;
-  }
-
-  .heroTitle {
-    font-size: clamp(1.7rem, 8vw, 2.2rem);
-  }
-
-  .heroDescription,
-  .sectionDescription,
-  .sideFavoriteDescription,
-  .archiveDescription {
-    font-size: 0.84rem;
-  }
-
-  .sectionTitle,
-  .sideFavoriteTitle {
-    font-size: 1.18rem;
-  }
-
-  .featuredGrid,
-  .archiveGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .sideInfoGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .archiveSortButton,
-  .archiveSortButtonActive,
-  .categoryChip,
-  .categoryChipActive,
-  .archivePageButton,
-  .archivePageNumber,
-  .archivePageNumberActive {
-    min-height: 34px;
-    font-size: 0.78rem;
-  }
-}
-
-@media (max-width: 520px) {
-  .heroActions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .heroMetaList {
-    width: 100%;
-  }
-
-  .secondaryLinkAction,
-  .primaryAction {
-    width: 100%;
-  }
-
-  .archiveSortGroup,
-  .categoryList,
-  .archiveCardActions {
-    width: 100%;
-  }
-
-  .archiveCardFooter {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .archiveCardActions {
-    justify-content: space-between;
-  }
-
-  .sideFavoriteItem {
-    grid-template-columns: 64px minmax(0, 1fr);
-  }
-
-  .sideFavoriteThumb {
-    width: 64px;
-    height: 64px;
-  }
-
-  .sideFavoriteLikes {
-    grid-column: 2;
-    justify-self: start;
-  }
 }

@@ -1,0 +1,98 @@
+<svg width="2048" height="978" viewBox="0 0 2048 978" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="2048" height="978" fill="#F4F6F8"/>
+
+  <!-- Left sidebar -->
+  <rect x="16" y="20" width="92" height="938" rx="28" fill="#F1F3F5" stroke="#E2E7ED"/>
+  <rect x="34" y="156" width="42" height="42" rx="14" fill="#B7C9A5"/>
+  <rect x="34" y="220" width="42" height="42" rx="14" fill="#E9EDF2"/>
+  <rect x="34" y="284" width="42" height="42" rx="14" fill="#E9EDF2"/>
+  <rect x="34" y="348" width="42" height="42" rx="14" fill="#E9EDF2"/>
+  <rect x="34" y="412" width="42" height="42" rx="14" fill="#E9EDF2"/>
+  <rect x="34" y="476" width="42" height="42" rx="14" fill="#E9EDF2"/>
+  <rect x="34" y="760" width="42" height="42" rx="14" fill="#B7C9A5"/>
+
+  <!-- Main board -->
+  <rect x="132" y="20" width="1898" height="938" rx="28" fill="#FFFFFF" stroke="#E2E7ED"/>
+
+  <!-- Top area -->
+  <line x1="136" y1="146" x2="2030" y2="146" stroke="#D7DEE6"/>
+  <rect x="700" y="40" width="510" height="84" rx="18" fill="#FFFFFF" stroke="#DDE4EC"/>
+  <text x="780" y="93" fill="#1F2937" font-size="64" font-family="Arial, sans-serif" font-weight="700">GUREE</text>
+
+  <!-- Right top empty panel -->
+  <rect x="1628" y="20" width="368" height="196" rx="24" fill="#F8FAFC" stroke="#DDE4EC"/>
+
+  <!-- Section title -->
+  <text x="160" y="198" fill="#111827" font-size="44" font-family="Arial, sans-serif" font-weight="700">인기 도안</text>
+  <rect x="1480" y="170" width="118" height="50" rx="25" fill="#F8FAFC" stroke="#DDE4EC"/>
+  <text x="1512" y="202" fill="#6B7280" font-size="24" font-family="Arial, sans-serif" font-weight="700">전체 보기</text>
+
+  <!-- Cards row -->
+  <g>
+    <rect x="160" y="236" width="280" height="430" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <rect x="160" y="236" width="280" height="310" rx="22" fill="#E8ECF1"/>
+    <text x="178" y="600" fill="#111827" font-size="34" font-family="Arial, sans-serif" font-weight="700">5</text>
+    <text x="178" y="634" fill="#64748B" font-size="22" font-family="Arial, sans-serif">가방   초급</text>
+  </g>
+  <g>
+    <rect x="454" y="236" width="280" height="430" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <rect x="454" y="236" width="280" height="310" rx="22" fill="#E8ECF1"/>
+    <text x="472" y="600" fill="#111827" font-size="34" font-family="Arial, sans-serif" font-weight="700">2</text>
+    <text x="472" y="634" fill="#64748B" font-size="22" font-family="Arial, sans-serif">가방   초급</text>
+  </g>
+  <g>
+    <rect x="748" y="236" width="280" height="430" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <rect x="748" y="236" width="280" height="310" rx="22" fill="#E8ECF1"/>
+    <text x="766" y="600" fill="#111827" font-size="34" font-family="Arial, sans-serif" font-weight="700">버즈</text>
+    <text x="766" y="634" fill="#64748B" font-size="22" font-family="Arial, sans-serif">가방   초급</text>
+  </g>
+  <g>
+    <rect x="1042" y="236" width="280" height="430" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <rect x="1042" y="236" width="280" height="310" rx="22" fill="#E8ECF1"/>
+    <text x="1060" y="600" fill="#111827" font-size="34" font-family="Arial, sans-serif" font-weight="700">4</text>
+    <text x="1060" y="634" fill="#64748B" font-size="22" font-family="Arial, sans-serif">가방   초급</text>
+  </g>
+  <g>
+    <rect x="1336" y="236" width="280" height="430" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <rect x="1336" y="236" width="280" height="310" rx="22" fill="#E8ECF1"/>
+    <text x="1354" y="600" fill="#111827" font-size="34" font-family="Arial, sans-serif" font-weight="700">3</text>
+    <text x="1354" y="634" fill="#64748B" font-size="22" font-family="Arial, sans-serif">가방   초급</text>
+  </g>
+
+  <!-- Profile card -->
+  <rect x="1640" y="236" width="356" height="354" rx="22" fill="#FFFFFF" stroke="#DDE4EC"/>
+  <rect x="1672" y="276" width="88" height="88" rx="28" fill="#F8FAFC" stroke="#DDE4EC"/>
+  <text x="1790" y="319" fill="#111827" font-size="46" font-family="Arial, sans-serif" font-weight="700">GUREE</text>
+  <text x="1790" y="354" fill="#64748B" font-size="28" font-family="Arial, sans-serif">guree92@icloud.com</text>
+  <line x1="1672" y1="390" x2="1968" y2="390" stroke="#DDE4EC"/>
+  <text x="1730" y="430" fill="#94A3B8" font-size="24" font-family="Arial, sans-serif">도안</text>
+  <text x="1832" y="430" fill="#94A3B8" font-size="24" font-family="Arial, sans-serif">뜨개마당</text>
+  <text x="1952" y="430" fill="#94A3B8" font-size="24" text-anchor="end" font-family="Arial, sans-serif">기록</text>
+  <text x="1732" y="482" fill="#111827" font-size="44" font-family="Arial, sans-serif" font-weight="700">10</text>
+  <text x="1848" y="482" fill="#111827" font-size="44" font-family="Arial, sans-serif" font-weight="700">5</text>
+  <text x="1948" y="482" fill="#111827" font-size="44" text-anchor="end" font-family="Arial, sans-serif" font-weight="700">3</text>
+
+  <!-- Progress -->
+  <text x="160" y="752" fill="#111827" font-size="44" font-family="Arial, sans-serif" font-weight="700">진행 중 작품</text>
+  <g>
+    <rect x="160" y="778" width="490" height="140" rx="24" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <text x="182" y="826" fill="#111827" font-size="36" font-family="Arial, sans-serif" font-weight="700">네트백</text>
+    <text x="630" y="826" fill="#91A67C" font-size="36" text-anchor="end" font-family="Arial, sans-serif" font-weight="700">68%</text>
+    <rect x="182" y="846" width="446" height="14" rx="7" fill="#E5E7EB"/>
+    <rect x="182" y="846" width="304" height="14" rx="7" fill="#7F9A74"/>
+  </g>
+  <g>
+    <rect x="666" y="778" width="490" height="140" rx="24" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <text x="688" y="826" fill="#111827" font-size="36" font-family="Arial, sans-serif" font-weight="700">튤립 코스터 세트</text>
+    <text x="1136" y="826" fill="#91A67C" font-size="36" text-anchor="end" font-family="Arial, sans-serif" font-weight="700">92%</text>
+    <rect x="688" y="846" width="446" height="14" rx="7" fill="#E5E7EB"/>
+    <rect x="688" y="846" width="410" height="14" rx="7" fill="#7F9A74"/>
+  </g>
+  <g>
+    <rect x="1172" y="778" width="490" height="140" rx="24" fill="#FFFFFF" stroke="#DDE4EC"/>
+    <text x="1194" y="826" fill="#111827" font-size="36" font-family="Arial, sans-serif" font-weight="700">토끼 인형</text>
+    <text x="1642" y="826" fill="#91A67C" font-size="36" text-anchor="end" font-family="Arial, sans-serif" font-weight="700">37%</text>
+    <rect x="1194" y="846" width="446" height="14" rx="7" fill="#E5E7EB"/>
+    <rect x="1194" y="846" width="165" height="14" rx="7" fill="#7F9A74"/>
+  </g>
+</svg>
