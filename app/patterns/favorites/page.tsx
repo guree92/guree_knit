@@ -196,18 +196,6 @@ export default async function FavoritePatternsPage({ searchParams }: FavoritePat
         </div>
       </div>
 
-      <p className={styles.sideDescription}>
-        마음에 드는 도안을 모아두고 다음 작업 후보를 빠르게 찾아보세요.
-      </p>
-
-      <div className={styles.sideActions}>
-        <Link href="/patterns" className={styles.sideLink}>
-          전체 도안 보기
-        </Link>
-        <Link href="/patterns/new" className={styles.sideLink}>
-          도안 등록
-        </Link>
-      </div>
     </section>
   );
 

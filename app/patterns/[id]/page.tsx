@@ -23,6 +23,7 @@ import {
   type PatternItem,
 } from "@/lib/patterns";
 import styles from "./pattern-detail-page.module.css";
+import heroHeaderImage from "../../../Image/headerlogo.png";
 
 const copyrightPolicyRows = [
   { key: "copyright_hobby_only", label: "취미 제작" },
@@ -339,6 +340,19 @@ export default function PatternDetailPage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <Header />
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image
+                  src={heroHeaderImage}
+                  alt="Hero header"
+                  priority
+                  unoptimized
+                  className={styles.heroTitleImageAsset}
+                />
+              </div>
+            </div>
+          </section>
           <section className={styles.sectionCard}>
             <div className={styles.emptyState}>
               <p className={styles.emptyStateTitle}>도안을 불러오는 중이에요</p>
@@ -355,6 +369,19 @@ export default function PatternDetailPage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <Header />
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image
+                  src={heroHeaderImage}
+                  alt="Hero header"
+                  priority
+                  unoptimized
+                  className={styles.heroTitleImageAsset}
+                />
+              </div>
+            </div>
+          </section>
           <section className={styles.sectionCard}>
             <div className={styles.emptyState}>
               <p className={styles.emptyStateTitle}>도안을 찾을 수 없어요</p>
@@ -410,13 +437,24 @@ export default function PatternDetailPage() {
       <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
       <div className={styles.shell}>
         <Header />
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image
+                src={heroHeaderImage}
+                alt="Hero header"
+                priority
+                unoptimized
+                className={styles.heroTitleImageAsset}
+              />
+            </div>
+          </div>
+        </section>
         <div className={styles.workspace}>
           <div className={styles.mainColumn}>
             <section className={`${styles.hero} ${styles.heroCompact}`}>
               <div className={styles.heroBody}>
-                <span className={styles.eyebrow}>Pattern Studio</span>
                 <h1 className={styles.heroTitle}>{pattern.title}</h1>
-
                 <div className={styles.heroMeta}>
                   <span className={`${styles.pill} ${styles.pillLevel}`}>{pattern.level}</span>
                   <span className={`${styles.pill} ${styles.pillCategory}`}>{pattern.category}</span>
@@ -427,8 +465,9 @@ export default function PatternDetailPage() {
                     <span className={`${styles.pill} ${styles.pillMuted}`}>관리자 숨김 상태</span>
                   ) : null}
                 </div>
-
-                <div className={`${styles.actionRow} ${styles.heroActionRow}`}>
+              </div>
+              <div className={styles.heroActions}>
+                <div className={styles.actionRow}>
                   <button
                     type="button"
                     onClick={handleLike}
@@ -443,18 +482,14 @@ export default function PatternDetailPage() {
                     type="button"
                     onClick={handleFavoriteToggle}
                     disabled={favoritePending}
-                    className={`${styles.favoriteButton} ${isFavorite ? styles.buttonActive : ""}`}
+                    className={`${styles.favoriteButton} ${isFavorite ? `${styles.favoriteButtonActive} ${styles.buttonActive}` : ""}`}
                   >
                     <span className={styles.buttonIcon}>
                       {favoritePending ? "..." : isFavorite ? "★" : "☆"}
                     </span>
-                    {favoritePending ? "저장 중..." : "찜하기"}
+                    {favoritePending ? "저장 중..." : isFavorite ? "찜" : "찜하기"}
                   </button>
-                </div>
-              </div>
-
-              <div className={styles.heroActions}>
-                <div className={styles.actionRow}>
+                  <span aria-hidden="true" className={styles.heroActionDivider} />
                   {isOwner ? (
                     <>
                       <Link href={`/patterns/${pattern.id}/edit`} className={styles.ghostButton}>
@@ -498,11 +533,6 @@ export default function PatternDetailPage() {
             </section>
 
             <section className={`${styles.sectionCard} ${styles.introCard}`}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.eyebrow}>Story</span>
-                <h2 className={styles.sectionTitle}>도안 소개</h2>
-              </div>
-
               <div className={styles.compactIntroGrid}>
                 <div className={styles.introMain}>
                   <div className={styles.imageStage}>
@@ -520,16 +550,12 @@ export default function PatternDetailPage() {
                     </div>
                   </div>
 
-                  <div className={styles.descriptionCard}>
-                    <p className={styles.descriptionText}>{descriptionText}</p>
-                  </div>
                 </div>
 
                 <div className={styles.introSide}>
                   <div className={styles.infoStack}>
-                    <section className={styles.sectionCard}>
+                    <section className={`${styles.sectionCard} ${styles.introStoryCard}`}>
                       <div className={styles.sectionHeader}>
-                        <span className={styles.eyebrow}>Story</span>
                         <h3 className={styles.sectionTitle}>도안 소개</h3>
                       </div>
                       <div className={styles.summaryList}>
@@ -542,9 +568,8 @@ export default function PatternDetailPage() {
                       </div>
                     </section>
 
-                    <section className={styles.sectionCard}>
+                    <section className={`${styles.sectionCard} ${styles.introPrepCard}`}>
                       <div className={styles.sectionHeader}>
-                        <span className={styles.eyebrow}>Material</span>
                         <h3 className={styles.sectionTitle}>제작 준비</h3>
                       </div>
                       <div className={styles.prepGrid}>
@@ -557,9 +582,8 @@ export default function PatternDetailPage() {
                       </div>
                     </section>
 
-                    <section className={styles.sectionCard}>
+                    <section className={`${styles.sectionCard} ${styles.introPolicyCard}`}>
                       <div className={styles.sectionHeader}>
-                        <span className={styles.eyebrow}>Policy</span>
                         <h3 className={styles.sectionTitle}>이용 범위</h3>
                       </div>
                       <div className={styles.policyGrid}>
@@ -594,17 +618,19 @@ export default function PatternDetailPage() {
                         ))}
                       </div>
                     </section>
+
+                    <section className={`${styles.sectionCard} ${styles.introDescriptionCard}`}>
+                      <div className={styles.sectionHeader}>
+                        <h3 className={styles.sectionTitle}>설명</h3>
+                      </div>
+                      <p className={styles.descriptionText}>{descriptionText}</p>
+                    </section>
                   </div>
                 </div>
               </div>
             </section>
 
             <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.sheetCard}`}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.eyebrow}>Pattern Sheet</span>
-                <h2 className={styles.sectionTitle}>도안 세부 내용</h2>
-              </div>
-
               {detailRows.length ? (
                 <div className={styles.detailList}>
                   {detailRows.map((row) => (

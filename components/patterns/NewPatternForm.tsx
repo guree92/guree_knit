@@ -286,7 +286,7 @@ export default function NewPatternForm() {
                   <div className={styles.heroIntro}>
                     <h1 className={styles.heroTitle}>새 도안 등록</h1>
                     <p className={styles.heroDescription}>
-                      직접 만든 도안을 기록하고 공유할 수 있도록 필요한 정보를 편하게 입력해 주세요.
+                      직접 만든 도안을 기록하고 공유할 수 있도록 필요한 정보를 입력해 주세요.
                     </p>
                   </div>
 
