@@ -15,6 +15,7 @@ import {
   type CommunityPostRow,
 } from "@/lib/community";
 import styles from "./community-detail-page.module.css";
+import heroHeaderImage from "../../../Image/headerlogo.png";
 
 type CommunityLikeRow = {
   post_id: string;
@@ -592,6 +593,19 @@ export default function CommunityDetailPage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <Header />
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image
+                  src={heroHeaderImage}
+                  alt="Hero header"
+                  priority
+                  unoptimized
+                  className={styles.heroTitleImageAsset}
+                />
+              </div>
+            </div>
+          </section>
 
           <section className={styles.feedbackCard}>
             <p className={styles.sectionDescription}>게시글을 불러오는 중이에요...</p>
@@ -606,6 +620,19 @@ export default function CommunityDetailPage() {
       <main className={styles.page}>
         <div className={styles.shell}>
           <Header />
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image
+                  src={heroHeaderImage}
+                  alt="Hero header"
+                  priority
+                  unoptimized
+                  className={styles.heroTitleImageAsset}
+                />
+              </div>
+            </div>
+          </section>
 
           <section className={styles.feedbackCard}>
             <h1 className={styles.sectionTitle}>게시글을 찾을 수 없어요</h1>
@@ -626,12 +653,23 @@ export default function CommunityDetailPage() {
     <main className={styles.page}>
       <div className={styles.shell}>
         <Header />
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image
+                  src={heroHeaderImage}
+                  alt="Hero header"
+                  priority
+                  unoptimized
+                  className={styles.heroTitleImageAsset}
+                />
+              </div>
+            </div>
+          </section>
         <div className={styles.workspace}>
           <div className={styles.mainColumn}>
             <section className={`${styles.hero} ${styles.heroCompact}`}>
               <div className={styles.heroBody}>
-                <span className={styles.eyebrow}>Post Archive</span>
-
                 <h1 className={styles.heroTitle}>{post.title}</h1>
 
                 <div className={styles.heroMeta}>
@@ -646,9 +684,10 @@ export default function CommunityDetailPage() {
                     <span className={`${styles.pill} ${styles.pillMuted}`}>관리자 숨김 상태</span>
                   ) : null}
                 </div>
+              </div>
 
-                <div className={styles.heroActionBand}>
-                  <div className={`${styles.actionRow} ${styles.heroActionRow}`}>
+              <div className={styles.heroActions}>
+                <div className={styles.actionRow}>
                     <button
                       type="button"
                       onClick={handleLikeToggle}
@@ -661,6 +700,9 @@ export default function CommunityDetailPage() {
                       </span>
                       좋아요 {post.likes}
                     </button>
+
+                    <span aria-hidden="true" className={styles.heroActionDivider} />
+
                     {!isPostOwner && !isAdmin ? (
                       <button
                         type="button"
@@ -671,191 +713,144 @@ export default function CommunityDetailPage() {
                         {isPostReportPending ? "신고 중..." : "게시글 신고"}
                       </button>
                     ) : null}
-                  </div>
 
-                  {isPostOwner ? (
-                    <div className={`${styles.actionRow} ${styles.heroInlineOwnerActions}`}>
-                      <Link
-                        href={`/community/${post.id}/edit`}
-                        className={styles.ghostButton}
-                      >
-                        게시글 수정
-                      </Link>
+                    {isPostOwner ? (
+                      <>
+                        <Link href={`/community/${post.id}/edit`} className={styles.ghostButton}>
+                          게시글 수정
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={handleDeletePost}
+                          disabled={isPostModerating}
+                          className={styles.dangerButton}
+                        >
+                          {isPostModerating ? "삭제 중..." : "게시글 삭제"}
+                        </button>
+                      </>
+                    ) : null}
+
+                    {isAdmin ? (
                       <button
                         type="button"
-                        onClick={handleDeletePost}
+                        onClick={() => handlePostHiddenToggle(!post.isHidden)}
                         disabled={isPostModerating}
                         className={styles.dangerButton}
                       >
-                        {isPostModerating ? "삭제 중..." : "게시글 삭제"}
+                        {isPostModerating ? "처리 중..." : post.isHidden ? "숨김 해제" : "게시글 숨김"}
                       </button>
-                    </div>
-                  ) : null}
-                </div>
-              </div>
+                    ) : null}
 
-              <div className={styles.heroActions}>
-                <div className={`${styles.actionRow} ${styles.heroTopActions}`}>
-                  {isAdmin ? (
-                    <button
-                      type="button"
-                      onClick={() => handlePostHiddenToggle(!post.isHidden)}
-                      disabled={isPostModerating}
-                      className={styles.dangerButton}
-                    >
-                      {isPostModerating ? "처리 중..." : post.isHidden ? "숨김 해제" : "게시글 숨김"}
-                    </button>
-                  ) : null}
-
-                  <Link href="/community" className={styles.secondaryAction}>
-                    목록으로
-                  </Link>
-                </div>
+                    <Link href="/community" className={styles.secondaryAction}>
+                      목록으로
+                    </Link>
+                  </div>
 
                 {post.isHidden && isAdmin ? (
                   <span className={styles.hintText}>현재 관리자에 의해 숨김 처리된 게시글이에요.</span>
-                ) : !currentUserId ? (
-                  <span className={styles.hintText}>로그인하면 좋아요와 신고를 이용할 수 있어요.</span>
                 ) : null}
               </div>
             </section>
 
             <section className={`${styles.sectionCard} ${styles.introCard}`}>
-              <div className={styles.sectionHeader}>
-                <span className={styles.eyebrow}>Story</span>
-                <h2 className={styles.sectionTitle}>게시글 내용</h2>
-              </div>
 
               {post.imageUrl ? (
-                <>
-                  <div className={styles.compactIntroGrid}>
-                    <div className={styles.introMain}>
-                      <div className={styles.imageStage}>
-                        <div className={styles.imageWrap}>
-                          <Image
-                            src={post.imageUrl}
-                            alt={`${post.title} 첨부 이미지`}
-                            fill
-                            sizes="(max-width: 920px) 100vw, 46vw"
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className={styles.introSide}>
-                      <div className={styles.infoStack}>
-                        <section className={styles.sectionCard}>
-                          <div className={styles.sectionHeader}>
-                            <span className={styles.eyebrow}>Overview</span>
-                            <h3 className={styles.sectionTitle}>게시글 정보</h3>
-                          </div>
-
-                          <div className={styles.summaryList}>
-                            <div className={styles.summaryRow}>
-                              <span>카테고리</span>
-                              <span className={styles.summaryValue}>{post.category}</span>
-                            </div>
-                            <div className={styles.summaryRow}>
-                              <span>작성자</span>
-                              <span className={styles.summaryValue}>@{post.author}</span>
-                            </div>
-                            <div className={styles.summaryRow}>
-                              <span>작성일</span>
-                              <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
-                            </div>
-                            <div className={styles.summaryRow}>
-                              <span>좋아요</span>
-                              <span className={styles.summaryValue}>{post.likes}</span>
-                            </div>
-                            <div className={styles.summaryRow}>
-                              <span>댓글</span>
-                              <span className={styles.summaryValue}>{comments.length}</span>
-                            </div>
-                          </div>
-                        </section>
-
-                        {detailEntries.length > 0 ? (
-                          <section className={styles.sectionCard}>
-                            <div className={styles.sectionHeader}>
-                              <span className={styles.eyebrow}>Details</span>
-                              <h3 className={styles.sectionTitle}>추가 정보</h3>
-                            </div>
-
-                            <div className={styles.detailList}>
-                              {detailEntries.map(([key, value]) => (
-                                <div key={key} className={styles.detailItem}>
-                                  <div className={styles.detailMeta}>
-                                    <span className={styles.detailIndex}>{detailFieldLabels[key] ?? key}</span>
-                                  </div>
-                                  <p className={styles.detailText}>{value}</p>
-                                </div>
-                              ))}
-                            </div>
-                          </section>
-                        ) : null}
+                <div className={styles.imagePostLayout}>
+                  <div className={styles.imagePostMain}>
+                    <div className={styles.imageStage}>
+                      <div className={styles.imageWrap}>
+                        <Image
+                          src={post.imageUrl}
+                          alt={`${post.title} 첨부 이미지`}
+                          fill
+                          sizes="(max-width: 920px) 100vw, 46vw"
+                        />
                       </div>
                     </div>
                   </div>
 
-                  <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
-                    <p className={styles.descriptionText}>{post.content}</p>
-                  </div>
-                </>
-              ) : (
-                <div className={styles.noImageLayout}>
-                  <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
-                    <p className={styles.descriptionText}>{post.content}</p>
-                  </div>
+                  <div className={styles.imagePostSide}>
+                    <div className={`${styles.descriptionCard} ${styles.imagePostContentCard}`}>
+                      <p className={styles.descriptionText}>{post.content}</p>
+                    </div>
 
-                  <div className={styles.noImageInfoRow}>
-                    <section className={styles.sectionCard}>
-                      <div className={styles.sectionHeader}>
-                        <span className={styles.eyebrow}>Overview</span>
-                        <h3 className={styles.sectionTitle}>게시글 정보</h3>
-                      </div>
-
-                      <div className={styles.summaryList}>
-                        <div className={styles.summaryRow}>
-                          <span>카테고리</span>
-                          <span className={styles.summaryValue}>{post.category}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span>작성자</span>
-                          <span className={styles.summaryValue}>@{post.author}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span>작성일</span>
-                          <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span>좋아요</span>
-                          <span className={styles.summaryValue}>{post.likes}</span>
-                        </div>
-                        <div className={styles.summaryRow}>
-                          <span>댓글</span>
-                          <span className={styles.summaryValue}>{comments.length}</span>
-                        </div>
-                      </div>
-                    </section>
-                    {detailEntries.length > 0 ? (
+                    <div className={styles.imagePostMetaSingle}>
                       <section className={styles.sectionCard}>
-                        <div className={styles.sectionHeader}>
-                          <span className={styles.eyebrow}>Details</span>
-                          <h3 className={styles.sectionTitle}>추가 정보</h3>
-                        </div>
-
-                        <div className={styles.detailList}>
-                          {detailEntries.map(([key, value]) => (
-                            <div key={key} className={styles.detailItem}>
-                              <div className={styles.detailMeta}>
-                                <span className={styles.detailIndex}>{detailFieldLabels[key] ?? key}</span>
-                              </div>
-                              <p className={styles.detailText}>{value}</p>
-                            </div>
-                          ))}
+                        <div className={styles.summaryList}>
+                          <div className={styles.summaryRow}>
+                            <span>카테고리</span>
+                            <span className={styles.summaryValue}>{post.category}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>작성자</span>
+                            <span className={styles.summaryValue}>@{post.author}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>작성일</span>
+                            <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>좋아요</span>
+                            <span className={styles.summaryValue}>{post.likes}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>댓글</span>
+                            <span className={styles.summaryValue}>{comments.length}</span>
+                          </div>
                         </div>
                       </section>
-                    ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.noImageLayout}>
+                  <div className={styles.noImageMain}>
+                    <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
+                      <p className={styles.descriptionText}>{post.content}</p>
+                    </div>
+                  </div>
+
+                  <div className={styles.noImageSide}>
+                    <div className={styles.infoStack}>
+                      <section className={styles.sectionCard}>
+                        <div className={styles.summaryList}>
+                          <div className={styles.summaryRow}>
+                            <span>카테고리</span>
+                            <span className={styles.summaryValue}>{post.category}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>작성자</span>
+                            <span className={styles.summaryValue}>@{post.author}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>작성일</span>
+                            <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>좋아요</span>
+                            <span className={styles.summaryValue}>{post.likes}</span>
+                          </div>
+                          <div className={styles.summaryRow}>
+                            <span>댓글</span>
+                            <span className={styles.summaryValue}>{comments.length}</span>
+                          </div>
+                        </div>
+                      </section>
+                      {detailEntries.length > 0 ? (
+                        <section className={`${styles.sectionCard} ${styles.detailSectionCard}`}>
+                          <div className={styles.detailList}>
+                            {detailEntries.map(([key, value]) => (
+                              <div key={key} className={styles.detailItem}>
+                                <div className={styles.detailMeta}>
+                                  <span className={styles.detailIndex}>{detailFieldLabels[key] ?? key}</span>
+                                </div>
+                                <p className={styles.detailText}>{value}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
               )}
@@ -1167,7 +1162,6 @@ export default function CommunityDetailPage() {
           <aside className={styles.sideColumn}>
             <section className={`${styles.sectionCard} ${styles.previewCard}`}>
               <div className={styles.previewHead}>
-                <span className={styles.eyebrow}>Preview</span>
                 {post.imageUrl ? (
                   <div className={styles.previewImage}>
                     <Image src={post.imageUrl} alt={`${post.title} 미리보기`} fill sizes="320px" />

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -17,8 +17,8 @@ import {
   uploadCommunityImage,
   type CommunityPostDraft,
 } from "@/lib/community-post-content";
-import { createClient } from "@/lib/supabase/client";
 import { type PostCategory } from "@/lib/community";
+import { createClient } from "@/lib/supabase/client";
 import styles from "./CommunityPostForm.module.css";
 
 type CommunityPostFormProps = {
@@ -35,6 +35,7 @@ type CommunityPostFormProps = {
 };
 
 const DEFAULT_CATEGORY = "완성작" as PostCategory;
+const MAX_TAGS = 5;
 
 const categoryDescription: Record<PostCategory, string> = {
   완성작: "완성한 작품과 사용한 도안 정보를 함께 공유해보세요.",
@@ -52,6 +53,33 @@ function getDraftKey(mode: "create" | "edit", postId?: string) {
     ? `${communityDraftStorageKey}:${postId}`
     : communityDraftStorageKey;
 }
+
+function formatFileSize(file: File) {
+  const units = ["B", "KB", "MB", "GB"];
+  let size = file.size;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+
+  return `${size.toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+function getCategoryToneClass(category: PostCategory, isActive: boolean) {
+  switch (category) {
+    case "완성작":
+      return isActive ? styles.categoryToneShowcaseActive : styles.categoryToneShowcase;
+    case "질문":
+      return isActive ? styles.categoryToneQuestionActive : styles.categoryToneQuestion;
+    case "정보공유":
+      return isActive ? styles.categoryToneInfoActive : styles.categoryToneInfo;
+    case "같이뜨기":
+    default:
+      return isActive ? styles.categoryToneTogetherActive : styles.categoryToneTogether;
+  }
+}
+
 
 export default function CommunityPostForm({
   mode,
@@ -93,6 +121,7 @@ export default function CommunityPostForm({
   const [removeExistingImage, setRemoveExistingImage] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const categoryOptions = Object.keys(communityExtraFieldConfig) as PostCategory[];
   const extraFieldDefs = communityExtraFieldConfig[category];
   const visibleImageUrl = imagePreviewUrl;
 
@@ -114,7 +143,7 @@ export default function CommunityPostForm({
     } catch {
       // Ignore broken local draft data.
     }
-  }, [baseValues.body, baseValues.category, baseValues.tags, draftKey, mode]);
+  }, [baseValues.body, baseValues.category, baseValues.tags, baseValues.title, draftKey, mode]);
 
   useEffect(() => {
     if (typeof window === "undefined" || mode !== "create") return;
@@ -143,18 +172,27 @@ export default function CommunityPostForm({
     setExtraFields(normalizeExtraFields(nextCategory, extraFields));
   }
 
-  function handleTagAdd() {
-    const normalized = tagInput.trim();
+  function handleTagAdd(nextValue?: string) {
+    const normalized = (nextValue ?? tagInput).trim();
     if (!normalized) return;
+    if (tags.includes(normalized) || tags.length >= MAX_TAGS) {
+      setTagInput("");
+      return;
+    }
 
     setTags(sanitizeCommunityTags([...tags, normalized]));
     setTagInput("");
   }
 
+  function handleTagRemove(tag: string) {
+    setTags((current) => current.filter((item) => item !== tag));
+  }
+
   function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.nativeEvent.isComposing) return;
     if (event.key !== "Enter" && event.key !== ",") return;
     event.preventDefault();
-    handleTagAdd();
+    handleTagAdd(event.currentTarget.value);
   }
 
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -286,268 +324,255 @@ export default function CommunityPostForm({
   }
 
   return (
-    <main className={styles.page}>
+    <div className={styles.page}>
+      <Header />
+
       <div className={styles.shell}>
-        <Header />
-
-        <section className={styles.hero}>
-          <div className={styles.heroTop}>
-            <Link
-              href={mode === "edit" && postId ? `/community/${postId}` : "/community"}
-              className={styles.backLink}
-            >
-              {mode === "edit" && postId ? "게시글로 돌아가기" : "뜨개마당으로 돌아가기"}
-            </Link>
-            <span className={styles.draftText}>작성 내용은 임시 저장됩니다</span>
-          </div>
-
-          <div className={styles.eyebrow}>{mode === "edit" ? "EDIT POST" : "WRITE POST"}</div>
-
-          <div className={styles.heroHeader}>
-            <div>
-              <h1 className={styles.heroTitle}>{mode === "edit" ? "게시글 수정" : "게시글 작성"}</h1>
-              <p className={styles.heroDescription}>{categoryDescription[category]}</p>
-            </div>
-
-            <div className={styles.heroActions}>
-              <Link
-                href={mode === "edit" && postId ? `/community/${postId}` : "/community"}
-                className={styles.secondaryButton}
-              >
-                취소
-              </Link>
-              <button
-                type="button"
-                onClick={handleSubmit}
-                disabled={isSubmitting}
-                className={styles.primaryButton}
-              >
-                {isSubmitting ? "저장 중..." : mode === "edit" ? "수정 완료" : "등록하기"}
-              </button>
-            </div>
-          </div>
-        </section>
-
         <div className={styles.workspace}>
           <div className={styles.mainColumn}>
-            <section className={styles.sectionCard}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>기본 정보</h2>
-                <p className={styles.sectionDescription}>카테고리와 제목을 먼저 정리해 주세요.</p>
-              </div>
-
-              <div className={styles.fieldGrid}>
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>카테고리</label>
-                  <select
-                    value={category}
-                    onChange={(event) => handleCategoryChange(event.target.value as PostCategory)}
-                    className={styles.select}
-                  >
-                    {Object.keys(communityExtraFieldConfig).map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
+            <section className={`${styles.hero} ${styles.heroCompact}`}>
+              <div className={styles.heroTop}>
+                <div className={styles.heroIntro}>
+                  <h1 className={styles.heroTitle}>{mode === "edit" ? "게시글 수정" : "게시글 작성"}</h1>
+                  <p className={styles.heroDescription}>{categoryDescription[category]}</p>
                 </div>
 
-                <div className={styles.field}>
-                  <label className={styles.fieldLabel}>제목</label>
-                  <input
-                    type="text"
-                    value={title}
-                    onChange={(event) => setTitle(event.target.value)}
-                    placeholder="제목을 입력해 주세요"
-                    className={styles.input}
-                  />
+                <div className={`${styles.heroActions} ${styles.heroActionsInline}`}>
+                  <Link
+                    href={mode === "edit" && postId ? `/community/${postId}` : "/community"}
+                    className={styles.secondaryAction}
+                  >
+                    목록으로
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleSubmit}
+                    disabled={isSubmitting}
+                    className={styles.primaryAction}
+                  >
+                    {isSubmitting ? "저장 중..." : mode === "edit" ? "수정 완료" : "글 등록"}
+                  </button>
                 </div>
               </div>
             </section>
 
-            <section className={styles.sectionCard}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>카테고리 추가 정보</h2>
-                <div className={styles.pillRow}>
-                  <p className={styles.sectionDescription}>선택한 카테고리에 맞는 정보를 적어주세요.</p>
-                  <span className={styles.pill}>선택 입력</span>
-                </div>
+            <section className={`${styles.sectionCard} ${styles.introCard}`}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>기본 정보</h2>
               </div>
 
-              <div className={styles.extraGrid}>
-                {extraFieldDefs.map((field) => (
-                  <div key={field.key} className={styles.field}>
-                    <label className={styles.fieldLabel}>{field.label}</label>
+              <div className={styles.compactIntroGrid}>
+                <div className={styles.introMain}>
+                  <div className={`${styles.field} ${styles.fieldWide}`}>
+                    <label htmlFor="community-title" className={styles.fieldLabel}>
+                      제목
+                    </label>
                     <input
-                      type="text"
-                      value={extraFields[field.key] ?? ""}
-                      onChange={(event) =>
-                        setExtraFields((current) => ({
-                          ...current,
-                          [field.key]: event.target.value,
-                        }))
-                      }
-                      placeholder={field.placeholder}
                       className={styles.input}
+                      value={title}
+                      onChange={(event) => setTitle(event.target.value)}
+                      placeholder="예: 뜨개 초보가 보기 좋은 코바늘 가방"
                     />
                   </div>
-                ))}
-              </div>
-            </section>
 
-            <section className={styles.sectionCard}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>본문</h2>
-                <p className={styles.sectionDescription}>줄바꿈과 문단은 그대로 유지됩니다.</p>
-              </div>
+                  <div className={styles.field}>
+                    <div className={styles.optionGrid}>
+                      {categoryOptions.map((item) => (
+                        <button
+                          key={item}
+                          type="button"
+                          className={[
+                            item === category ? styles.optionButtonActive : styles.optionButton,
+                            getCategoryToneClass(item, item === category),
+                          ].join(" ")}
+                          onClick={() => handleCategoryChange(item)}
+                        >
+                          {item}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className={styles.field}>
-                <label className={styles.fieldLabel}>내용</label>
-                <textarea
-                  value={body}
-                  onChange={(event) => setBody(event.target.value)}
-                  placeholder="내용을 입력해 주세요"
-                  rows={12}
-                  className={styles.textarea}
-                />
-              </div>
-            </section>
-
-            <section className={styles.sectionCard}>
-              <div className={styles.sectionHead}>
-                <div className={styles.pillRow}>
-                  <h2 className={styles.sectionTitle}>태그</h2>
-                  <span className={styles.pill}>{tags.length}/5</span>
+                  <div className={`${styles.field} ${styles.fieldWide}`}>
+                    <label htmlFor="community-body" className={styles.fieldLabel}>
+                      본문
+                    </label>
+                    <textarea
+                      id="community-body"
+                      className={styles.textarea}
+                      value={body}
+                      onChange={(event) => setBody(event.target.value)}
+                      placeholder="작품 소개, 질문, 함께 뜨기 일정 등을 자유롭게 적어 주세요."
+                    />
+                  </div>
                 </div>
-                <p className={styles.sectionDescription}>검색에 잘 걸릴 단어를 짧게 적어 주세요.</p>
-              </div>
 
-              <div className={styles.tagList}>
-                {tags.map((tag) => (
-                  <button
-                    key={tag}
-                    type="button"
-                    onClick={() => setTags((current) => current.filter((item) => item !== tag))}
-                    className={styles.tagButton}
-                  >
-                    #{tag} x
-                  </button>
-                ))}
-              </div>
+                <div className={styles.introSide}>
+                  <div className={styles.field}>
+                    <span className={styles.fieldLabel}>태그</span>
+                    <div className={styles.tagComposer}>
+                      <input
+                        className={styles.input}
+                        value={tagInput}
+                        onChange={(event) => setTagInput(event.target.value)}
+                        onKeyDown={handleTagKeyDown}
+                        placeholder="예: 코바늘, 입문"
+                      />
+                      <button
+                        type="button"
+                        className={styles.tagAddButton}
+                        onClick={handleTagAdd}
+                        disabled={tags.length >= MAX_TAGS}
+                      >
+                        추가
+                      </button>
+                    </div>
+                    <div className={styles.tagList}>
+                      {tags.map((tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={styles.tagChip}
+                          onClick={() => handleTagRemove(tag)}
+                        >
+                          #{tag}
+                        </button>
+                      ))}
+                    </div>
+                    <p className={styles.helperText}>최대 5개까지 추가할 수 있어요. 태그를 누르면 삭제돼요.</p>
+                  </div>
 
-              <div className={styles.tagComposer}>
-                <input
-                  type="text"
-                  value={tagInput}
-                  onChange={(event) => setTagInput(event.target.value)}
-                  onKeyDown={handleTagKeyDown}
-                  placeholder="예: 대바늘, 스트라이프, 초보가이드"
-                  className={styles.input}
-                />
-                <button
-                  type="button"
-                  onClick={handleTagAdd}
-                  disabled={!tagInput.trim() || tags.length >= 5}
-                  className={styles.ghostButton}
-                >
-                  태그 추가
-                </button>
+                  <div className={styles.embeddedExtraGrid}>
+                    {extraFieldDefs.map((field) => (
+                      <div key={field.key} className={styles.field}>
+                        <label htmlFor={`extra-${field.key}`} className={styles.fieldLabel}>
+                          {field.label}
+                        </label>
+                        <input
+                          id={`extra-${field.key}`}
+                          className={styles.input}
+                          value={extraFields[field.key] ?? ""}
+                          onChange={(event) =>
+                            setExtraFields((current) => ({
+                              ...current,
+                              [field.key]: event.target.value,
+                            }))
+                          }
+                          placeholder={field.placeholder}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </section>
-          </div>
 
-          <aside className={styles.sideColumn}>
-            <section className={styles.sideCard}>
-              <div className={styles.sectionHead}>
-                <div className={styles.pillRow}>
-                  <h2 className={styles.sectionTitle}>첨부 이미지</h2>
-                  <span className={styles.pill}>1장</span>
-                </div>
-                <p className={styles.sectionDescription}>게시글 대표 이미지를 1장 첨부할 수 있어요.</p>
+
+            <section className={`${styles.sectionCard} ${styles.imageCard}`}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>첨부 이미지</h2>
+                <p className={styles.helperText}>대표 이미지를 등록하면 게시글 썸네일이 더 또렷해져요.</p>
               </div>
 
-              <div className={styles.imageStage}>
-                <div className={styles.imagePreview}>
+              <div className={styles.uploadCard}>
+                <div className={styles.uploadPreview}>
                   {visibleImageUrl ? (
                     <Image
                       src={visibleImageUrl}
                       alt="첨부 이미지 미리보기"
                       fill
-                      sizes="(max-width: 1024px) 100vw, 420px"
+                      className={styles.uploadPreviewImage}
+                      sizes="(max-width: 920px) 100vw, 320px"
                       unoptimized={visibleImageUrl.startsWith("blob:")}
                     />
                   ) : (
-                    <div className={styles.imageEmpty}>
-                      이미지가 없으면 텍스트 중심 게시글로 등록돼요.
+                    <div className={styles.uploadPreviewEmpty}>
+                      이미지를 업로드하면 여기에서 바로 확인할 수 있어요.
                     </div>
                   )}
                 </div>
-              </div>
 
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-
-              <div className={styles.imageActions}>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className={styles.ghostButton}
-                >
-                  이미지 선택
-                </button>
-                {visibleImageUrl ? (
-                  <button type="button" onClick={handleImageRemove} className={styles.removeButton}>
-                    이미지 제거
+                <div className={styles.uploadActions}>
+                  <button
+                    type="button"
+                    className={styles.uploadButton}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    이미지 선택
                   </button>
-                ) : null}
+                  {visibleImageUrl ? (
+                    <button type="button" className={styles.imageRemoveButton} onClick={handleImageRemove}>
+                      제거
+                    </button>
+                  ) : null}
+
+                  {imageFile ? (
+                    <div className={styles.imageMeta}>
+                      <p className={styles.imageName}>{imageFile.name}</p>
+                      <p className={styles.imageSize}>{formatFileSize(imageFile)}</p>
+                    </div>
+                  ) : null}
+                </div>
+
+                <input
+                  ref={fileInputRef}
+                  id="community-image"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  className={styles.hiddenInput}
+                />
               </div>
             </section>
 
-            <section className={`${styles.sideCard} ${styles.previewCard}`}>
-              <div className={styles.sectionHead}>
-                <h2 className={styles.sectionTitle}>미리보기</h2>
+          </div>
+
+          <aside className={styles.sideColumn}>
+            <section className={`${styles.sectionCard} ${styles.previewCard}`}>
+              <div className={styles.sidePreviewImage}>
+                {visibleImageUrl ? (
+                  <Image
+                    src={visibleImageUrl}
+                    alt="게시글 이미지 미리보기"
+                    fill
+                    sizes="320px"
+                    className={styles.uploadPreviewImage}
+                    unoptimized={visibleImageUrl.startsWith("blob:")}
+                  />
+                ) : (
+                  <div className={styles.sidePreviewFallback} />
+                )}
               </div>
 
-              <div className={styles.pillRow}>
-                <span className={styles.pill}>{category}</span>
-              </div>
+              <h2 className={styles.previewTitle}>{title.trim() || "게시글 제목 미리보기"}</h2>
 
-              <h3 className={styles.previewTitle}>{title || "제목을 입력하면 여기에 보여요"}</h3>
-              <p className={styles.previewBody}>
-                {body || "본문을 입력하면 미리보기가 채워집니다."}
-              </p>
-
-              {extraFieldDefs.some((field) => (extraFields[field.key] ?? "").trim()) ? (
-                <div className={styles.previewFields}>
-                  {extraFieldDefs.map((field) =>
-                    (extraFields[field.key] ?? "").trim() ? (
-                      <div key={field.key} className={styles.previewField}>
-                        <span className={styles.previewFieldLabel}>{field.label}</span>
-                        <span className={styles.previewFieldValue}>{extraFields[field.key]}</span>
-                      </div>
-                    ) : null
-                  )}
+              <div className={styles.summaryList}>
+                <div className={styles.summaryRow}>
+                  <span>카테고리</span>
+                  <span className={styles.summaryValue}>{category}</span>
                 </div>
-              ) : null}
+                <div className={styles.summaryRow}>
+                  <span>태그</span>
+                  <span className={styles.summaryValue}>
+                    {tags.length ? tags.map((tag) => `#${tag}`).join(", ") : "-"}
+                  </span>
+                </div>
 
-              {tags.length > 0 ? (
-                <div className={styles.previewTagList}>
-                  {tags.map((tag) => (
-                    <span key={tag} className={styles.previewTag}>
-                      #{tag}
+                {extraFieldDefs.map((field) => (
+                  <div key={field.key} className={styles.summaryRow}>
+                    <span>{field.label}</span>
+                    <span className={styles.summaryValue}>
+                      {(extraFields[field.key] ?? "").trim() || "-"}
                     </span>
-                  ))}
-                </div>
-              ) : null}
+                  </div>
+                ))}
+              </div>
+
+              <p className={styles.previewBody}>{body || "본문을 입력하면 미리보기가 채워집니다."}</p>
             </section>
           </aside>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

@@ -48,8 +48,9 @@
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.42fr) 280px;
-  gap: 14px;
+  grid-template-columns: minmax(0, 1.55fr) 320px;
+  gap: 30px;
+  padding: 0 30px;
   margin-top: 0;
 }
 
@@ -1134,14 +1135,14 @@
   border: 0;
   background: transparent;
   box-shadow: none;
-  padding: 0;
+  padding: 0 18px;
 }
 
 .listSection {
   border: 0;
   background: transparent;
   box-shadow: none;
-  padding: 0;
+  padding: 18px;
 }
 
 .boardMeta {
@@ -1184,14 +1185,14 @@
   border: 0;
   background: transparent;
   box-shadow: none;
-  padding-top: 12px;
-  padding-bottom: 12px;
+  padding: 18px;
 }
 
 .sideColumn > .sidePanel:nth-child(2) {
   border: 0;
   background: transparent;
   box-shadow: none;
+  padding: 18px;
 }
 
 .sideColumn > .sidePanel:nth-child(2) .sectionHeader {
@@ -1225,12 +1226,12 @@
 
 .sideStack {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 
 .highlightCard {
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 12px;
 }
 
 .highlightTopRow {

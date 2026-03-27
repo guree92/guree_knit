@@ -1187,3 +1187,558 @@
   border-color: var(--surface-border);
   color: var(--detail-muted);
 }
+
+/* Patterns-like layout overrides for community detail */
+.page {
+  --app-border: #e5e7eb;
+  --app-shadow-soft: 0 14px 34px rgba(15, 23, 42, 0.05);
+  --app-text-soft: #6b7280;
+  --app-sage: #b8caa5;
+  --app-sage-deep: #a8bc93;
+  --card-border: #dbe3ea;
+  --card-bg: #ffffff;
+  --surface-border: #dbe3ea;
+  --surface: #ffffff;
+  --soft-surface: #f7fafc;
+  --chip-text: #64748b;
+  min-height: calc(100vh - 48px);
+  padding: 0 0 20px;
+  color: #0f172a;
+}
+
+.shell {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.heroPanel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 70px;
+  padding: 0 12px;
+  background: #ffffff;
+  border-bottom: 1px solid var(--app-border);
+}
+
+.heroCopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  line-height: 0;
+}
+
+.heroTitleImage {
+  display: flex;
+  justify-content: center;
+  width: min(100%, 186px);
+  margin: 0 auto;
+  line-height: 0;
+}
+
+.heroTitleImageAsset {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: translateY(-3px);
+}
+
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 24px;
+  padding: 0 30px;
+  margin-top: 0;
+  align-items: start;
+}
+
+.mainColumn {
+  display: grid;
+  grid-template-columns: minmax(0, 540px) minmax(300px, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.sideColumn {
+  position: sticky;
+  top: 10px;
+  align-self: start;
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.hero,
+.sectionCard,
+.feedbackCard {
+  border: 1px solid var(--card-border);
+  border-radius: 22px;
+  background: var(--card-bg);
+  box-shadow: 0 6px 16px rgba(91, 74, 60, 0.025);
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: stretch;
+  border: none;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
+  padding: 42px 24px 2px;
+  margin-bottom: -7px;
+  min-height: 156px;
+}
+
+.heroBody {
+  gap: 10px;
+  max-width: 760px;
+  align-content: start;
+  min-height: 86px;
+}
+
+.heroTitle {
+  margin: 0;
+  color: #111827;
+  max-width: none;
+  font-size: clamp(1.95rem, 3vw, 2.7rem);
+  line-height: 1.04;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.heroActions {
+  gap: 8px;
+  align-self: auto;
+  justify-self: auto;
+  justify-content: flex-end;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+  width: auto;
+  margin-top: 0;
+}
+
+.actionRow,
+.heroActionRow,
+.heroInlineOwnerActions {
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+}
+
+.secondaryAction,
+.ghostButton,
+.dangerButton,
+.likeButton,
+.submitButton {
+  min-height: 48px;
+  padding: 0 22px;
+  font-size: 1rem;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.secondaryAction,
+.ghostButton,
+.dangerButton,
+.likeButton {
+  border: 1px solid var(--app-border);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: var(--app-text-soft);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(15, 23, 42, 0.05);
+}
+
+.submitButton {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px rgba(168, 188, 147, 0.22);
+}
+
+.likeButtonActive {
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px rgba(168, 188, 147, 0.22);
+}
+
+@media (max-width: 1180px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .sideColumn {
+    position: static;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 920px) {
+  .workspace {
+    padding: 0 12px;
+  }
+
+  .mainColumn {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero {
+    padding: 24px 4px 4px;
+    margin-bottom: 4px;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .heroActions,
+  .actionRow,
+  .heroActionRow,
+  .heroInlineOwnerActions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .secondaryAction,
+  .ghostButton,
+  .dangerButton,
+  .likeButton,
+  .submitButton {
+    min-height: 40px;
+    padding: 0 14px;
+    font-size: 0.84rem;
+  }
+}
+
+/* Fix hero overlap regression (keep actions in normal flow). */
+.hero {
+  position: relative;
+  padding-bottom: 2px !important;
+}
+
+.heroBody {
+  align-content: start !important;
+}
+
+.heroTopActions {
+  position: static !important;
+  top: auto !important;
+  right: auto !important;
+  width: auto !important;
+  z-index: auto !important;
+}
+
+.heroActionBand {
+  position: static !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+}
+
+.heroInlineOwnerActions {
+  position: static !important;
+  margin-left: auto;
+}
+
+@media (max-width: 720px) {
+  .heroTopActions {
+    justify-content: flex-start !important;
+  }
+
+  .heroInlineOwnerActions {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+/* Match community hero layout to patterns/[id] hero placement. */
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  border: none !important;
+  border-radius: 18px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 42px 24px 2px !important;
+  margin-bottom: -7px !important;
+  min-height: 156px !important;
+}
+
+.heroBody {
+  gap: 10px !important;
+  max-width: 760px !important;
+  align-content: start !important;
+  min-height: 86px !important;
+}
+
+.heroTitle {
+  margin: 0;
+  color: #111827 !important;
+  max-width: none !important;
+  font-size: clamp(1.95rem, 3vw, 2.7rem) !important;
+  line-height: 1.04 !important;
+  font-weight: 900 !important;
+  letter-spacing: -0.05em !important;
+}
+
+.heroMeta {
+  gap: 7px !important;
+}
+
+.heroActions {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+  width: auto !important;
+  margin-top: 0 !important;
+}
+
+.actionRow {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 8px !important;
+}
+
+.heroActionDivider {
+  width: 1px;
+  height: 30px;
+  background: #d1d5db;
+  margin: 0 10px;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 920px) {
+  .hero {
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding: 24px 4px 4px !important;
+    margin-bottom: 4px !important;
+  }
+
+  .heroActions,
+  .actionRow {
+    width: 100% !important;
+    justify-content: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .heroActionDivider {
+    display: none;
+  }
+}
+
+/* Match screenshot layout for posts without image:
+   left = content, right = info + detail stack */
+.noImageLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.55fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.noImageMain,
+.noImageSide {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.noImageMain .descriptionCardWide {
+  margin-top: 0;
+  min-height: 420px;
+}
+
+.noImageMain .descriptionCard {
+  height: 100%;
+}
+
+.imagePostLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 0.95fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.imagePostMain,
+.imagePostSide {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.imagePostMain .imageWrap {
+  min-height: 520px;
+  aspect-ratio: auto;
+}
+
+.imagePostContentCard {
+  min-height: 230px;
+}
+
+.imagePostMetaSplit {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.imagePostMetaSingle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+
+.introCard {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+
+.detailSectionCard {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 920px) {
+  .noImageLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .noImageMain .descriptionCardWide {
+    min-height: 0;
+  }
+
+  .imagePostLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .imagePostMain .imageWrap {
+    min-height: 0;
+    aspect-ratio: 1.05 / 1;
+  }
+
+  .imagePostContentCard {
+    min-height: 0;
+  }
+
+  .imagePostMetaSplit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Global color refresh: white + gray + sage (keep category palette as-is). */
+.page {
+  --app-border: #dbe3ea;
+  --card-border: #dbe3ea;
+  --surface-border: #dbe3ea;
+  --card-bg: #ffffff;
+  --surface: #ffffff;
+  --soft-surface: #f6f8fb;
+  --chip-text: #64748b;
+  --app-text-soft: #6b7280;
+  --app-sage: #a8bc93;
+  --app-sage-deep: #95ad7e;
+  --brand-gradient: linear-gradient(135deg, #a8bc93, #95ad7e);
+  color: #111827;
+}
+
+.sectionCard,
+.feedbackCard,
+.imageStage,
+.descriptionCard,
+.detailItem,
+.commentCard,
+.replyCard,
+.composer,
+.inlineForm {
+  border-color: var(--surface-border) !important;
+  background: var(--surface) !important;
+}
+
+.heroTitle,
+.sectionTitle,
+.previewTitle,
+.summaryValue,
+.detailIndex,
+.commentAuthor {
+  color: #111827 !important;
+}
+
+.eyebrow,
+.sectionDescription,
+.descriptionText,
+.previewDescription,
+.hintText,
+.commentDate,
+.label {
+  color: #6b7280 !important;
+}
+
+.summaryRow,
+.detailText,
+.commentBody {
+  color: #374151 !important;
+  border-color: #e5e7eb !important;
+}
+
+.tag {
+  border-color: #dbe3ea !important;
+  background: #f6f8fb !important;
+  color: #64748b !important;
+}
+
+.pillMuted,
+.secondaryAction,
+.ghostButton,
+.dangerButton,
+.likeButton,
+.smallGhostButton {
+  border-color: #dbe3ea !important;
+  background: linear-gradient(180deg, #ffffff, #f6f8fb) !important;
+  color: #64748b !important;
+}
+
+.submitButton,
+.smallButton,
+.likeButtonActive {
+  background: linear-gradient(135deg, #a8bc93, #95ad7e) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+}
+
+.textarea,
+.inlineTextarea {
+  border-color: #dbe3ea !important;
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
+.textarea:focus,
+.inlineTextarea:focus {
+  border-color: #95ad7e !important;
+  box-shadow: 0 0 0 4px rgba(149, 173, 126, 0.16) !important;
+}
