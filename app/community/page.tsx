@@ -15,6 +15,7 @@ import {
   type CommunityPostRow,
 } from "@/lib/community";
 import styles from "./community-page.module.css";
+import heroHeaderImage from "../../Image/headerlogo.png";
 
 type SortOption = "latest" | "popular";
 
@@ -186,7 +187,7 @@ export default function CommunityPage() {
       if (likeGap !== 0) return likeGap;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     })
-    .slice(0, 3);
+    .slice(0, 5);
 
   function moveToPage(nextPage: number) {
     const normalizedPage = Math.min(Math.max(nextPage, 1), totalPages);
@@ -210,38 +211,47 @@ export default function CommunityPage() {
     <main className={styles.page}>
       <div className={styles.shell}>
         <Header />
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image
+                src={heroHeaderImage}
+                alt="Hero header"
+                priority
+                unoptimized
+                className={styles.heroTitleImageAsset}
+              />
+            </div>
+          </div>
+        </section>
         <div className={styles.workspace}>
           <div className={styles.mainColumn}>
             <section className={styles.hero}>
               <div className={styles.heroTop}>
-                <div className={styles.heroBadge}>Community Lounge</div>
-                <div className={styles.heroActions}>
+                <div className={styles.heroIntro}>
+                  <h1 className={styles.heroTitle}>뜨개마당</h1>
+                  <p className={styles.heroDescription}>
+                    직접 만든 도안을 공유하고 마음에 드는 도안을 저장해보세요
+                  </p>
+                </div>
+                <div className={`${styles.heroActions} ${styles.heroActionsInline}`}>
                   <Link
-                    href={isLoggedIn ? "/community/write" : writeHref}
+                    href="/community/write"
                     className={styles.primaryAction}
                   >
-                    글 쓰기
+                    글쓰기
                   </Link>
                 </div>
               </div>
-
-              <div className={styles.heroIntro}>
-                <div>
-                  <h1 className={styles.heroTitle}>뜨개마당</h1>
-                </div>
-              </div>
-
             </section>
 
             <section className={styles.filterPanel}>
               <div className={styles.searchRow}>
-                <label htmlFor="community-search" className={styles.searchLabel}>
-                  게시글 검색
-                </label>
                 <div className={styles.searchBox}>
                   <input
                     id="community-search"
                     type="text"
+                    aria-label="게시글 검색"
                     value={searchText}
                     onChange={(event) => {
                       setSearchText(event.target.value);
@@ -315,10 +325,6 @@ export default function CommunityPage() {
             </section>
 
             <section className={styles.listSection}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>지금 뜨개마당에서 나누는 이야기</h2>
-              </div>
-
               {isLoading ? (
                 <div className={styles.feedbackCard}>
                   <p className={styles.feedbackTitle}>글을 불러오는 중이에요.</p>
@@ -330,9 +336,9 @@ export default function CommunityPage() {
                 <>
                   <div className={styles.boardList}>
                     <div className={styles.boardHeader} aria-hidden="true">
-                      <span>미리보기</span>
-                      <span>게시글</span>
-                      <span>정보</span>
+                      <span />
+                      <span />
+                      <span />
                     </div>
                     {paginatedPosts.map((post) => {
                       const extraFields = post.extraFields ?? {};
@@ -385,23 +391,14 @@ export default function CommunityPage() {
                                 </div>
                               ) : null}
 
-                              {post.tags.length > 0 ? (
-                                <div className={styles.tagList}>
-                                  {post.tags.map((tag) => (
-                                    <span key={`${post.id}-${tag}`} className={styles.tag}>
-                                      #{tag}
-                                    </span>
-                                  ))}
-                                </div>
-                              ) : null}
                             </div>
 
                             <div className={styles.boardMeta}>
-                              <div className={styles.boardMetaTop}>
-                                <span>{formatCommunityDate(post.createdAt)}</span>
-                                <span>@{post.author}</span>
+                              <div className={styles.boardMetaInline}>
+                                <span className={styles.boardMetaText}>{formatCommunityDate(post.createdAt)}</span>
+                                <span className={styles.boardMetaText}>@{post.author}</span>
+                                <span className={styles.likesPill}>♥ {post.likes}</span>
                               </div>
-                              <span className={styles.likesPill}>♥ {post.likes}</span>
                               <span className={styles.readMore}>자세히 보기</span>
                             </div>
                           </Link>
@@ -501,10 +498,6 @@ export default function CommunityPage() {
 
           <aside className={styles.sideColumn}>
             <section className={styles.sidePanel}>
-              <div className={styles.sectionHeader}>
-                <h2 className={styles.sectionTitle}>한눈에 보기</h2>
-              </div>
-
               <div className={styles.sideStatsGrid}>
                 <article className={styles.statCard}>
                   <span className={styles.statLabel}>전체 글</span>
@@ -525,13 +518,25 @@ export default function CommunityPage() {
               <div className={styles.sideStack}>
                 {highlightedPosts.map((post) => (
                   <Link key={post.id} href={`/community/${post.id}`} className={styles.highlightCard}>
-                    <span
-                      className={`${styles.highlightCategory} ${getCategoryPillToneClass(post.category)}`}
-                    >
-                      {post.category}
-                    </span>
-                    <strong className={styles.highlightTitle}>{post.title}</strong>
-                    <span className={styles.highlightMeta}>♥ {post.likes} · @{post.author}</span>
+                    <div className={styles.highlightTopRow}>
+                      <div className={styles.highlightTitleRow}>
+                        <span
+                          className={`${styles.highlightCategory} ${getCategoryPillToneClass(post.category)}`}
+                        >
+                          {post.category}
+                        </span>
+                        <strong className={styles.highlightTitle}>{post.title}</strong>
+                      </div>
+
+                      <div className={styles.highlightMetaRow}>
+                        <span className={styles.likesPill}>♥ {post.likes}</span>
+                      </div>
+                    </div>
+
+                    <div className={styles.highlightBottomRow}>
+                      <span />
+                      <span className={styles.readMore}>자세히 보기</span>
+                    </div>
                   </Link>
                 ))}
               </div>

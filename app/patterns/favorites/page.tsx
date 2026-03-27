@@ -47,7 +47,7 @@ function FavoritesFrame({
           </div>
         </section>
 
-        <section className={styles.workspace}>
+        <section className={`${styles.workspace} ${sideContent ? "" : styles.workspaceSingle}`}>
           <div className={styles.mainColumn}>{mainContent}</div>
           {sideContent ? <aside className={styles.sideColumn}>{sideContent}</aside> : null}
         </section>

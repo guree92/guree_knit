@@ -57,6 +57,10 @@
   min-height: calc(100vh - 48px);
 }
 
+.workspaceSingle {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .mainColumn,
 .sideColumn {
   display: grid;
@@ -400,6 +404,17 @@
   margin-top: 10px;
 }
 
+.feedbackShell .primaryAction,
+.feedbackShell .secondaryLinkAction {
+  min-height: 56px;
+  padding: 0 26px;
+  font-size: 1rem;
+}
+
+.feedbackShell .feedbackActions {
+  margin-top: 15px;
+}
+
 .popularShowcaseList {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -516,57 +531,3 @@
   min-width: 38px;
 }
 
-@media (max-width: 1440px) {
-  .popularShowcaseList {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 1180px) {
-  .workspace {
-    grid-template-columns: 1fr;
-    padding: 0 20px;
-    gap: 14px;
-  }
-
-  .sideColumn {
-    position: static;
-  }
-
-  .mobileCollectionPanel {
-    display: block;
-  }
-
-  .sideColumn {
-    display: none;
-  }
-
-  .popularShowcaseList {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 900px) {
-  .workspace {
-    padding: 0 16px;
-  }
-
-  .hero {
-    padding: 24px 0 8px;
-  }
-
-  .heroTop {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .popularShowcaseList {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 620px) {
-  .popularShowcaseList {
-    grid-template-columns: 1fr;
-  }
-}

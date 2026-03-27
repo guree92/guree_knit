@@ -402,3 +402,89 @@
     align-items: stretch;
   }
 }
+
+/* Theme reset: main white / sub gray / accent sage green. */
+.page {
+  --form-main: #ffffff;
+  --form-sub: #f3f5f7;
+  --form-border: #d8dee5;
+  --form-text: #1f2937;
+  --form-muted: #6b7280;
+  --form-accent: #7f967d;
+  --form-accent-strong: #6b8269;
+  --form-focus: rgba(127, 150, 125, 0.16);
+  background: var(--form-main);
+  color: var(--form-text);
+}
+
+.hero,
+.sectionCard,
+.sideCard,
+.imageStage,
+.previewCard,
+.feedbackCard {
+  border-color: var(--form-border);
+  background: var(--form-main);
+  box-shadow: 0 6px 16px rgba(31, 41, 55, 0.04);
+}
+
+.heroTitle,
+.sectionTitle,
+.previewTitle,
+.summaryValue,
+.fieldValue {
+  color: var(--form-text);
+}
+
+.backLink,
+.draftText,
+.eyebrow,
+.heroDescription,
+.sectionDescription,
+.label,
+.helperText,
+.previewText,
+.summaryLabel {
+  color: var(--form-muted);
+}
+
+.eyebrow::before,
+.primaryAction,
+.submitButton,
+.pageAction {
+  background: linear-gradient(135deg, var(--form-accent), var(--form-accent-strong));
+}
+
+.primaryAction,
+.submitButton {
+  box-shadow: 0 10px 18px rgba(107, 130, 105, 0.24);
+}
+
+.input,
+.textarea,
+.select,
+.secondaryAction,
+.ghostButton,
+.tagButton {
+  border-color: var(--form-border);
+  background: var(--form-main);
+  color: var(--form-text);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--form-accent);
+  box-shadow: 0 0 0 4px var(--form-focus);
+}
+
+.pill,
+.previewTag,
+.extraFieldChip,
+.tagButton,
+.tagList .tagButton,
+.policyItem {
+  background: var(--form-sub);
+  color: var(--form-muted);
+  border-color: var(--form-border);
+}

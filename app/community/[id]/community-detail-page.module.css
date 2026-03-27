@@ -1,17 +1,17 @@
 .page {
-  --card-border: rgba(230, 221, 210, 0.82);
-  --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 242, 0.95));
-  --surface-border: #ddd4c9;
-  --surface: #fffdf9;
-  --soft-surface: #f6f1ea;
-  --chip-text: #6f6257;
-  --brand-gradient: linear-gradient(135deg, #8a9b84, #70806b);
+  --card-border: #d8dee5;
+  --card-bg: #ffffff;
+  --surface-border: #d8dee5;
+  --surface: #ffffff;
+  --soft-surface: #f3f5f7;
+  --chip-text: #6b7280;
+  --brand-gradient: linear-gradient(135deg, #7f967d, #6b8269);
   --preview-gradient:
-    radial-gradient(circle at top right, rgba(231, 238, 229, 0.78), transparent 34%),
-    linear-gradient(145deg, #f1ede4, #e2e8de);
+    radial-gradient(circle at top right, rgba(230, 238, 228, 0.72), transparent 34%),
+    linear-gradient(145deg, #f7f9fb, #eef2f6);
   min-height: calc(100vh - 48px);
   padding: 0 14px 20px;
-  color: #3d3128;
+  color: #1f2937;
 }
 
 .shell {
@@ -1115,4 +1115,75 @@
   .policyList {
     justify-content: flex-start;
   }
+}
+
+/* Neutral community theme while preserving category tone colors. */
+.page {
+  --detail-text: #1f2937;
+  --detail-muted: #6b7280;
+  --detail-sub: #f3f5f7;
+  --detail-accent: #7f967d;
+  --detail-focus: rgba(127, 150, 125, 0.16);
+}
+
+.hero,
+.sectionCard,
+.sideCard,
+.imageStage,
+.mediaShell,
+.commentForm,
+.commentItem {
+  border-color: var(--surface-border);
+  background: var(--surface);
+  box-shadow: 0 6px 16px rgba(31, 41, 55, 0.04);
+}
+
+.heroTitle,
+.sectionTitle,
+.commentAuthor,
+.summaryValue,
+.fieldLabelValue {
+  color: var(--detail-text);
+}
+
+.eyebrow,
+.heroDescription,
+.sectionDescription,
+.metaText,
+.summaryLabel,
+.commentDate,
+.readonlyFieldValue {
+  color: var(--detail-muted);
+}
+
+.eyebrow::before,
+.primaryButton,
+.submitButton,
+.activeAction {
+  background: var(--brand-gradient);
+}
+
+.input,
+.textarea,
+.select,
+.ghostButton,
+.secondaryButton {
+  border-color: var(--surface-border);
+  background: var(--surface);
+  color: var(--detail-text);
+}
+
+.input:focus,
+.textarea:focus,
+.select:focus {
+  border-color: var(--detail-accent);
+  box-shadow: 0 0 0 4px var(--detail-focus);
+}
+
+.tag,
+.metaChip,
+.summaryCard {
+  background: var(--detail-sub);
+  border-color: var(--surface-border);
+  color: var(--detail-muted);
 }

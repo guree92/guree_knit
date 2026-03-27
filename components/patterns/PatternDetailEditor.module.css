@@ -252,19 +252,3 @@
   line-height: 1.55;
 }
 
-@media (max-width: 920px) {
-  .symbolList,
-  .rowActions,
-  .suggestions,
-  .rowMeta {
-    gap: 6px;
-  }
-
-  .rowCard {
-    padding: 10px;
-  }
-
-  .textarea {
-    min-height: 48px;
-  }
-}
