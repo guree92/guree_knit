@@ -329,6 +329,20 @@
   margin-bottom: 10px;
 }
 
+.commentsHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0;
+  padding-top: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+.commentsHead .sectionDescription {
+  text-align: right;
+}
+
 .sectionTitle {
   margin: 0;
   color: #372c22;
@@ -513,6 +527,94 @@
   white-space: pre-wrap;
 }
 
+.sideImageCard {
+  padding: 10px;
+}
+
+.mobileInlineImage {
+  display: none;
+}
+
+.sideImageFrame {
+  display: block;
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  border: 0;
+  aspect-ratio: 1.05 / 1;
+  background: var(--preview-gradient);
+  cursor: zoom-in;
+  padding: 0;
+  appearance: none;
+}
+
+.sideImage {
+  object-fit: cover;
+}
+
+.sideImageZoomBadge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #dbe3ea;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.imageViewerOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(2px);
+  padding: 24px;
+}
+
+.imageViewerDialog {
+  position: relative;
+  width: min(1100px, 92vw);
+}
+
+.imageViewerClose {
+  position: absolute;
+  top: -40px;
+  right: 0;
+  border: 1px solid #dbe3ea;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #111827;
+  min-height: 34px;
+  padding: 0 14px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.imageViewerFrame {
+  position: relative;
+  width: 100%;
+  height: min(82vh, 880px);
+  border-radius: 18px;
+  overflow: hidden;
+  background: #f6f8fb;
+  border: 1px solid #dbe3ea;
+}
+
+.imageViewerImage {
+  object-fit: contain;
+}
+
 .previewCard {
   gap: 10px;
   align-content: start;
@@ -554,12 +656,20 @@
 }
 
 .commentsSection {
-  gap: 14px;
+  gap: 6px;
 }
 
 .composer {
   padding: 16px;
   background: #f8f4ee;
+}
+
+.commentsSection .composer {
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  padding: 0;
 }
 
 .label {
@@ -600,7 +710,7 @@
 
 .composerFooter {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   align-items: center;
   margin-top: 12px;
@@ -717,405 +827,26 @@
 .emptyState {
   gap: 8px;
   padding: 28px 18px;
+  border: 1px dashed #d1d5db;
+  border-radius: 1.6rem;
+  background: #ffffff;
+  box-shadow: inset 0 0 0 1px #edf4e8;
   text-align: center;
 }
 
 .emptyStateTitle {
   margin: 0;
-  color: #4a392f;
+  color: #111827;
   font-size: 1.1rem;
   font-weight: 900;
 }
 
 .emptyStateDescription {
   margin: 0;
-  color: #756457;
+  color: #6b7280;
   line-height: 1.6;
 }
 
-@media (min-width: 1024px) and (max-width: 1180px) {
-  .page {
-    padding: 0 10px 18px;
-  }
-
-  .workspace {
-    grid-template-columns: 1fr 220px;
-    gap: 8px;
-  }
-
-  .mainColumn {
-    grid-template-columns: minmax(0, 500px) minmax(260px, 1fr);
-    gap: 10px;
-  }
-
-  .sideColumn {
-    display: grid;
-    gap: 8px;
-  }
-
-  .hero,
-  .sectionCard,
-  .feedbackCard {
-    border-radius: 20px;
-  }
-
-  .hero {
-    padding: 12px 13px 64px;
-  }
-
-  .sectionCard {
-    padding: 10px 10px;
-  }
-
-  .heroBody {
-    min-height: 108px;
-  }
-
-  .heroTitle {
-    font-size: clamp(1.6rem, 2.1vw, 2.15rem);
-  }
-
-  .backLink,
-  .hintText,
-  .sectionDescription,
-  .descriptionText,
-  .commentBody {
-    font-size: 0.78rem;
-  }
-
-  .eyebrow {
-    font-size: 0.64rem;
-  }
-
-  .sectionTitle,
-  .previewTitle {
-    font-size: 0.98rem;
-  }
-
-  .pill,
-  .tag {
-    min-height: 27px;
-    padding: 0 10px;
-    font-size: 0.7rem;
-  }
-
-  .secondaryAction,
-  .ghostButton,
-  .dangerButton,
-  .likeButton,
-  .submitButton,
-  .smallButton,
-  .smallGhostButton {
-    min-height: 34px;
-    padding: 0 12px;
-    font-size: 0.76rem;
-  }
-
-  .heroActions {
-    min-width: 190px;
-  }
-
-  .heroActionBand {
-    position: static;
-  }
-
-  .heroInlineOwnerActions {
-    position: absolute;
-    right: 13px;
-    bottom: 12px;
-    margin-left: 0;
-    z-index: 1;
-  }
-
-  .imageWrap {
-    border-radius: 16px;
-  }
-
-  .previewImage {
-    min-height: 210px;
-    border-radius: 15px;
-  }
-
-  .descriptionCard {
-    padding: 14px 15px;
-  }
-
-  .summaryRow,
-  .detailText,
-  .previewDescription,
-  .commentAuthor,
-  .label,
-  .textButton,
-  .textButtonDanger,
-  .textButtonAccent {
-    font-size: 0.76rem;
-  }
-
-  .commentDate,
-  .summaryRow,
-  .summaryValue,
-  .summaryPolicyValue {
-    font-size: 0.72rem;
-  }
-
-  .detailItem,
-  .policyItem,
-  .inlineForm,
-  .composer,
-  .commentCard {
-    border-radius: 12px;
-  }
-
-  .detailItem,
-  .policyItem {
-    padding: 8px 9px;
-  }
-
-  .textarea,
-  .inlineTextarea {
-    padding: 10px 12px;
-    font-size: 0.82rem;
-  }
-}
-
-@media (max-width: 1023px) {
-  .workspace,
-  .mainColumn,
-  .compactIntroGrid,
-  .noImageInfoRow {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .introCard,
-  .sectionSpanFull {
-    grid-column: auto;
-    grid-row: auto;
-  }
-
-  .sideColumn {
-    display: none;
-  }
-
-  .heroBody {
-    max-width: none;
-  }
-}
-
-@media (min-width: 768px) and (max-width: 920px) {
-  .page {
-    padding: 0 16px 20px;
-  }
-
-  .workspace,
-  .mainColumn {
-    gap: 12px;
-  }
-
-  .hero {
-    grid-template-columns: minmax(0, 1fr);
-    align-items: start;
-    padding: 18px 18px;
-  }
-
-  .heroTitle {
-    max-width: none;
-    font-size: clamp(1.9rem, 4.8vw, 2.6rem);
-  }
-
-  .heroActions {
-    justify-content: flex-start;
-    align-items: flex-start;
-  }
-}
-
-@media (min-width: 721px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: stretch;
-    padding: 14px 16px;
-  }
-
-  .heroActions {
-    width: auto;
-    align-items: flex-end;
-    justify-content: flex-start;
-  }
-
-  .actionRow {
-    width: auto;
-  }
-
-  .heroTopActions {
-    top: 14px;
-    right: 16px;
-  }
-
-  .heroActionBand {
-    flex-wrap: nowrap;
-    align-items: center;
-  }
-
-  .heroInlineOwnerActions {
-    flex-wrap: nowrap;
-    margin-left: auto;
-  }
-}
-
-@media (min-width: 1252px) {
-  .hero {
-    padding-bottom: 70px;
-  }
-
-  .heroActionBand {
-    position: absolute;
-    left: 16px;
-    right: 16px;
-    bottom: 14px;
-    align-items: center;
-    flex-wrap: nowrap;
-  }
-
-  .heroInlineOwnerActions {
-    position: static;
-    margin-left: auto;
-    z-index: 1;
-  }
-}
-
-@media (max-width: 720px) {
-  .page {
-    padding: 0 10px 16px;
-  }
-
-  .hero {
-    position: relative;
-    grid-template-columns: minmax(0, 1fr);
-    padding: 54px 12px 14px;
-  }
-
-  .heroActions,
-  .actionRow,
-  .composerFooter {
-    width: 100%;
-  }
-
-  .heroActions {
-    align-items: flex-start;
-  }
-
-  .heroTopActions {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    width: auto;
-    justify-content: flex-end;
-  }
-
-  .heroMiddleActions {
-    position: static;
-    transform: none;
-    justify-content: flex-end;
-  }
-
-  .heroTopActions .secondaryAction {
-    flex: 0 0 auto;
-    min-width: 88px;
-  }
-
-  .sectionCard,
-  .feedbackCard {
-    border-radius: 20px;
-  }
-
-  .sectionCard {
-    padding: 14px 12px;
-  }
-
-  .composerFooter {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .replyCard {
-    margin-left: 0;
-  }
-}
-
-@media (max-width: 720px) {
-  .hero,
-  .sectionCard {
-    border-radius: 18px;
-  }
-
-  .hero {
-    padding-top: 54px;
-  }
-
-  .heroTitle {
-    max-width: none;
-    font-size: clamp(1.5rem, 8vw, 2rem);
-  }
-
-  .secondaryAction,
-  .ghostButton,
-  .dangerButton,
-  .likeButton,
-  .submitButton,
-  .smallButton,
-  .smallGhostButton {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-
-  .heroActions {
-    position: static;
-    align-items: stretch;
-    gap: 10px;
-  }
-
-  .heroTopActions {
-    top: 12px;
-    right: 12px;
-  }
-
-  .heroMiddleActions {
-    position: static;
-    transform: none;
-    justify-content: flex-end;
-  }
-
-  .heroTopActions .secondaryAction {
-    flex: 0 0 auto;
-    min-width: 88px;
-  }
-
-  .heroActionBand {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .heroInlineOwnerActions {
-    margin-left: 0;
-    width: 100%;
-  }
-
-  .summaryRow,
-  .commentHead {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .summaryValue,
-  .policyList,
-  .hintText {
-    min-width: 0;
-    text-align: left;
-  }
-
-  .policyList {
-    justify-content: flex-start;
-  }
-}
 
 /* Neutral community theme while preserving category tone colors. */
 .page {
@@ -1377,52 +1108,6 @@
     0 6px 14px rgba(168, 188, 147, 0.22);
 }
 
-@media (max-width: 1180px) {
-  .workspace {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-
-  .sideColumn {
-    position: static;
-    margin-top: 0;
-  }
-}
-
-@media (max-width: 920px) {
-  .workspace {
-    padding: 0 12px;
-  }
-
-  .mainColumn {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .hero {
-    padding: 24px 4px 4px;
-    margin-bottom: 4px;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .heroActions,
-  .actionRow,
-  .heroActionRow,
-  .heroInlineOwnerActions {
-    width: 100%;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
-  .secondaryAction,
-  .ghostButton,
-  .dangerButton,
-  .likeButton,
-  .submitButton {
-    min-height: 40px;
-    padding: 0 14px;
-    font-size: 0.84rem;
-  }
-}
 
 /* Fix hero overlap regression (keep actions in normal flow). */
 .hero {
@@ -1456,16 +1141,6 @@
   margin-left: auto;
 }
 
-@media (max-width: 720px) {
-  .heroTopActions {
-    justify-content: flex-start !important;
-  }
-
-  .heroInlineOwnerActions {
-    margin-left: 0;
-    width: 100%;
-  }
-}
 
 /* Match community hero layout to patterns/[id] hero placement. */
 .hero {
@@ -1530,30 +1205,12 @@
   flex: 0 0 auto;
 }
 
-@media (max-width: 920px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) !important;
-    padding: 24px 4px 4px !important;
-    margin-bottom: 4px !important;
-  }
-
-  .heroActions,
-  .actionRow {
-    width: 100% !important;
-    justify-content: flex-start !important;
-    flex-wrap: wrap !important;
-  }
-
-  .heroActionDivider {
-    display: none;
-  }
-}
 
 /* Match screenshot layout for posts without image:
    left = content, right = info + detail stack */
 .noImageLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(240px, 0.55fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   align-items: start;
 }
@@ -1623,32 +1280,6 @@
   box-shadow: none !important;
 }
 
-@media (max-width: 920px) {
-  .noImageLayout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .noImageMain .descriptionCardWide {
-    min-height: 0;
-  }
-
-  .imagePostLayout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .imagePostMain .imageWrap {
-    min-height: 0;
-    aspect-ratio: 1.05 / 1;
-  }
-
-  .imagePostContentCard {
-    min-height: 0;
-  }
-
-  .imagePostMetaSplit {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
 
 /* Global color refresh: white + gray + sage (keep category palette as-is). */
 .page {

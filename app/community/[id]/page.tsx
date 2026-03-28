@@ -125,6 +125,7 @@ export default function CommunityDetailPage() {
   const [editingText, setEditingText] = useState("");
   const [pendingCommentId, setPendingCommentId] = useState<string | null>(null);
   const [pendingReportId, setPendingReportId] = useState<string | null>(null);
+  const [isImageViewerOpen, setIsImageViewerOpen] = useState(false);
 
   useEffect(() => {
     async function fetchDetail() {
@@ -754,106 +755,35 @@ export default function CommunityDetailPage() {
 
             <section className={`${styles.sectionCard} ${styles.introCard}`}>
 
+              <div className={styles.noImageLayout}>
+                <div className={styles.noImageMain}>
+                  <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
+                    <p className={styles.descriptionText}>{post.content}</p>
+                  </div>
+                </div>
+              </div>
+
               {post.imageUrl ? (
-                <div className={styles.imagePostLayout}>
-                  <div className={styles.imagePostMain}>
-                    <div className={styles.imageStage}>
-                      <div className={styles.imageWrap}>
-                        <Image
-                          src={post.imageUrl}
-                          alt={`${post.title} 첨부 이미지`}
-                          fill
-                          sizes="(max-width: 920px) 100vw, 46vw"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className={styles.imagePostSide}>
-                    <div className={`${styles.descriptionCard} ${styles.imagePostContentCard}`}>
-                      <p className={styles.descriptionText}>{post.content}</p>
-                    </div>
-
-                    <div className={styles.imagePostMetaSingle}>
-                      <section className={styles.sectionCard}>
-                        <div className={styles.summaryList}>
-                          <div className={styles.summaryRow}>
-                            <span>카테고리</span>
-                            <span className={styles.summaryValue}>{post.category}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>작성자</span>
-                            <span className={styles.summaryValue}>@{post.author}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>작성일</span>
-                            <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>좋아요</span>
-                            <span className={styles.summaryValue}>{post.likes}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>댓글</span>
-                            <span className={styles.summaryValue}>{comments.length}</span>
-                          </div>
-                        </div>
-                      </section>
-                    </div>
-                  </div>
+                <div className={styles.mobileInlineImage}>
+                  <button
+                    type="button"
+                    className={styles.sideImageFrame}
+                    onClick={() => setIsImageViewerOpen(true)}
+                    aria-label="첨부 이미지를 크게 보기"
+                  >
+                    <Image
+                      src={post.imageUrl}
+                      alt={`${post.title} 첨부 이미지`}
+                      fill
+                      sizes="(max-width: 920px) 100vw, 46vw"
+                      className={styles.sideImage}
+                    />
+                    <span className={styles.sideImageZoomBadge} aria-hidden="true">
+                      🔍
+                    </span>
+                  </button>
                 </div>
-              ) : (
-                <div className={styles.noImageLayout}>
-                  <div className={styles.noImageMain}>
-                    <div className={`${styles.descriptionCard} ${styles.descriptionCardWide}`}>
-                      <p className={styles.descriptionText}>{post.content}</p>
-                    </div>
-                  </div>
-
-                  <div className={styles.noImageSide}>
-                    <div className={styles.infoStack}>
-                      <section className={styles.sectionCard}>
-                        <div className={styles.summaryList}>
-                          <div className={styles.summaryRow}>
-                            <span>카테고리</span>
-                            <span className={styles.summaryValue}>{post.category}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>작성자</span>
-                            <span className={styles.summaryValue}>@{post.author}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>작성일</span>
-                            <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>좋아요</span>
-                            <span className={styles.summaryValue}>{post.likes}</span>
-                          </div>
-                          <div className={styles.summaryRow}>
-                            <span>댓글</span>
-                            <span className={styles.summaryValue}>{comments.length}</span>
-                          </div>
-                        </div>
-                      </section>
-                      {detailEntries.length > 0 ? (
-                        <section className={`${styles.sectionCard} ${styles.detailSectionCard}`}>
-                          <div className={styles.detailList}>
-                            {detailEntries.map(([key, value]) => (
-                              <div key={key} className={styles.detailItem}>
-                                <div className={styles.detailMeta}>
-                                  <span className={styles.detailIndex}>{detailFieldLabels[key] ?? key}</span>
-                                </div>
-                                <p className={styles.detailText}>{value}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </section>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              )}
+              ) : null}
 
               {post.tags.length > 0 ? (
                 <div className={styles.tagList}>
@@ -867,20 +797,12 @@ export default function CommunityDetailPage() {
             </section>
 
             <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.commentsSection}`}>
-          <div className={styles.sectionHead}>
+          <div className={`${styles.sectionHead} ${styles.commentsHead}`}>
             <h2 className={styles.sectionTitle}>댓글</h2>
             <p className={styles.sectionDescription}>댓글 {comments.length}개</p>
           </div>
 
-            {!currentUserId ? (
-              <p className={styles.sectionDescription}>
-                입력창은 누구나 볼 수 있고, 등록 버튼을 누를 때 로그인 여부를 확인해요.
-              </p>
-            ) : null}
-          
-
           <div className={styles.composer}>
-            <label className={styles.label}>댓글 입력</label>
             <textarea
               value={newComment}
               onChange={(event) => setNewComment(event.target.value)}
@@ -889,7 +811,6 @@ export default function CommunityDetailPage() {
               className={styles.textarea}
             />
             <div className={styles.composerFooter}>
-              <p className={styles.hintText}>등록 버튼을 누르면 로그인 여부를 확인해요.</p>
               <button
                 type="button"
                 onClick={() => submitComment(newComment)}
@@ -1150,9 +1071,9 @@ export default function CommunityDetailPage() {
                 );
               })
             ) : (
-              <div className="rounded-[1.6rem] border border-dashed border-[#d8cec0] bg-[#fcfaf7] px-6 py-12 text-center shadow-sm">
-                <p className="text-lg font-semibold text-[#6f6257]">아직 댓글이 없어요</p>
-                <p className="mt-2 text-sm text-[#9b8b7f]">첫 댓글을 남겨 뜨개마당 대화를 시작해 보세요.</p>
+              <div className={styles.emptyState}>
+                <p className={styles.emptyStateTitle}>아직 댓글이 없어요</p>
+                <p className={styles.emptyStateDescription}>첫 댓글을 남겨 뜨개마당 대화를 시작해 보세요.</p>
               </div>
             )}
               </div>
@@ -1160,31 +1081,41 @@ export default function CommunityDetailPage() {
           </div>
 
           <aside className={styles.sideColumn}>
-            <section className={`${styles.sectionCard} ${styles.previewCard}`}>
-              <div className={styles.previewHead}>
-                {post.imageUrl ? (
-                  <div className={styles.previewImage}>
-                    <Image src={post.imageUrl} alt={`${post.title} 미리보기`} fill sizes="320px" />
-                  </div>
-                ) : null}
-                <div>
-                  <h3 className={styles.previewTitle}>{post.title}</h3>
-                  <p className={styles.previewDescription}>
-                    {post.content.length > 92 ? `${post.content.slice(0, 92)}...` : post.content}
-                  </p>
-                </div>
-              </div>
+            {post.imageUrl ? (
+              <section className={`${styles.sectionCard} ${styles.sideImageCard}`}>
+                <button
+                  type="button"
+                  className={styles.sideImageFrame}
+                  onClick={() => setIsImageViewerOpen(true)}
+                  aria-label="첨부 이미지를 크게 보기"
+                >
+                  <Image
+                    src={post.imageUrl}
+                    alt={`${post.title} 첨부 이미지`}
+                    fill
+                    sizes="320px"
+                    className={styles.sideImage}
+                  />
+                  <span className={styles.sideImageZoomBadge} aria-hidden="true">
+                    🔍
+                  </span>
+                </button>
+              </section>
+            ) : null}
 
+            <section className={styles.sectionCard}>
               <div className={styles.summaryList}>
                 <div className={styles.summaryRow}>
                   <span>카테고리</span>
                   <span className={styles.summaryValue}>{post.category}</span>
                 </div>
                 <div className={styles.summaryRow}>
-                  <span>태그</span>
-                  <span className={styles.summaryValue}>
-                    {post.tags.length ? post.tags.map((tag) => `#${tag}`).join(", ") : "-"}
-                  </span>
+                  <span>작성자</span>
+                  <span className={styles.summaryValue}>@{post.author}</span>
+                </div>
+                <div className={styles.summaryRow}>
+                  <span>작성일</span>
+                  <span className={styles.summaryValue}>{formatCommunityDate(post.createdAt)}</span>
                 </div>
                 <div className={styles.summaryRow}>
                   <span>좋아요</span>
@@ -1194,24 +1125,57 @@ export default function CommunityDetailPage() {
                   <span>댓글</span>
                   <span className={styles.summaryValue}>{comments.length}</span>
                 </div>
-                {detailEntries.length > 0 ? (
-                  <div className={`${styles.summaryRow} ${styles.summaryRowTop}`}>
-                    <span>추가 정보</span>
-                    <div className={styles.policyList}>
-                      {detailEntries.map(([key, value]) => (
-                        <div key={`preview-${key}`} className={styles.policyItem}>
-                          <span>{detailFieldLabels[key] ?? key}</span>
-                          <span className={styles.summaryPolicyValue}>{value}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
             </section>
+
+            {detailEntries.length > 0 ? (
+              <section className={styles.sectionCard}>
+                <div className={styles.detailList}>
+                  {detailEntries.map(([key, value]) => (
+                    <div key={`aside-${key}`} className={styles.detailItem}>
+                      <div className={styles.detailMeta}>
+                        <span className={styles.detailIndex}>{detailFieldLabels[key] ?? key}</span>
+                      </div>
+                      <p className={styles.detailText}>{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </aside>
         </div>
       </div>
+
+      {post.imageUrl && isImageViewerOpen ? (
+        <div
+          className={styles.imageViewerOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="첨부 이미지 확대 보기"
+          onClick={() => setIsImageViewerOpen(false)}
+        >
+          <div className={styles.imageViewerDialog} onClick={(event) => event.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.imageViewerClose}
+              onClick={() => setIsImageViewerOpen(false)}
+              aria-label="확대 보기 닫기"
+            >
+              닫기
+            </button>
+            <div className={styles.imageViewerFrame}>
+              <Image
+                src={post.imageUrl}
+                alt={`${post.title} 첨부 이미지 확대`}
+                fill
+                sizes="90vw"
+                className={styles.imageViewerImage}
+                priority
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
