@@ -421,7 +421,7 @@ export default function CommunityPostForm({
                       <button
                         type="button"
                         className={styles.tagAddButton}
-                        onClick={handleTagAdd}
+                        onClick={() => handleTagAdd()}
                         disabled={tags.length >= MAX_TAGS}
                       >
                         추가
