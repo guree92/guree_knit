@@ -1,6 +1,6 @@
 import type { DetailRow } from "@/lib/pattern-detail";
 
-export const companionStatuses = ["모집중", "곧 시작", "진행중", "완료"] as const;
+export const companionStatuses = ["모집중", "진행중"] as const;
 
 export const companionLevels = ["입문", "초중급", "중급", "중상급", "고급"] as const;
 export const companionThreadTypes = ["질문", "인증"] as const;
@@ -178,27 +178,10 @@ export type CompanionRoomState = {
 
 export function getEffectiveCompanionStatus(
   _status: CompanionStatus,
-  startDate: string,
-  endDate: string
+  participantCount: number,
+  capacity: number
 ): CompanionStatus {
-  const start = new Date(`${startDate}T00:00:00`);
-  const soonBoundary = new Date(`${startDate}T00:00:00`);
-  soonBoundary.setDate(soonBoundary.getDate() - 1);
-  const deadline = new Date(`${endDate}T23:59:59`);
-  const now = new Date();
-
-  if (!Number.isNaN(deadline.getTime()) && now > deadline) {
-    return "완료";
-  }
-
-  if (!Number.isNaN(start.getTime()) && now >= start) {
-    return "진행중";
-  }
-
-  if (!Number.isNaN(soonBoundary.getTime()) && now >= soonBoundary) {
-    return "곧 시작";
-  }
-
+  if (capacity > 0 && participantCount >= capacity) return "진행중";
   return "모집중";
 }
 
@@ -224,7 +207,7 @@ export function mapCompanionRoom(
     level: row.level,
     capacity: row.capacity,
     participantCount: row.participant_count ?? 0,
-    status: getEffectiveCompanionStatus(row.status, row.start_date, row.end_date),
+    status: getEffectiveCompanionStatus(row.status, row.participant_count ?? 0, row.capacity),
     tags: row.tags ?? [],
     createdAt: row.created_at,
   };
@@ -263,25 +246,22 @@ export function formatCompanionSchedule(room: Pick<CompanionRoom, "startDate" | 
 export function formatCompanionMembers(
   room: Pick<CompanionRoom, "participantCount" | "capacity">
 ) {
-  return `${room.participantCount}명 참여`;
+  return `${room.participantCount}/${room.capacity}`;
 }
 
-export function isCompanionRecruitingOpen(recruitUntil: string) {
-  const deadline = new Date(`${recruitUntil}T23:59:59`);
-  const now = new Date();
-
-  if (Number.isNaN(deadline.getTime())) return false;
-
-  return now <= deadline;
+export function isCompanionRecruitingOpen(
+  room: Pick<CompanionRoom, "participantCount" | "capacity">
+) {
+  return room.participantCount < room.capacity;
 }
 
 export function getCompanionSummaryStats(rooms: CompanionRoom[]) {
   const recruitingCount = rooms.filter((room) => room.status === "모집중").length;
-  const startingSoonCount = rooms.filter((room) => room.status === "곧 시작").length;
+  const inProgressCount = rooms.filter((room) => room.status === "진행중").length;
 
   return [
-    { label: "모집 중", value: `${recruitingCount}개` },
-    { label: "곧 시작", value: `${startingSoonCount}개` },
+    { label: "모집중", value: `${recruitingCount}개` },
+    { label: "진행중", value: `${inProgressCount}개` },
   ];
 }
 
@@ -300,7 +280,7 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
   return {
     participants,
     notices: [
-      `${formatCompanionDate(room.recruitUntil)}까지 모집 후 ${formatCompanionDate(room.startDate)}에 시작해요.`,
+      `동행 진행 규칙과 공지를 먼저 확인해 주세요.`,
       `${room.patternName} 기준으로 진행하고, 막히는 부분은 질문 탭에 남겨주세요.`,
       `체크인 기록은 중간 진행 사진과 메모 중심으로 남기면 좋아요.`,
     ],

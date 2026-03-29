@@ -149,16 +149,21 @@ export default async function MyCompanionPage() {
     }
 
     rooms = companionRoomRows.map((row) => ({
-      ...mapCompanionRoom(row, {
-        hostName: row.host_user_id ? nicknameMap.get(row.host_user_id) ?? "진행자" : "진행자",
-      }),
+      ...mapCompanionRoom(
+        {
+          ...row,
+          participant_count: participantCountMap.get(row.id) ?? 0,
+        },
+        {
+          hostName: row.host_user_id ? nicknameMap.get(row.host_user_id) ?? "진행자" : "진행자",
+        }
+      ),
       participantCount: participantCountMap.get(row.id) ?? 0,
     }));
   }
 
-  const startingSoonCount = rooms.filter((room) => room.status === "곧 시작").length;
+  const recruitingCount = rooms.filter((room) => room.status === "모집중").length;
   const inProgressCount = rooms.filter((room) => room.status === "진행중").length;
-  const completedCount = rooms.filter((room) => room.status === "완료").length;
 
   return (
     <>
@@ -206,16 +211,16 @@ export default async function MyCompanionPage() {
                     <strong>{rooms.length}개</strong>
                   </div>
                   <div className={styles.sideRow}>
-                    <span>곧 시작하는 동행</span>
-                    <strong>{startingSoonCount}개</strong>
+                    <span>모집중 동행</span>
+                    <strong>{recruitingCount}개</strong>
                   </div>
                   <div className={styles.sideRow}>
                     <span>진행중 동행</span>
                     <strong>{inProgressCount}개</strong>
                   </div>
                   <div className={styles.sideRow}>
-                    <span>완료한 동행</span>
-                    <strong>{completedCount}개</strong>
+                    <span>정원 달성 동행</span>
+                    <strong>{inProgressCount}개</strong>
                   </div>
                 </div>
               </section>
@@ -226,7 +231,7 @@ export default async function MyCompanionPage() {
                   <h2 className={styles.sectionTitle}>작은 메모</h2>
                 </div>
                 <div className={styles.noteList}>
-                  <p>곧 시작하는 방은 준비물과 공지를 먼저 확인해두면 좋아요.</p>
+                  <p>{"\uBAA8\uC9D1\uC911\uC778 \uBC29\uC740 \uC815\uC6D0\uC744 \uD655\uC778\uD574 \uCC38\uC5EC \uD0C0\uC774\uBC0D\uC744 \uB9DE\uCD94\uBA74 \uC88B\uC544\uC694."}</p>
                   <p>진행 중인 방에서는 질문과 체크인을 자주 남길수록 흐름이 좋아져요.</p>
                   <p>새로운 분위기를 만들고 싶다면 직접 동행방을 열어도 좋아요.</p>
                 </div>

@@ -20,12 +20,10 @@ function getStatusClassName(room: CompanionRoom) {
   switch (room.status) {
     case "모집중":
       return styles.statusRecruiting;
-    case "곧 시작":
-      return styles.statusSoon;
     case "진행중":
       return styles.statusProgress;
     default:
-      return styles.statusDone;
+      return styles.statusProgress;
   }
 }
 
@@ -33,12 +31,8 @@ function getTabTone(status: StatusFilter) {
   switch (status) {
     case "모집중":
       return styles.tabRecruiting;
-    case "곧 시작":
-      return styles.tabSoon;
     case "진행중":
       return styles.tabProgress;
-    case "완료":
-      return styles.tabDone;
     default:
       return "";
   }

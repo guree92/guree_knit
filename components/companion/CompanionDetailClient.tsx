@@ -45,10 +45,9 @@ const copyrightPolicyRows = [
 ] as const;
 
 function getStatusClassName(room: CompanionRoom) {
-  if (room.status === "모집중") return styles.statusRecruiting;
-  if (room.status === "곧 시작") return styles.statusSoon;
-  if (room.status === "진행중") return styles.statusProgress;
-  return styles.statusDone;
+  if (room.status === "\uBAA8\uC9D1\uC911") return styles.statusRecruiting;
+  if (room.status === "\uC9C4\uD589\uC911") return styles.statusProgress;
+  return styles.statusRecruiting;
 }
 
 function parsePatternSize(sizeText: string) {
@@ -69,16 +68,6 @@ function parsePatternSize(sizeText: string) {
   };
 }
 
-function formatDateLabel(value: string) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ko-KR", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(date);
-}
 
 function formatDateTimeLabel(value: string) {
   const date = new Date(value);
@@ -399,7 +388,7 @@ export default function CompanionDetailClient() {
   const isHost = Boolean(currentUserId && currentRoom?.hostUserId && currentRoom.hostUserId === currentUserId);
   const canAccessMemberPanels = isJoined || isHost;
   const visiblePanel = activePanel === "pattern" || canAccessMemberPanels ? activePanel : "overview";
-  const isRecruitingOpen = currentRoom ? isCompanionRecruitingOpen(currentRoom.recruitUntil) : false;
+  const isRecruitingOpen = currentRoom ? isCompanionRecruitingOpen(currentRoom) : false;
   const overviewNotices = roomState?.notices ?? [];
   const questionThreads = (roomState?.threads ?? []).filter((thread) => thread.type === "질문");
   const sortedQuestionThreads = [...questionThreads].sort(
@@ -878,7 +867,7 @@ export default function CompanionDetailClient() {
                   </Link>
                 ) : null}
                 <button type="button" onClick={handleJoinToggle} className={styles.submitButton}>
-                  {isJoined ? "참여 취소" : isRecruitingOpen ? "참여 신청" : "모집 마감"}
+                  {isJoined ? "\uCC38\uC5EC \uCDE8\uC18C" : isRecruitingOpen ? "\uCC38\uC5EC \uC2E0\uCCAD" : "\uC815\uC6D0 \uB9C8\uAC10"}
                 </button>
                 <button
                   type="button"
@@ -922,8 +911,8 @@ export default function CompanionDetailClient() {
                     <span className={styles.summaryValue}>{formatCompanionSchedule(currentRoom)}</span>
                   </div>
                   <div className={styles.summaryRow}>
-                    <span>모집 마감</span>
-                    <span className={styles.summaryValue}>{formatDateLabel(currentRoom.recruitUntil)}</span>
+                    <span>{"\uBAA8\uC9D1 \uC0C1\uD0DC"}</span>
+                    <span className={styles.summaryValue}>{isRecruitingOpen ? "\uBAA8\uC9D1\uC911" : "\uC9C4\uD589\uC911"}</span>
                   </div>
                   <div className={styles.summaryRow}>
                     <span>난이도</span>

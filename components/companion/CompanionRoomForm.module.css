@@ -1,4 +1,4 @@
-.page {
+﻿.page {
   --card-border: rgba(230, 221, 210, 0.82);
   --card-bg: linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(250, 247, 242, 0.95));
   --surface-border: #ddd4c9;
@@ -8,7 +8,7 @@
   --brand-gradient: linear-gradient(135deg, #8a9b84, #70806b);
   --brand-shadow: 0 10px 18px rgba(111, 130, 107, 0.18);
   min-height: calc(100vh - 48px);
-  padding: 0 14px 20px;
+  padding: 0 0 20px;
   color: #3d3128;
 }
 
@@ -32,12 +32,13 @@
 }
 
 .hero {
-  margin-top: 0;
-  padding: 20px 28px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  gap: 8px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  padding: 42px 24px 2px;
+  margin-bottom: 16px;
 }
 
 .tagComposer,
@@ -52,16 +53,16 @@
 
 .heroTop,
 .heroHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  align-items: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-.heroBody {
+.heroBody,
+.heroIntro {
   display: grid;
   gap: 10px;
-  max-width: 760px;
 }
 
 .eyebrow {
@@ -86,35 +87,92 @@
 
 .heroTitle {
   margin: 0;
-  color: #34291f;
-  max-width: 10ch;
-  font-size: clamp(1.8rem, 3vw, 2.95rem);
-  line-height: 1.02;
+  color: #111827;
+  font-size: clamp(1.95rem, 3vw, 2.7rem);
+  line-height: 1.04;
   font-weight: 900;
   letter-spacing: -0.05em;
 }
 
 .heroDescription {
   margin: 0;
-  max-width: 760px;
-  color: #75675b;
-  font-size: 0.88rem;
-  line-height: 1.6;
+  max-width: 56ch;
+  color: #6b7280;
+  font-size: 0.9rem;
+  line-height: 1.55;
 }
 
 .heroActions {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  align-self: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.heroActionsInline {
   justify-content: flex-end;
+  flex-wrap: nowrap;
+  width: auto;
+  margin-top: 0;
+}
+
+.primaryAction,
+.secondaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 124px;
+  padding: 13px 18px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    box-shadow 160ms ease,
+    filter 160ms ease;
+}
+
+.heroActionsInline .secondaryAction,
+.heroActionsInline .primaryAction {
+  min-height: 48px;
+  min-width: 0;
+  padding: 0 22px;
+  font-size: 1rem;
+}
+
+.primaryAction {
+  border: 1px solid transparent;
+  background: var(--brand-gradient);
+  color: #ffffff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px rgba(143, 167, 125, 0.24);
+  cursor: pointer;
+}
+
+.heroActionsInline .primaryAction {
+  background: linear-gradient(135deg, #a7bc98, #8fa77d);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 6px 14px rgba(143, 167, 125, 0.24);
+}
+
+.secondaryAction {
+  border: 1px solid var(--surface-border);
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: var(--chip-text);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(15, 23, 42, 0.05);
 }
 
 .workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 274px;
-  gap: 10px;
-  margin-top: 10px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 41px;
+  padding: 0 30px;
+  margin-top: 0;
   align-items: start;
 }
 
@@ -402,6 +460,8 @@
 
 .primaryButton:hover,
 .secondaryButton:hover,
+.primaryAction:hover,
+.secondaryAction:hover,
 .tagButton:hover,
 .tagChip:hover,
 .sourceTypeButton:hover,
@@ -463,49 +523,3 @@
   line-height: 1.65;
 }
 
-@media (max-width: 1180px) {
-  .workspace {
-    grid-template-columns: 1fr;
-  }
-
-  .sideColumn {
-    position: static;
-  }
-}
-
-@media (max-width: 820px) {
-  .mainColumn,
-  .fieldGrid,
-  .fieldGridThree,
-  .previewInfoGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .basicsHeader,
-  .companionIntroGrid,
-  .externalPatternGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .inlineModeHead {
-    padding: 0;
-  }
-
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 18px 18px;
-  }
-
-  .heroHeader {
-    grid-template-columns: 1fr;
-    align-items: flex-start;
-  }
-
-  .heroTitle {
-    max-width: none;
-  }
-
-  .heroActions {
-    justify-content: flex-start;
-  }
-}

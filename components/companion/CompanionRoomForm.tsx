@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -22,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import styles from "./CompanionRoomForm.module.css";
 
 const maxTags = 5;
+const MAX_CAPACITY = 10;
 const needleTypeOptions = ["코바늘", "대바늘"] as const;
 const levelOptions = ["초급", "중급", "고급"] as const;
 const categoryOptions = patternCategories.slice(1) as Array<(typeof patternCategories)[number]>;
@@ -55,9 +56,7 @@ type CompanionDraft = {
   externalPatternName: string;
   externalPatternUrl: string;
   summary: string;
-  startDate: string;
-  endDate: string;
-  recruitUntil: string;
+  capacity: string;
   level: CompanionLevel;
   tags: string[];
   customPatternTitle: string;
@@ -86,9 +85,7 @@ const initialDraft: CompanionDraft = {
   externalPatternName: "",
   externalPatternUrl: "",
   summary: "",
-  startDate: "",
-  endDate: "",
-  recruitUntil: "",
+  capacity: String(MAX_CAPACITY),
   level: companionLevels[0],
   tags: [],
   customPatternTitle: "",
@@ -201,9 +198,7 @@ export default function CompanionRoomForm({
   const [externalPatternImagePreviewUrl, setExternalPatternImagePreviewUrl] = useState("");
   const [externalPatternImagePreviewFailed, setExternalPatternImagePreviewFailed] = useState(false);
   const [summary, setSummary] = useState(initialDraft.summary);
-  const [startDate, setStartDate] = useState(initialDraft.startDate);
-  const [endDate, setEndDate] = useState(initialDraft.endDate);
-  const [recruitUntil, setRecruitUntil] = useState(initialDraft.recruitUntil);
+  const [capacity, setCapacity] = useState(initialDraft.capacity);
   const [level, setLevel] = useState<CompanionLevel>(initialDraft.level);
   const [tags, setTags] = useState<string[]>(initialDraft.tags);
   const [tagInput, setTagInput] = useState("");
@@ -314,7 +309,7 @@ export default function CompanionRoomForm({
       normalizedType.includes("heif")
     );
   }, [externalPatternImageFile]);
-  const todayDateString = useMemo(() => {
+  const defaultDateString = useMemo(() => {
     const now = new Date();
     const offset = now.getTimezoneOffset() * 60000;
     return new Date(now.getTime() - offset).toISOString().slice(0, 10);
@@ -334,9 +329,7 @@ export default function CompanionRoomForm({
       setExternalPatternName(parsed.externalPatternName ?? initialDraft.externalPatternName);
       setExternalPatternUrl(parsed.externalPatternUrl ?? initialDraft.externalPatternUrl);
       setSummary(parsed.summary ?? initialDraft.summary);
-      setStartDate(parsed.startDate ?? initialDraft.startDate);
-      setEndDate(parsed.endDate ?? initialDraft.endDate);
-      setRecruitUntil(parsed.recruitUntil ?? initialDraft.recruitUntil);
+      setCapacity(parsed.capacity ?? initialDraft.capacity);
       setLevel(parsed.level ?? initialDraft.level);
       setTags(parsed.tags ?? initialDraft.tags);
       setCustomPatternTitle(parsed.customPatternTitle ?? initialDraft.customPatternTitle);
@@ -377,9 +370,7 @@ export default function CompanionRoomForm({
       externalPatternName,
       externalPatternUrl,
       summary,
-      startDate,
-      endDate,
-      recruitUntil,
+      capacity,
       level,
       tags,
       customPatternTitle,
@@ -420,14 +411,12 @@ export default function CompanionRoomForm({
     customPatternTotalYarnAmount,
     customPatternWidth,
     customPatternYarn,
-    endDate,
+    capacity,
     externalPatternName,
     externalPatternUrl,
     level,
     patternSourceType,
-    recruitUntil,
     selectedPatternId,
-    startDate,
     summary,
     tags,
     title,
@@ -453,9 +442,7 @@ export default function CompanionRoomForm({
     );
     setExternalPatternImagePreviewFailed(false);
     setSummary(initialRoom.summary ?? "");
-    setStartDate(initialRoom.start_date ?? "");
-    setEndDate(initialRoom.end_date ?? "");
-    setRecruitUntil(initialRoom.recruit_until ?? "");
+    setCapacity(String(initialRoom.capacity ?? MAX_CAPACITY));
     setLevel(initialRoom.level ?? companionLevels[0]);
     setTags(initialRoom.tags ?? []);
 
@@ -633,18 +620,9 @@ function updateCopyrightSetting(
       return;
     }
 
-    if (!startDate || !endDate || !recruitUntil) {
-      alert("모집 마감일과 시작일, 종료일을 입력해 주세요.");
-      return;
-    }
-
-    if (recruitUntil > startDate) {
-      alert("모집 마감일은 시작일보다 늦을 수 없어요.");
-      return;
-    }
-
-    if (startDate > endDate) {
-      alert("종료일은 시작일보다 빠를 수 없어요.");
+    const parsedCapacity = Number.parseInt(capacity, 10);
+    if (!Number.isFinite(parsedCapacity) || parsedCapacity < 2 || parsedCapacity > MAX_CAPACITY) {
+      alert("인원 제한은 2명 이상 10명 이하로 입력해 주세요.");
       return;
     }
 
@@ -800,11 +778,11 @@ function updateCopyrightSetting(
         title: title.trim(),
         pattern_name: patternName,
         summary: summary.trim(),
-        start_date: startDate,
-        end_date: endDate,
-        recruit_until: recruitUntil,
+        start_date: defaultDateString,
+        end_date: defaultDateString,
+        recruit_until: defaultDateString,
         level,
-        capacity: 9999,
+        capacity: parsedCapacity,
         status: "모집중" as const,
         tags,
       };
@@ -825,7 +803,7 @@ function updateCopyrightSetting(
             room_id: roomId,
             author_user_id: user.id,
             title: "동행 시작 안내",
-            content: `${hostName}님이 연 동행방이에요. ${startDate}부터 함께 시작합니다.`,
+            content: `${hostName}님이 동행방을 열었어요. 준비물을 확인하고 함께 시작해요.`,
             is_pinned: true,
           },
         ];
@@ -1535,49 +1513,12 @@ function updateCopyrightSetting(
               <section className={`${styles.sectionCard} ${styles.scheduleCard}`}>
                 <div className={styles.sectionHead}>
                   <span className={styles.eyebrow}>Schedule</span>
-                  <h2 className={styles.sectionTitle}>일정과 모집</h2>
+                  <h2 className={styles.sectionTitle}>{"\uC77C\uC815\uACFC \uBAA8\uC9D1"}</h2>
                 </div>
 
                 <div className={styles.fieldGridThree}>
                   <label className={styles.field}>
-                    <span className={styles.fieldLabel}>모집 마감일</span>
-                    <input
-                      type="date"
-                      className={styles.input}
-                      value={recruitUntil}
-                      min={todayDateString}
-                      max={startDate || undefined}
-                      onChange={(event) => setRecruitUntil(event.target.value)}
-                    />
-                  </label>
-
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>시작일</span>
-                    <input
-                      type="date"
-                      className={styles.input}
-                      value={startDate}
-                      min={todayDateString}
-                      max={endDate || undefined}
-                      onChange={(event) => setStartDate(event.target.value)}
-                    />
-                  </label>
-
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>종료일</span>
-                    <input
-                      type="date"
-                      className={styles.input}
-                      value={endDate}
-                      min={startDate || todayDateString}
-                      onChange={(event) => setEndDate(event.target.value)}
-                    />
-                  </label>
-                </div>
-
-                <div className={styles.fieldGridThree}>
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>난이도</span>
+                    <span className={styles.fieldLabel}>{"\uB09C\uC774\uB3C4"}</span>
                     <select
                       className={styles.select}
                       value={level}
@@ -1589,6 +1530,18 @@ function updateCopyrightSetting(
                         </option>
                       ))}
                     </select>
+                  </label>
+
+                  <label className={styles.field}>
+                    <span className={styles.fieldLabel}>{"\uC778\uC6D0 \uC81C\uD55C (\uCD5C\uB300 10\uBA85)"}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={MAX_CAPACITY}
+                      className={styles.input}
+                      value={capacity}
+                      onChange={(event) => setCapacity(event.target.value)}
+                    />
                   </label>
                 </div>
               </section>
@@ -1642,12 +1595,10 @@ function updateCopyrightSetting(
                 </div>
                 <div className={styles.previewInfoGrid}>
                   <div className={styles.previewInfoBox}>
-                    <span>모집</span>
-                    <strong>{recruitUntil || "-"}</strong>
+                    <span>참여 현황</span>
+                    <strong>1/{capacity || MAX_CAPACITY}</strong>
                   </div>
                   <div className={styles.previewInfoBox}>
-                    <span>일정</span>
-                    <strong>{startDate && endDate ? `${startDate} ~ ${endDate}` : "-"}</strong>
                   </div>
                   <div className={styles.previewInfoBox}>
                     <span>난이도</span>
@@ -1672,3 +1623,9 @@ function updateCopyrightSetting(
     </>
   );
 }
+
+
+
+
+
+

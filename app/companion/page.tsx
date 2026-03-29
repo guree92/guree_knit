@@ -1,8 +1,10 @@
+﻿import Image from "next/image";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import Header from "@/components/layout/Header";
 import CompanionBoardClient from "@/components/companion/CompanionBoardClient";
 import { mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
 import styles from "./page.module.css";
+import heroHeaderImage from "../../Image/headerlogo.png";
 
 export default async function CompanionPage() {
   const supabase = await createServerClient();
@@ -36,9 +38,15 @@ export default async function CompanionPage() {
   }
 
   const rooms: CompanionRoom[] = companionRoomRows.map((row) => ({
-    ...mapCompanionRoom(row, {
-      hostName: row.host_user_id ? nicknameMap.get(row.host_user_id) ?? "진행자" : "진행자",
-    }),
+    ...mapCompanionRoom(
+      {
+        ...row,
+        participant_count: participantCountMap.get(row.id) ?? 0,
+      },
+      {
+        hostName: row.host_user_id ? nicknameMap.get(row.host_user_id) ?? "진행자" : "진행자",
+      }
+    ),
     participantCount: participantCountMap.get(row.id) ?? 0,
   }));
 
@@ -46,8 +54,22 @@ export default async function CompanionPage() {
     <>
       <Header />
       <main className={styles.page}>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image
+                src={heroHeaderImage}
+                alt="Hero header"
+                priority
+                unoptimized
+                className={styles.heroTitleImageAsset}
+              />
+            </div>
+          </div>
+        </section>
         <CompanionBoardClient rooms={rooms} />
       </main>
     </>
   );
 }
+
