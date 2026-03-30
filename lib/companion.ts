@@ -1,7 +1,7 @@
 ﻿import type { DetailRow } from "@/lib/pattern-detail";
 
 export const companionStatuses = ["모집중", "진행중"] as const;
-export const companionLevels = ["입문", "초급", "중급", "중상급", "고급"] as const;
+export const companionLevels = ["입문", "초급", "초중급", "중급", "중상급", "고급"] as const;
 export const companionThreadTypes = ["질문", "인증"] as const;
 export const companionPatternSourceTypes = ["site", "custom", "external"] as const;
 export const companionDraftStorageKey = "knit_companion_room_draft";
