@@ -1,14 +1,16 @@
-﻿import Link from "next/link";
+﻿import Image from "next/image";
+import Link from "next/link";
 import Header from "@/components/layout/Header";
 import MyCompanionBoardClient from "@/components/companion/MyCompanionBoardClient";
+import MyCompanionStatusPanelClient from "@/components/companion/MyCompanionStatusPanelClient";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import { mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
 import styles from "./page.module.css";
+import heroHeaderImage from "../../../Image/headerlogo.png";
 
 function MineHero() {
   return (
     <section className={styles.mineHero}>
-      <div className={styles.mineHeroBadge}>My Companion</div>
       <h1 className={styles.mineHeroTitle}>나와의 동행</h1>
     </section>
   );
@@ -18,15 +20,14 @@ function MineHeroWithActions() {
   return (
     <section className={styles.mineHeroWithActions}>
       <div className={styles.mineHeroContent}>
-        <div className={styles.mineHeroBadge}>My Companion</div>
         <h1 className={styles.mineHeroTitle}>나와의 동행</h1>
       </div>
       <div className={styles.mineHeroActions}>
-        <Link href="/companion/new" className={styles.primaryAction}>
-          동행방 만들기
-        </Link>
         <Link href="/companion" className={styles.secondaryAction}>
           모두의 동행
+        </Link>
+        <Link href="/companion/new" className={styles.primaryAction}>
+          동행방 만들기
         </Link>
       </div>
     </section>
@@ -44,6 +45,13 @@ export default async function MyCompanionPage() {
       <>
         <Header />
         <main className={styles.page}>
+          <section className={styles.heroPanel}>
+            <div className={styles.heroCopy}>
+              <div className={styles.heroTitleImage}>
+                <Image src={heroHeaderImage} alt="Hero header" priority unoptimized className={styles.heroTitleImageAsset} />
+              </div>
+            </div>
+          </section>
           <div className={styles.shell}>
             <section className={styles.workspace}>
               <div className={styles.mainColumn}>
@@ -88,25 +96,27 @@ export default async function MyCompanionPage() {
     );
   }
 
-  const { data: myParticipantRows, error: myParticipantError } = await supabase
-    .from("companion_participants")
-    .select("room_id")
-    .eq("user_id", user.id);
+  const [{ data: myParticipantRows, error: myParticipantError }, { data: myHostedRows, error: myHostedError }] =
+    await Promise.all([
+      supabase.from("companion_participants").select("room_id").eq("user_id", user.id),
+      supabase.from("companion_rooms").select("id").eq("host_user_id", user.id),
+    ]);
 
-  if (myParticipantError) {
-    throw new Error(myParticipantError.message);
-  }
+  if (myParticipantError) throw new Error(myParticipantError.message);
+  if (myHostedError) throw new Error(myHostedError.message);
 
   const joinedRoomIds = Array.from(
-    new Set(
-      (((myParticipantRows ?? []) as Array<{ room_id: string }>) ?? []).map((row) => row.room_id)
-    )
+    new Set([
+      ...((((myParticipantRows ?? []) as Array<{ room_id: string }>) ?? []).map((row) => row.room_id)),
+      ...((((myHostedRows ?? []) as Array<{ id: string }>) ?? []).map((row) => row.id)),
+    ])
   );
 
   let rooms: CompanionRoom[] = [];
+  const latestMyCheckInByRoom: Record<string, string | null> = {};
 
   if (joinedRoomIds.length > 0) {
-    const [{ data: roomRows, error: roomError }, { data: participantRows, error: participantError }] =
+    const [{ data: roomRows, error: roomError }, { data: participantRows, error: participantError }, { data: myCheckInRows, error: myCheckInError }] =
       await Promise.all([
         supabase
           .from("companion_rooms")
@@ -114,16 +124,39 @@ export default async function MyCompanionPage() {
           .in("id", joinedRoomIds)
           .order("created_at", { ascending: false }),
         supabase.from("companion_participants").select("room_id, user_id").in("room_id", joinedRoomIds),
+        supabase.from("companion_checkins").select("room_id, created_at").eq("author_user_id", user.id).in("room_id", joinedRoomIds),
       ]);
 
     if (roomError) throw new Error(roomError.message);
     if (participantError) throw new Error(participantError.message);
+    if (myCheckInError) throw new Error(myCheckInError.message);
 
     const companionRoomRows = ((roomRows ?? []) as CompanionRoomRow[]) ?? [];
     const participantCountMap = new Map<string, number>();
+    const participantUserMap = new Map<string, Set<string>>();
 
     (((participantRows ?? []) as Array<{ room_id: string; user_id: string }>) ?? []).forEach((row) => {
       participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
+
+      const users = participantUserMap.get(row.room_id) ?? new Set<string>();
+      users.add(row.user_id);
+      participantUserMap.set(row.room_id, users);
+    });
+
+    // 진행자도 참여 인원 1명으로 포함되도록 집계합니다.
+    companionRoomRows.forEach((row) => {
+      if (!row.host_user_id) return;
+
+      const users = participantUserMap.get(row.id);
+      if (users?.has(row.host_user_id)) return;
+
+      participantCountMap.set(row.id, (participantCountMap.get(row.id) ?? 0) + 1);
+    });
+    (((myCheckInRows ?? []) as Array<{ room_id: string; created_at: string }>) ?? []).forEach((row) => {
+      const currentLatest = latestMyCheckInByRoom[row.room_id];
+      if (!currentLatest || new Date(row.created_at).getTime() > new Date(currentLatest).getTime()) {
+        latestMyCheckInByRoom[row.room_id] = row.created_at;
+      }
     });
 
     const hostIds = Array.from(
@@ -162,24 +195,25 @@ export default async function MyCompanionPage() {
     }));
   }
 
-  const recruitingCount = rooms.filter((room) => room.status === "모집중").length;
-  const inProgressCount = rooms.filter((room) => room.status === "진행중").length;
-
   return (
     <>
       <Header />
       <main className={styles.page}>
+        <section className={styles.heroPanel}>
+          <div className={styles.heroCopy}>
+            <div className={styles.heroTitleImage}>
+              <Image src={heroHeaderImage} alt="Hero header" priority unoptimized className={styles.heroTitleImageAsset} />
+            </div>
+          </div>
+        </section>
         <div className={styles.shell}>
           <section className={styles.workspace}>
             <div className={styles.mainColumn}>
               <MineHeroWithActions />
 
               <section className={styles.listSection}>
-                <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitle}>참여한 동행방</h2>
-                </div>
                 {rooms.length > 0 ? (
-                  <MyCompanionBoardClient rooms={rooms} />
+                  <MyCompanionBoardClient rooms={rooms} currentUserId={user.id} latestMyCheckInByRoom={latestMyCheckInByRoom} />
                 ) : (
                   <div className={styles.feedbackCard}>
                     <p className={styles.feedbackTitle}>아직 참여한 동행방이 없어요.</p>
@@ -200,30 +234,7 @@ export default async function MyCompanionPage() {
             </div>
 
             <aside className={styles.sideColumn}>
-              <section className={styles.sidePanel}>
-                <div className={styles.sectionHeader}>
-                  <span className={styles.sectionEyebrow}>My Status</span>
-                  <h2 className={styles.sectionTitle}>지금의 흐름</h2>
-                </div>
-                <div className={styles.sideList}>
-                  <div className={styles.sideRow}>
-                    <span>내가 참여한 동행</span>
-                    <strong>{rooms.length}개</strong>
-                  </div>
-                  <div className={styles.sideRow}>
-                    <span>모집중 동행</span>
-                    <strong>{recruitingCount}개</strong>
-                  </div>
-                  <div className={styles.sideRow}>
-                    <span>진행중 동행</span>
-                    <strong>{inProgressCount}개</strong>
-                  </div>
-                  <div className={styles.sideRow}>
-                    <span>정원 달성 동행</span>
-                    <strong>{inProgressCount}개</strong>
-                  </div>
-                </div>
-              </section>
+              <MyCompanionStatusPanelClient rooms={rooms} currentUserId={user.id} latestMyCheckInByRoom={latestMyCheckInByRoom} />
 
               <section className={styles.sidePanel}>
                 <div className={styles.sectionHeader}>

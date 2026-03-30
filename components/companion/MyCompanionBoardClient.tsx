@@ -1,26 +1,30 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import {
-  companionStatuses,
   formatCompanionMembers,
   formatCompanionSchedule,
   type CompanionRoom,
 } from "@/lib/companion";
+import { getMyCompanionState, readCompanionBoardMeta } from "@/lib/companion-board-meta";
 import styles from "@/app/companion/mine/page.module.css";
 
 type Props = {
   rooms: CompanionRoom[];
+  currentUserId: string;
+  latestMyCheckInByRoom: Record<string, string | null>;
 };
 
-type StatusFilter = "전체" | (typeof companionStatuses)[number];
+type StatusFilter = "progress" | "resting" | "graduated";
 
-function getStatusClassName(room: CompanionRoom) {
-  switch (room.status) {
-    case "모집중":
+function getStatusClassName(status: StatusFilter) {
+  switch (status) {
+    case "progress":
       return styles.statusRecruiting;
-    case "진행중":
+    case "resting":
+      return styles.statusDone;
+    case "graduated":
       return styles.statusProgress;
     default:
       return styles.statusProgress;
@@ -29,28 +33,50 @@ function getStatusClassName(room: CompanionRoom) {
 
 function getTabTone(status: StatusFilter) {
   switch (status) {
-    case "모집중":
+    case "progress":
       return styles.tabRecruiting;
-    case "진행중":
+    case "resting":
+      return styles.tabDone;
+    case "graduated":
       return styles.tabProgress;
     default:
       return "";
   }
 }
 
-export default function MyCompanionBoardClient({ rooms }: Props) {
-  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("전체");
+function getStatusLabel(status: StatusFilter) {
+  if (status === "progress") return "진행";
+  if (status === "resting") return "휴식";
+  return "졸업";
+}
+
+export default function MyCompanionBoardClient({ rooms, currentUserId, latestMyCheckInByRoom }: Props) {
+  const [selectedStatus, setSelectedStatus] = useState<StatusFilter>("progress");
+  const isHydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
+  const roomStatuses = useMemo(
+    () =>
+      Object.fromEntries(
+        rooms.map((room) => {
+          const meta = isHydrated ? readCompanionBoardMeta(room.id)[currentUserId] : undefined;
+          return [room.id, getMyCompanionState(meta, latestMyCheckInByRoom[room.id] ?? room.createdAt ?? null)];
+        })
+      ) as Record<string, StatusFilter>,
+    [isHydrated, rooms, currentUserId, latestMyCheckInByRoom]
+  );
 
   const filteredRooms = useMemo(() => {
-    if (selectedStatus === "전체") return rooms;
-    return rooms.filter((room) => room.status === selectedStatus);
-  }, [rooms, selectedStatus]);
+    return rooms.filter((room) => (roomStatuses[room.id] ?? "progress") === selectedStatus);
+  }, [rooms, roomStatuses, selectedStatus]);
 
   return (
     <>
       <div className={styles.toolbar}>
         <div className={styles.tabRow}>
-          {(["전체", ...companionStatuses] as const).map((status) => (
+          {(["progress", "resting", "graduated"] as const).map((status) => (
             <button
               key={status}
               type="button"
@@ -62,22 +88,19 @@ export default function MyCompanionBoardClient({ rooms }: Props) {
                 .join(" ")
                 .trim()}
             >
-              {status}
+              {getStatusLabel(status)}
             </button>
           ))}
         </div>
-        <span className={styles.resultText}>
-          {selectedStatus === "전체"
-            ? `전체 ${filteredRooms.length}개의 동행`
-            : `${selectedStatus} ${filteredRooms.length}개`}
-        </span>
       </div>
 
       {filteredRooms.length > 0 ? (
         <div className={styles.roomList}>
           {filteredRooms.map((room) => (
             <Link key={room.id} href={`/companion/${room.id}`} className={styles.roomCard}>
-              <div className={`${styles.statusBubble} ${getStatusClassName(room)}`}>{room.status}</div>
+              <div className={`${styles.statusBubble} ${getStatusClassName(roomStatuses[room.id] ?? "progress")}`}>
+                {getStatusLabel(roomStatuses[room.id] ?? "progress")}
+              </div>
 
               <div className={styles.roomBody}>
                 <span className={styles.patternPill}>{room.patternName}</span>
@@ -115,15 +138,15 @@ export default function MyCompanionBoardClient({ rooms }: Props) {
         <div className={styles.feedbackCard}>
           <p className={styles.feedbackTitle}>아직 이 상태의 동행이 없어요.</p>
           <p className={styles.feedbackDescription}>
-            다른 탭을 눌러 진행 흐름을 살펴보거나, 새 동행방을 만들어보세요.
+            다른 상태 탭을 눌러 내 동행 흐름을 확인해 보세요.
           </p>
           <div className={styles.emptyActions}>
             <button
               type="button"
-              onClick={() => setSelectedStatus("전체")}
+              onClick={() => setSelectedStatus("progress")}
               className={styles.secondaryAction}
             >
-              전체 보기
+              진행 보기
             </button>
             <Link href="/companion/new" className={styles.primaryAction}>
               동행방 만들기

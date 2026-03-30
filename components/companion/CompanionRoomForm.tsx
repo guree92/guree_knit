@@ -177,6 +177,16 @@ function parseCustomSizeDraft(value: string) {
   };
 }
 
+function buildOpeningNoticeContent(hostName: string, roomTitle: string, roomSummary: string) {
+  return `${hostName}이 ${roomTitle.trim()} 동행을 열었어요. 진행 기록은 자유롭게 게시할 수 있으며 참여한 다른 사람에게 보여져요.
+
+${roomSummary.trim()}
+
+게시를 일주일 이상 멈출 시 휴가상태로 전환됩니다. 휴가상태에서 동행에 다시 참여하기 위해서는 참여인원이 비어있어야만 휴가 해제가 가능하니 유의해주세요.
+
+졸업시 졸업게시판으로 이동됩니다. 졸업후에는 진행으로 되돌아올 수 없어요. 졸업한 인원만큼 인원제한이 없어져요`;
+}
+
 type CompanionRoomFormProps = {
   mode?: "create" | "edit";
   initialRoom?: CompanionRoomRow | null;
@@ -816,13 +826,53 @@ function updateCopyrightSetting(
         if (roomError) {
           throw new Error(roomError.message);
         }
+
+        const openingNoticeContent = buildOpeningNoticeContent(hostName, title, summary);
+        const { data: openingNoticeRow, error: openingNoticeQueryError } = await supabase
+          .from("companion_notices")
+          .select("id")
+          .eq("room_id", roomId)
+          .eq("is_pinned", true)
+          .eq("author_user_id", user.id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (openingNoticeQueryError) {
+          throw new Error(openingNoticeQueryError.message);
+        }
+
+        if (openingNoticeRow?.id) {
+          const { error: noticeUpdateError } = await supabase
+            .from("companion_notices")
+            .update({ title: "동행 시작 안내", content: openingNoticeContent })
+            .eq("id", openingNoticeRow.id)
+            .eq("room_id", roomId)
+            .eq("author_user_id", user.id);
+
+          if (noticeUpdateError) {
+            throw new Error(noticeUpdateError.message);
+          }
+        } else {
+          const { error: noticeInsertError } = await supabase.from("companion_notices").insert({
+            room_id: roomId,
+            author_user_id: user.id,
+            title: "동행 시작 안내",
+            content: openingNoticeContent,
+            is_pinned: true,
+          });
+
+          if (noticeInsertError) {
+            throw new Error(noticeInsertError.message);
+          }
+        }
       } else {
         const defaultNotices = [
           {
             room_id: roomId,
             author_user_id: user.id,
             title: "동행 시작 안내",
-            content: `${hostName}님이 동행방을 열었어요. 준비물을 확인하고 함께 시작해요.`,
+            content: buildOpeningNoticeContent(hostName, title, summary),
             is_pinned: true,
           },
         ];
@@ -1664,11 +1714,6 @@ function updateCopyrightSetting(
     </>
   );
 }
-
-
-
-
-
 
 
 

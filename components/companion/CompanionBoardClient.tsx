@@ -83,7 +83,7 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
 
     return [...sourceRooms]
       .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-      .slice(0, 3);
+      .slice(0, 4);
   }, [rooms]);
 
   const recruitingOpenCount = rooms.filter((room) => room.status === "모집중").length;
@@ -340,6 +340,5 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
     </div>
   );
 }
-
 
 

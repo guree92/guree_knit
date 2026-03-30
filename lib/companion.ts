@@ -128,6 +128,7 @@ export type CompanionCheckInRow = {
   author_user_id: string;
   title: string;
   content: string;
+  image_path?: string | null;
   created_at: string;
 };
 
