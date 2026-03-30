@@ -22,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import styles from "./CompanionRoomForm.module.css";
 
 const maxTags = 5;
+const companionTitleMaxLength = 25;
 const MAX_CAPACITY = 10;
 const needleTypeOptions = ["코바늘", "대바늘"] as const;
 const levelOptions = ["초급", "중급", "고급"] as const;
@@ -118,6 +119,10 @@ const initialDraft: CompanionDraft = {
 
 function normalizeTag(value: string) {
   return value.trim().replace(/^#+/, "").replace(/\s+/g, " ");
+}
+
+function stripTagSpaces(value: string) {
+  return value.replace(/\s+/g, "");
 }
 
 function createCompanionRoomId(title: string) {
@@ -552,6 +557,11 @@ export default function CompanionRoomForm({
   }
 
   function handleTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === " " || event.key === "Spacebar") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key !== "Enter" && event.key !== ",") return;
     event.preventDefault();
     addTag();
@@ -576,11 +586,15 @@ export default function CompanionRoomForm({
   }
 
   function handleCustomPatternTagKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === " " || event.key === "Spacebar") {
+      event.preventDefault();
+      return;
+    }
+
     if (event.key !== "Enter") return;
     event.preventDefault();
     addCustomPatternTag();
   }
-
 function updateCopyrightSetting(
     key: keyof Omit<CopyrightSettings, "source" | "sourceUrl">,
     value: CopyrightChoice
@@ -617,6 +631,11 @@ function updateCopyrightSetting(
   async function handleSubmit() {
     if (!title.trim() || !summary.trim()) {
       alert("동행 제목과 소개글을 모두 입력해 주세요.");
+      return;
+    }
+
+    if (title.trim().length > companionTitleMaxLength) {
+      alert(`동행 제목은 ${companionTitleMaxLength}자 이하로 입력해 주세요.`);
       return;
     }
 
@@ -870,7 +889,6 @@ function updateCopyrightSetting(
               <section className={`${styles.hero} ${styles.heroCompact}`}>
                 <div className={styles.heroHeader}>
                   <div className={styles.heroBody}>
-                    <span className={styles.eyebrow}>New Companion Room</span>
                     <h1 className={styles.heroTitle}>{isEditMode ? "동행 수정하기" : "동행방 만들기"}</h1>
                   </div>
 
@@ -893,40 +911,13 @@ function updateCopyrightSetting(
                 </div>
               </section>
 
-              <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.introCard}`}>
-                <div className={styles.basicsHeader}>
+              <section className={`${styles.sectionSpanFull} ${styles.introCard}`}>
+                <div className={`${styles.introPane} ${styles.companionIntroMain}`}>
                   <div className={styles.sectionHead}>
                     <h2 className={styles.sectionTitle}>기본 정보</h2>
                   </div>
-                  <div className={styles.inlineModeHead}>
-                    <h3 className={styles.sectionTitle}>도안 연결 방식</h3>
-                  </div>
-                </div>
 
-                <div className={styles.companionIntroGrid}>
-                  <div className={styles.companionIntroMain}>
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span className={styles.fieldLabel}>동행 제목</span>
-                      <input
-                        className={styles.input}
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        placeholder="예: 봄 가디건 같이 뜰 사람 구해요"
-                      />
-                    </label>
-
-                    <label className={`${styles.field} ${styles.fieldWide}`}>
-                      <span className={styles.fieldLabel}>동행 소개글</span>
-                      <textarea
-                        className={`${styles.textarea} ${styles.introTextarea}`}
-                        value={summary}
-                        onChange={(event) => setSummary(event.target.value)}
-                        placeholder="무엇을 함께 뜨는지, 어떤 흐름으로 진행할지 적어주세요."
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.companionIntroSide}>
+                  <div className={styles.field}>
                     <section className={styles.innerCard}>
                       <div className={styles.sourceTypeStack}>
                         <button
@@ -959,13 +950,105 @@ function updateCopyrightSetting(
                       </div>
                     </section>
                   </div>
+
+                  <label className={`${styles.field} ${styles.fieldWide}`}>
+                    <span className={styles.fieldLabel}>동행 제목</span>
+                    <input
+                      className={styles.input}
+                      value={title}
+                      maxLength={companionTitleMaxLength}
+                      onChange={(event) => setTitle(event.target.value.slice(0, companionTitleMaxLength))}
+                      placeholder="예: 봄 가디건 같이 뜰 사람 구해요"
+                    />
+                  </label>
+
+                  <label className={`${styles.field} ${styles.fieldWide}`}>
+                    <span className={styles.fieldLabel}>동행 소개글</span>
+                    <textarea
+                      className={`${styles.textarea} ${styles.introTextarea}`}
+                      value={summary}
+                      onChange={(event) => setSummary(event.target.value)}
+                      placeholder="무엇을 함께 뜨는지, 어떤 흐름으로 진행할지 적어주세요."
+                    />
+                  </label>
+                </div>
+
+                <div className={`${styles.introPane} ${styles.introPaneTight} ${styles.companionIntroSide}`}>
+                  <div className={styles.introMetaGrid}>
+                    <label className={styles.field}>
+                      <span className={styles.fieldLabel}>난이도</span>
+                      <select
+                        className={styles.select}
+                        value={level}
+                        onChange={(event) => setLevel(event.target.value as CompanionLevel)}
+                      >
+                        {companionLevels.map((item) => (
+                          <option key={item} value={item}>
+                            {item}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className={styles.field}>
+                      <span className={styles.fieldLabel}>인원 제한 (최대 10명)</span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={MAX_CAPACITY}
+                        className={styles.input}
+                        value={capacity}
+                        onChange={(event) => setCapacity(event.target.value)}
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.tagSection}>
+                    <div className={styles.sectionHead}>
+                      <h2 className={styles.sectionTitle}>동행 태그</h2>
+                    </div>
+
+                    <div className={styles.tagComposer}>
+                      <input
+                        className={styles.input}
+                        value={tagInput}
+                        onChange={(event) => setTagInput(stripTagSpaces(event.target.value))}
+                        onKeyDown={handleTagKeyDown}
+                        placeholder="예: 대바늘, 웨어, 주간체크인"
+                      />
+                    </div>
+
+                    <div className={styles.tagActionRow}>
+                      <button type="button" className={styles.tagButton} onClick={addTag}>
+                        태그 추가
+                      </button>
+                      <p className={styles.tagInlineHint}>최대 5개까지 넣을 수 있어요.</p>
+                    </div>
+
+                    <div className={styles.tagList}>
+                      {tags.length === 0 ? (
+                        <span className={styles.emptyText}>아직 추가한 태그가 없어요.</span>
+                      ) : (
+                        tags.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className={styles.tagChip}
+                            onClick={() => removeTag(tag)}
+                          >
+                            <span className={styles.tagChipLabel}>#{tag}</span>
+                            <span className={styles.tagChipAction}>X</span>
+                          </button>
+                        ))
+                      )}
+                    </div>
+                  </div>
                 </div>
               </section>
 
               {patternSourceType === "site" ? (
                 <section className={`${styles.sectionCard} ${styles.metaCard}`}>
                   <div className={styles.sectionHead}>
-                    <span className={styles.eyebrow}>Library</span>
                     <h2 className={styles.sectionTitle}>사이트 도안 선택</h2>
                     <p className={styles.sectionDescription}>
                       공개된 도안 중에서 바로 연결하면 동행 상세 탭에 전체 정보가 함께 보여져요.
@@ -1179,7 +1262,7 @@ function updateCopyrightSetting(
                             <input
                               className={patternStyles.input}
                               value={customPatternTagInput}
-                              onChange={(event) => setCustomPatternTagInput(event.target.value)}
+                              onChange={(event) => setCustomPatternTagInput(stripTagSpaces(event.target.value))}
                               onKeyDown={handleCustomPatternTagKeyDown}
                               placeholder="예: 사계절, 데일리"
                             />
@@ -1510,109 +1593,67 @@ function updateCopyrightSetting(
                 </>
               ) : null}
 
-              <section className={`${styles.sectionCard} ${styles.scheduleCard}`}>
-                <div className={styles.sectionHead}>
-                  <span className={styles.eyebrow}>Schedule</span>
-                  <h2 className={styles.sectionTitle}>{"\uC77C\uC815\uACFC \uBAA8\uC9D1"}</h2>
-                </div>
 
-                <div className={styles.fieldGridThree}>
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>{"\uB09C\uC774\uB3C4"}</span>
-                    <select
-                      className={styles.select}
-                      value={level}
-                      onChange={(event) => setLevel(event.target.value as CompanionLevel)}
-                    >
-                      {companionLevels.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <label className={styles.field}>
-                    <span className={styles.fieldLabel}>{"\uC778\uC6D0 \uC81C\uD55C (\uCD5C\uB300 10\uBA85)"}</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={MAX_CAPACITY}
-                      className={styles.input}
-                      value={capacity}
-                      onChange={(event) => setCapacity(event.target.value)}
-                    />
-                  </label>
-                </div>
-              </section>
-
-              <section className={`${styles.sectionCard} ${styles.tagsCard}`}>
-                <div className={styles.sectionHead}>
-                  <span className={styles.eyebrow}>Tags</span>
-                  <h2 className={styles.sectionTitle}>동행 태그</h2>
-                  <p className={styles.sectionDescription}>최대 5개까지 넣을 수 있어요.</p>
-                </div>
-
-                <div className={styles.tagComposer}>
-                  <input
-                    className={styles.input}
-                    value={tagInput}
-                    onChange={(event) => setTagInput(event.target.value)}
-                    onKeyDown={handleTagKeyDown}
-                    placeholder="예: 대바늘, 웨어, 주간체크인"
-                  />
-                  <button type="button" className={styles.tagButton} onClick={addTag}>
-                    태그 추가
-                  </button>
-                </div>
-
-                <div className={styles.tagList}>
-                  {tags.length === 0 ? (
-                    <span className={styles.emptyText}>아직 추가한 태그가 없어요.</span>
-                  ) : (
-                    tags.map((tag) => (
-                      <button
-                        key={tag}
-                        type="button"
-                        className={styles.tagChip}
-                        onClick={() => removeTag(tag)}
-                      >
-                        #{tag} 닫기
-                      </button>
-                    ))
-                  )}
-                </div>
-              </section>
             </div>
 
             <aside className={styles.sideColumn}>
-              <section className={styles.sideCard}>
-                <span className={styles.eyebrow}>Preview</span>
-                <h2 className={styles.sideTitle}>{title.trim() || "동행 제목 미리보기"}</h2>
-                <div className={styles.previewMeta}>
-                  <span>{currentPatternDisplayName.trim() || "연결 도안 미선택"}</span>
-                  <span>{hostName}</span>
+              <section className={`${styles.sideCard} ${styles.previewCard}`}>
+                <div className={styles.previewHeader}>
+                  <span className={styles.previewBadge}>미리보기</span>
+                  <span className={styles.previewCapacity}>1/{capacity || MAX_CAPACITY}</span>
                 </div>
+
+                <div className={styles.previewHero}>
+                  <h2 className={styles.sideTitle}>{title.trim() || "동행 제목 미리보기"}</h2>
+                  <p className={styles.previewDescription}>
+                    {summary.trim() || "어떤 흐름으로 함께 뜰지 작성하면 이곳에 미리 보여요."}
+                  </p>
+                </div>
+
+                <div className={styles.previewMetaRow}>
+                  <div className={styles.previewMetaCard}>
+                    <span>방장</span>
+                    <strong>{hostName}</strong>
+                  </div>
+                  <div className={styles.previewMetaCard}>
+                    <span>도안</span>
+                    <strong>{currentPatternDisplayName.trim() || "아직 선택하지 않았어요"}</strong>
+                  </div>
+                </div>
+
                 <div className={styles.previewInfoGrid}>
-                  <div className={styles.previewInfoBox}>
-                    <span>참여 현황</span>
-                    <strong>1/{capacity || MAX_CAPACITY}</strong>
-                  </div>
-                  <div className={styles.previewInfoBox}>
-                  </div>
-                  <div className={styles.previewInfoBox}>
-                    <span>난이도</span>
-                    <strong>{level}</strong>
-                  </div>
                   <div className={styles.previewInfoBox}>
                     <span>도안 방식</span>
                     <strong>
                       {patternSourceType === "site"
                         ? "사이트 도안"
                         : patternSourceType === "custom"
-                          ? "내 도안"
-                          : "외부 링크"}
+                          ? "내 도안 직접 입력"
+                          : "외부 링크 연결"}
                     </strong>
+                  </div>
+                  <div className={styles.previewInfoBox}>
+                    <span>난이도</span>
+                    <strong>{level}</strong>
+                  </div>
+                  <div className={styles.previewInfoBox}>
+                    <span>모집 인원</span>
+                    <strong>최대 {capacity || MAX_CAPACITY}명</strong>
+                  </div>
+                </div>
+
+                <div className={styles.previewTagBlock}>
+                  <span className={styles.previewLabel}>동행 태그</span>
+                  <div className={styles.previewTagList}>
+                    {tags.length > 0 ? (
+                      tags.map((tag) => (
+                        <span key={tag} className={styles.previewTag}>
+                          #{tag}
+                        </span>
+                      ))
+                    ) : (
+                      <span className={styles.previewTagPlaceholder}>태그를 추가하면 여기에 보여요</span>
+                    )}
                   </div>
                 </div>
               </section>
@@ -1623,6 +1664,17 @@ function updateCopyrightSetting(
     </>
   );
 }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
