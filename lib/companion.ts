@@ -1,8 +1,7 @@
-import type { DetailRow } from "@/lib/pattern-detail";
+﻿import type { DetailRow } from "@/lib/pattern-detail";
 
 export const companionStatuses = ["모집중", "진행중"] as const;
-
-export const companionLevels = ["입문", "초중급", "중급", "중상급", "고급"] as const;
+export const companionLevels = ["입문", "초급", "중급", "중상급", "고급"] as const;
 export const companionThreadTypes = ["질문", "인증"] as const;
 export const companionPatternSourceTypes = ["site", "custom", "external"] as const;
 export const companionDraftStorageKey = "knit_companion_room_draft";
@@ -144,6 +143,13 @@ export type CompanionSupplyItem = {
   checked: boolean;
 };
 
+export type CompanionThreadCommentItem = {
+  id: string;
+  author: string;
+  content: string;
+  createdAt: string;
+};
+
 export type CompanionThreadItem = {
   id: string;
   type: CompanionThreadType;
@@ -151,13 +157,6 @@ export type CompanionThreadItem = {
   content: string;
   createdAt: string;
   comments?: CompanionThreadCommentItem[];
-};
-
-export type CompanionThreadCommentItem = {
-  id: string;
-  author: string;
-  content: string;
-  createdAt: string;
 };
 
 export type CompanionCheckIn = {
@@ -223,7 +222,6 @@ export function toCompanionThreadDbType(value: CompanionThreadType): CompanionTh
 
 export function formatCompanionDate(value: string) {
   const date = new Date(value);
-
   if (Number.isNaN(date.getTime())) return "";
 
   return new Intl.DateTimeFormat("ko-KR", {
@@ -237,21 +235,16 @@ export function formatCompanionSchedule(room: Pick<CompanionRoom, "startDate" | 
   const end = formatCompanionDate(room.endDate);
 
   if (!start && !end) return "";
-  if (!start) return `${end} 종료`;
-  if (!end) return `${start} 시작`;
-
-  return `${start} 시작 · ${end} 종료`;
+  if (!start) return `${end}`;
+  if (!end) return `${start}`;
+  return `${start} · ${end}`;
 }
 
-export function formatCompanionMembers(
-  room: Pick<CompanionRoom, "participantCount" | "capacity">
-) {
+export function formatCompanionMembers(room: Pick<CompanionRoom, "participantCount" | "capacity">) {
   return `${room.participantCount}/${room.capacity}`;
 }
 
-export function isCompanionRecruitingOpen(
-  room: Pick<CompanionRoom, "participantCount" | "capacity">
-) {
+export function isCompanionRecruitingOpen(room: Pick<CompanionRoom, "participantCount" | "capacity">) {
   return room.participantCount < room.capacity;
 }
 
@@ -273,16 +266,16 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
   const participantCount = Math.max(1, room.participantCount);
   const participants = Array.from({ length: participantCount }, (_, index) => ({
     id: `${room.id}-participant-${index + 1}`,
-    name: index === 0 ? room.hostName : `뜨개메이트 ${index}`,
+    name: index === 0 ? room.hostName : `참여메이트${index}`,
     role: index === 0 ? ("진행자" as const) : ("참여중" as const),
   }));
 
   return {
     participants,
     notices: [
-      `동행 진행 규칙과 공지를 먼저 확인해 주세요.`,
-      `${room.patternName} 기준으로 진행하고, 막히는 부분은 질문 탭에 남겨주세요.`,
-      `체크인 기록은 중간 진행 사진과 메모 중심으로 남기면 좋아요.`,
+      "동행 진행 규칙과 공지를 먼저 확인해 주세요.",
+      `${room.patternName} 기준으로 진행하고, 막히는 부분은 질문 탭에 남겨 주세요.`,
+      "체크인 기록과 중간 진행 사진은 기록 탭에 정리하면 좋아요.",
     ],
     supplies: [
       { id: `${room.id}-supply-pattern`, label: `${room.patternName} 도안 확인`, checked: false },
@@ -294,14 +287,14 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
       {
         id: `${room.id}-question-1`,
         type: "질문",
-        author: "뜨개메이트 1",
-        content: "실 대체 가능한 추천사가 있으면 같이 공유해 주세요.",
+        author: "참여메이트1",
+        content: "대체 가능한 재료가 있다면 같이 공유해 주세요.",
         createdAt: room.createdAt,
         comments: [
           {
             id: `${room.id}-question-1-comment-1`,
             author: room.hostName,
-            content: "진행하면서 대체 가능한 실 정보가 있으면 여기에 계속 남겨둘게요.",
+            content: "진행하면서 확인한 대체 재료가 있으면 계속 여기에 모아둘게요.",
             createdAt: room.createdAt,
           },
         ],
@@ -309,8 +302,8 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
       {
         id: `${room.id}-cert-1`,
         type: "인증",
-        author: "뜨개메이트 2",
-        content: "실이랑 바늘 준비 완료했어요. 시작 전에 게이지 먼저 떠보겠습니다.",
+        author: "참여메이트2",
+        content: "실과 바늘 준비 완료했고 시작 전에 게이지부터 떠보겠습니다.",
         createdAt: room.createdAt,
         comments: [],
       },
@@ -319,14 +312,14 @@ export function createDefaultCompanionRoomState(room: CompanionRoom): CompanionR
       {
         id: `${room.id}-checkin-1`,
         title: "시작 준비",
-        content: "도안, 실, 바늘을 정리하고 첫 체크인 공지를 확인하는 단계예요.",
+        content: "도안, 실, 바늘을 먼저 정리하고 첫 체크인을 남겨 주세요.",
         author: room.hostName,
         createdAt: room.createdAt,
       },
       {
         id: `${room.id}-checkin-2`,
         title: "중간 점검",
-        content: "사이즈, 배색, 텐션을 서로 확인하면서 진행 속도를 맞춰요.",
+        content: "사이즈, 배색, 게이지를 서로 확인하면서 진행 속도를 맞춰요.",
         author: room.hostName,
         createdAt: room.createdAt,
       },
@@ -343,7 +336,6 @@ export function deserializeCompanionRooms(raw: string | null) {
 
   try {
     const parsed = JSON.parse(raw) as CompanionRoom[];
-
     if (!Array.isArray(parsed)) return [];
 
     return parsed.filter(
@@ -361,10 +353,7 @@ export function serializeCompanionRoomState(state: CompanionRoomState) {
   return JSON.stringify(state);
 }
 
-export function deserializeCompanionRoomState(
-  raw: string | null,
-  fallback: CompanionRoomState
-) {
+export function deserializeCompanionRoomState(raw: string | null, fallback: CompanionRoomState) {
   if (!raw) return fallback;
 
   try {
