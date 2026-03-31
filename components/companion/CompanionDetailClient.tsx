@@ -131,44 +131,46 @@ function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState)
   const nextWaiting = waitingQueue[0];
   const existingParticipant = state.participants.find((participant) => participant.userId === nextWaiting.userId);
   const existingBoard = state.boards.find((board) => board.userId === nextWaiting.userId);
+  const nextParticipants: DetailParticipant[] = existingParticipant
+    ? state.participants.map((participant) =>
+        participant.userId === nextWaiting.userId
+          ? { ...participant, joinedAt: new Date().toISOString(), role: "participant" as const }
+          : participant
+      )
+    : [
+        ...state.participants,
+        {
+          id: `${roomId}-${nextWaiting.userId}`,
+          userId: nextWaiting.userId,
+          name: nextWaiting.name,
+          role: "participant",
+          joinedAt: new Date().toISOString(),
+        },
+      ];
+  const nextBoards: ProgressBoard[] = existingBoard
+    ? state.boards.map((board) =>
+        board.userId === nextWaiting.userId
+          ? { ...board, lastActivityAt: new Date().toISOString(), graduatedAt: null }
+          : board
+      )
+    : [
+        ...state.boards,
+        {
+          id: `${roomId}-board-${nextWaiting.userId}`,
+          userId: nextWaiting.userId,
+          name: nextWaiting.name,
+          role: "participant",
+          lastActivityAt: new Date().toISOString(),
+          graduatedAt: null,
+          posts: [],
+        },
+      ];
 
   return {
     ...state,
     waitingParticipants: waitingQueue.slice(1),
-    participants: existingParticipant
-      ? state.participants.map((participant) =>
-          participant.userId === nextWaiting.userId
-            ? { ...participant, joinedAt: new Date().toISOString(), role: "participant" }
-            : participant
-        )
-      : [
-          ...state.participants,
-          {
-            id: `${roomId}-${nextWaiting.userId}`,
-            userId: nextWaiting.userId,
-            name: nextWaiting.name,
-            role: "participant",
-            joinedAt: new Date().toISOString(),
-          },
-        ],
-    boards: existingBoard
-      ? state.boards.map((board) =>
-          board.userId === nextWaiting.userId
-            ? { ...board, lastActivityAt: new Date().toISOString(), graduatedAt: null }
-            : board
-        )
-      : [
-          ...state.boards,
-          {
-            id: `${roomId}-board-${nextWaiting.userId}`,
-            userId: nextWaiting.userId,
-            name: nextWaiting.name,
-            role: "participant",
-            lastActivityAt: new Date().toISOString(),
-            graduatedAt: null,
-            posts: [],
-          },
-        ],
+    participants: nextParticipants,
+    boards: nextBoards,
   };
 }
 function getBoardMetaStorageKey(roomId: string) { return `knit_companion_room_board_meta:${roomId}`; }
