@@ -40,13 +40,14 @@ const copyrightPolicyRows = [
 type ActivePanel = "notice" | "pattern" | "supplies" | "questions" | "progress" | "resting" | "graduated";
 type ProgressPanel = "progress" | "resting" | "graduated";
 type DetailParticipant = { id: string; userId: string; name: string; role: "host" | "participant"; joinedAt: string };
+type DetailWaitingParticipant = { id: string; userId: string; name: string; joinedAt: string };
 type DetailNotice = { id: string; title: string; content: string; author: string; createdAt: string; isPinned?: boolean };
 type DetailSupply = { id: string; label: string; checkedBy: string[] };
 type DetailReply = { id: string; author: string; content: string; createdAt: string };
 type DetailQuestion = { id: string; author: string; content: string; createdAt: string; replies: DetailReply[] };
 type ProgressPost = { id: string; title: string; content: string; imagePath: string | null; createdAt: string };
 type ProgressBoard = { id: string; userId: string; name: string; role: "host" | "participant"; lastActivityAt: string; graduatedAt: string | null; posts: ProgressPost[] };
-type DetailState = { participants: DetailParticipant[]; notices: DetailNotice[]; supplies: DetailSupply[]; questions: DetailQuestion[]; boards: ProgressBoard[] };
+type DetailState = { participants: DetailParticipant[]; waitingParticipants: DetailWaitingParticipant[]; notices: DetailNotice[]; supplies: DetailSupply[]; questions: DetailQuestion[]; boards: ProgressBoard[] };
 type BoardMetaRecord = Record<string, { lastActivityAt?: string; graduatedAt?: string | null }>;
 
 function getStatusClassName(status: string) {
@@ -117,6 +118,59 @@ function getLatestTimestamp(values: Array<string | null | undefined>, fallback: 
   const valid = values.map((value) => (value ? new Date(value).getTime() : Number.NaN)).filter((value) => Number.isFinite(value)) as number[];
   return valid.length ? new Date(Math.max(...valid)).toISOString() : fallback;
 }
+function sortWaitingParticipantsByJoinedAt(participants: DetailWaitingParticipant[]) {
+  return [...participants].sort((left, right) => {
+    const leftTime = new Date(left.joinedAt).getTime();
+    const rightTime = new Date(right.joinedAt).getTime();
+    return (Number.isNaN(leftTime) ? 0 : leftTime) - (Number.isNaN(rightTime) ? 0 : rightTime);
+  });
+}
+function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState) {
+  if (state.waitingParticipants.length === 0) return state;
+  const waitingQueue = sortWaitingParticipantsByJoinedAt(state.waitingParticipants);
+  const nextWaiting = waitingQueue[0];
+  const existingParticipant = state.participants.find((participant) => participant.userId === nextWaiting.userId);
+  const existingBoard = state.boards.find((board) => board.userId === nextWaiting.userId);
+
+  return {
+    ...state,
+    waitingParticipants: waitingQueue.slice(1),
+    participants: existingParticipant
+      ? state.participants.map((participant) =>
+          participant.userId === nextWaiting.userId
+            ? { ...participant, joinedAt: new Date().toISOString(), role: "participant" }
+            : participant
+        )
+      : [
+          ...state.participants,
+          {
+            id: `${roomId}-${nextWaiting.userId}`,
+            userId: nextWaiting.userId,
+            name: nextWaiting.name,
+            role: "participant",
+            joinedAt: new Date().toISOString(),
+          },
+        ],
+    boards: existingBoard
+      ? state.boards.map((board) =>
+          board.userId === nextWaiting.userId
+            ? { ...board, lastActivityAt: new Date().toISOString(), graduatedAt: null }
+            : board
+        )
+      : [
+          ...state.boards,
+          {
+            id: `${roomId}-board-${nextWaiting.userId}`,
+            userId: nextWaiting.userId,
+            name: nextWaiting.name,
+            role: "participant",
+            lastActivityAt: new Date().toISOString(),
+            graduatedAt: null,
+            posts: [],
+          },
+        ],
+  };
+}
 function getBoardMetaStorageKey(roomId: string) { return `knit_companion_room_board_meta:${roomId}`; }
 function getDetailStateStorageKey(roomId: string) { return `knit_companion_room_detail_state:${roomId}`; }
 function readBoardMeta(roomId: string) {
@@ -147,6 +201,7 @@ function convertLegacyState(room: CompanionRoom): DetailState {
   });
   return {
     participants,
+    waitingParticipants: [],
     notices: legacy.notices.map((notice, index) => parseLegacyNotice(notice, index, room)),
     supplies: legacy.supplies.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: [] })),
     questions: legacy.threads.filter((thread) => thread.type === "질문").map((thread) => ({ id: thread.id, author: thread.author, content: thread.content, createdAt: thread.createdAt, replies: (thread.comments ?? []).map((comment) => ({ id: comment.id, author: comment.author, content: comment.content, createdAt: comment.createdAt })) })),
@@ -190,7 +245,10 @@ export default function CompanionDetailClient() {
   const [selectedProgressPostId, setSelectedProgressPostId] = useState<string | null>(null);
   const [progressPostPage, setProgressPostPage] = useState(1);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isWaitingCancelModalOpen, setIsWaitingCancelModalOpen] = useState(false);
   const [graduationTargetId, setGraduationTargetId] = useState<string | null>(null);
+  const [pendingAction, setPendingAction] = useState<"join" | "reactivate" | "graduation" | null>(null);
+  const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   useEffect(() => {
     async function loadUser() {
       const { data: { user } } = await supabase.auth.getUser();
@@ -204,6 +262,11 @@ export default function CompanionDetailClient() {
       if (progressImagePreviewUrl.startsWith("blob:")) URL.revokeObjectURL(progressImagePreviewUrl);
     };
   }, [progressImagePreviewUrl]);
+  useEffect(() => {
+    if (!actionFeedback) return;
+    const timeoutId = window.setTimeout(() => setActionFeedback(null), 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [actionFeedback]);
 
   useEffect(() => {
     async function loadRoomDetail() {
@@ -221,7 +284,7 @@ export default function CompanionDetailClient() {
           supabase.from("companion_thread_comments").select("id, thread_id, author_user_id, content, created_at, companion_threads!inner(room_id)").eq("companion_threads.room_id", roomId).order("created_at", { ascending: true }),
           supabase.from("companion_checkins").select("*").eq("room_id", roomId).order("created_at", { ascending: false }),
         ]);
-        const participantRows = (((participantsResult.data ?? []) as Array<{ id: string; room_id: string; user_id: string; role: "host" | "participant"; joined_at: string }>) ?? []);
+        const participantRows = (((participantsResult.data ?? []) as Array<{ id: string; room_id: string; user_id: string; role: "host" | "participant" | "waiting"; joined_at: string }>) ?? []);
         const threadRows = ((threadsResult.data ?? []) as CompanionThreadRow[]) ?? [];
         const checkInRows = ((checkInsResult.data ?? []) as CompanionCheckInRow[]) ?? [];
         const noticeRows = ((noticesResult.data ?? []) as CompanionNoticeRow[]) ?? [];
@@ -259,7 +322,19 @@ export default function CompanionDetailClient() {
           commentsByThreadId.set(comment.thread_id, existing);
         });
         const boardMeta = readBoardMeta(room.id);
-        const participants: DetailParticipant[] = [{ id: `${room.id}-host`, userId: room.hostUserId ?? `${room.id}-host`, name: room.hostName, role: "host", joinedAt: room.createdAt }, ...participantRows.filter((participant) => participant.role === "participant").map((participant) => ({ id: participant.id, userId: participant.user_id, name: nicknameMap.get(participant.user_id) ?? "참여자", role: "participant" as const, joinedAt: participant.joined_at ?? room.createdAt }))];
+        const hasHistoryUserIds = new Set<string>([
+          ...checkInRows.map((checkIn) => checkIn.author_user_id),
+          ...Object.keys(boardMeta),
+        ]);
+        const participants: DetailParticipant[] = [{ id: `${room.id}-host`, userId: room.hostUserId ?? `${room.id}-host`, name: room.hostName, role: "host", joinedAt: room.createdAt }, ...participantRows.filter((participant) => participant.user_id !== room.hostUserId && (participant.role === "participant" || (participant.role === "waiting" && hasHistoryUserIds.has(participant.user_id)))).map((participant) => ({ id: participant.id, userId: participant.user_id, name: nicknameMap.get(participant.user_id) ?? "참여자", role: "participant" as const, joinedAt: participant.joined_at ?? room.createdAt }))];
+        const waitingParticipants: DetailWaitingParticipant[] = participantRows
+          .filter((participant) => participant.role === "waiting")
+          .map((participant) => ({
+            id: participant.id,
+            userId: participant.user_id,
+            name: nicknameMap.get(participant.user_id) ?? "참여자",
+            joinedAt: participant.joined_at ?? room.createdAt,
+          }));
         const boards: ProgressBoard[] = participants.map((participant) => {
           const posts = checkInRows.filter((checkIn) => checkIn.author_user_id === participant.userId).map((checkIn) => ({ id: checkIn.id, title: checkIn.title, content: checkIn.content, imagePath: checkIn.image_path ?? null, createdAt: checkIn.created_at })).sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
           const meta = boardMeta[participant.userId] ?? {};
@@ -268,6 +343,7 @@ export default function CompanionDetailClient() {
         setCurrentRoom(room);
         setDetailState({
           participants,
+          waitingParticipants,
           notices: noticeRows.map((notice) => ({ id: notice.id, title: notice.title, content: notice.content, author: nicknameMap.get(notice.author_user_id) ?? room.hostName, createdAt: notice.created_at, isPinned: notice.is_pinned })),
           supplies: supplyRows.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: checkedBySupply.get(supply.id) ?? [] })),
           questions: threadRows.filter((thread) => thread.type === "question").map((thread) => ({ id: thread.id, author: nicknameMap.get(thread.author_user_id) ?? "참여자", content: thread.content, createdAt: thread.created_at, replies: commentsByThreadId.get(thread.id) ?? [] })),
@@ -284,6 +360,10 @@ export default function CompanionDetailClient() {
           const normalizedState: DetailState = {
             ...nextState,
             participants: nextState.participants.map((participant) => ({
+              ...participant,
+              joinedAt: participant.joinedAt ?? localRoom.createdAt,
+            })),
+            waitingParticipants: (nextState.waitingParticipants ?? []).map((participant) => ({
               ...participant,
               joinedAt: participant.joinedAt ?? localRoom.createdAt,
             })),
@@ -311,7 +391,8 @@ export default function CompanionDetailClient() {
   function removeBoardMeta(userId: string) {
     if (!currentRoom || !isDbRoom) return;
     const currentMeta = readBoardMeta(currentRoom.id);
-    const { [userId]: _removed, ...nextMeta } = currentMeta;
+    const nextMeta = { ...currentMeta };
+    delete nextMeta[userId];
     writeBoardMeta(currentRoom.id, nextMeta);
   }
 
@@ -320,7 +401,16 @@ export default function CompanionDetailClient() {
     if (!detailState) return null;
     return detailState.boards.find((board) => currentUserId && board.userId === currentUserId) ?? detailState.boards.find((board) => currentUserName && board.name === currentUserName) ?? null;
   }, [currentUserId, currentUserName, detailState]);
+  const waitingParticipant = useMemo(() => {
+    if (!detailState) return null;
+    return (
+      detailState.waitingParticipants.find((participant) => currentUserId && participant.userId === currentUserId) ??
+      detailState.waitingParticipants.find((participant) => currentUserName && participant.name === currentUserName) ??
+      null
+    );
+  }, [currentUserId, currentUserName, detailState]);
   const isJoined = Boolean(joinedBoard);
+  const isWaiting = Boolean(waitingParticipant);
   const isRestingViewer = Boolean(joinedBoard && getBoardStatus(joinedBoard) === "resting");
   const canQuestionInteract = !isRestingViewer || isHost || joinedBoard?.role === "host";
   const canAccessMemberPanels = isHost || isJoined;
@@ -330,7 +420,7 @@ export default function CompanionDetailClient() {
   const restingBoards = useMemo(() => (detailState?.boards ?? []).filter((board) => getBoardStatus(board) === "resting"), [detailState]);
   const graduatedBoards = useMemo(() => (detailState?.boards ?? []).filter((board) => getBoardStatus(board) === "graduated"), [detailState]);
   const hostBoard = useMemo(() => (detailState?.boards ?? []).find((board) => board.role === "host") ?? null, [detailState]);
-  const hostCountsAsCurrentParticipant = Boolean(hostBoard && getBoardStatus(hostBoard) !== "graduated");
+  const hostCountsAsCurrentParticipant = Boolean(hostBoard && getBoardStatus(hostBoard) === "active");
   const activeParticipantCount = activeBoards.filter((board) => board.role === "participant").length + (hostCountsAsCurrentParticipant ? 1 : 0);
   const isRecruitingOpen = currentRoom ? activeParticipantCount < currentRoom.capacity : false;
   const participantSupplyProgress = useMemo(() => {
@@ -354,6 +444,10 @@ export default function CompanionDetailClient() {
         return (Number.isNaN(rightTime) ? 0 : rightTime) - (Number.isNaN(leftTime) ? 0 : leftTime);
       });
   }, [detailState]);
+  const waitingParticipantsOrdered = useMemo(
+    () => sortWaitingParticipantsByJoinedAt(detailState?.waitingParticipants ?? []),
+    [detailState]
+  );
   const supplyParticipantPageSize = 5;
   const supplyParticipantTotalPages = Math.max(1, Math.ceil(participantSupplyProgress.length / supplyParticipantPageSize));
   const currentSupplyParticipantPage = Math.min(supplyParticipantPage, supplyParticipantTotalPages);
@@ -434,29 +528,81 @@ export default function CompanionDetailClient() {
     if (!user || !currentUserName) { setIsLoginModalOpen(true); return null; }
     return user;
   }
+  async function promoteFirstWaitingParticipantDb(targetRoomId: string) {
+    const { data: promotedUserId, error: promoteError } = await supabase.rpc("promote_first_waiting_participant", {
+      p_room_id: targetRoomId,
+    });
+    if (promoteError) { alert(promoteError.message); return; }
+    if (!promotedUserId || typeof promotedUserId !== "string") return;
+    updateBoardMeta(promotedUserId, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+  }
   async function handleJoinToggle() {
-    if (!currentRoom || !detailState) return;
-    const user = await ensureSignedIn();
-    if (!user || !currentUserName) return;
-    if (isHost) { alert("진행자는 자신의 동행방에서 나갈 수 없어요."); return; }
-    if (!isJoined && !isRecruitingOpen) { alert("현재 정원이 가득 차 있어요."); return; }
-    if (isDbRoom) {
-      if (isJoined) {
-        const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id);
-        if (error) { alert(error.message); return; }
-      } else {
-        const { error } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: "participant" });
-        if (error) { alert(error.message); return; }
-        updateBoardMeta(user.id, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+    if (pendingAction) return;
+    setPendingAction("join");
+    try {
+      if (!currentRoom || !detailState) return;
+      const user = await ensureSignedIn();
+      if (!user || !currentUserName) return;
+      if (isHost) { alert("진행자는 자신의 동행방에서 나갈 수 없어요."); return; }
+      if (isWaiting) { setIsWaitingCancelModalOpen(true); return; }
+      if (isDbRoom) {
+        if (isJoined) {
+          const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id);
+          if (error) { alert(error.message); return; }
+          await promoteFirstWaitingParticipantDb(currentRoom.id);
+          setActionFeedback({ type: "success", message: "참여가 취소되었어요." });
+        } else {
+          const nextRole = isRecruitingOpen ? "participant" : "waiting";
+          const { error } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: nextRole });
+          if (error) { alert(error.message); return; }
+          if (nextRole === "participant") updateBoardMeta(user.id, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+          setActionFeedback({ type: "success", message: nextRole === "participant" ? "참여가 완료되었어요." : "참여 대기에 등록되었어요." });
+        }
+        setReloadToken((current) => current + 1); return;
       }
-      setReloadToken((current) => current + 1); return;
+      const viewerId = currentUserId ?? currentUserName; if (!viewerId) return;
+      if (isJoined) {
+        const removedState: DetailState = {
+          ...detailState,
+          participants: detailState.participants.filter((participant) => participant.userId !== viewerId),
+          boards: detailState.boards.filter((board) => board.userId !== viewerId),
+          supplies: detailState.supplies.map((supply) => ({ ...supply, checkedBy: supply.checkedBy.filter((userId) => userId !== viewerId) })),
+        };
+        persistLocalDetail(promoteFirstWaitingParticipantLocal(currentRoom.id, removedState));
+        setActionFeedback({ type: "success", message: "참여가 취소되었어요." });
+        return;
+      }
+      if (isRecruitingOpen) {
+        persistLocalDetail({ ...detailState, participants: [...detailState.participants, { id: `${currentRoom.id}-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", joinedAt: new Date().toISOString() }], boards: [{ id: `${currentRoom.id}-board-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", lastActivityAt: new Date().toISOString(), graduatedAt: null, posts: [] }, ...detailState.boards] });
+        setActionFeedback({ type: "success", message: "참여가 완료되었어요." });
+        return;
+      }
+      persistLocalDetail({ ...detailState, waitingParticipants: [...detailState.waitingParticipants, { id: `${currentRoom.id}-waiting-${viewerId}`, userId: viewerId, name: currentUserName, joinedAt: new Date().toISOString() }] });
+      setActionFeedback({ type: "success", message: "참여 대기에 등록되었어요." });
+    } finally {
+      setPendingAction(null);
     }
-    const viewerId = currentUserId ?? currentUserName; if (!viewerId) return;
-    if (isJoined) {
-      persistLocalDetail({ ...detailState, participants: detailState.participants.filter((participant) => participant.userId !== viewerId), boards: detailState.boards.filter((board) => board.userId !== viewerId), supplies: detailState.supplies.map((supply) => ({ ...supply, checkedBy: supply.checkedBy.filter((userId) => userId !== viewerId) })) });
+  }
+  async function handleConfirmWaitingCancel() {
+    if (!currentRoom || !detailState || !isWaiting) return;
+    const user = await ensureSignedIn();
+    if (!user) return;
+    if (isDbRoom) {
+      const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
+      if (error) { alert(error.message); return; }
+      setIsWaitingCancelModalOpen(false);
+      setActionFeedback({ type: "success", message: "참여 대기가 취소되었어요." });
+      setReloadToken((current) => current + 1);
       return;
     }
-    persistLocalDetail({ ...detailState, participants: [...detailState.participants, { id: `${currentRoom.id}-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", joinedAt: new Date().toISOString() }], boards: [{ id: `${currentRoom.id}-board-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", lastActivityAt: new Date().toISOString(), graduatedAt: null, posts: [] }, ...detailState.boards] });
+    const viewerId = currentUserId ?? currentUserName;
+    if (!viewerId) return;
+    persistLocalDetail({
+      ...detailState,
+      waitingParticipants: detailState.waitingParticipants.filter((participant) => participant.userId !== viewerId),
+    });
+    setIsWaitingCancelModalOpen(false);
+    setActionFeedback({ type: "success", message: "참여 대기가 취소되었어요." });
   }
   async function handleNoticeSubmit() {
     if (!currentRoom || !detailState || !isHost || !noticeTitle.trim() || !noticeContent.trim()) return;
@@ -589,17 +735,74 @@ export default function CompanionDetailClient() {
     persistLocalDetail({ ...detailState, boards: detailState.boards.map((item) => item.id === board.id ? { ...item, lastActivityAt: new Date().toISOString(), posts: [{ id: `${item.id}-post-${Date.now()}`, title: progressTitle.trim(), content: progressContent.trim(), imagePath, createdAt: new Date().toISOString() }, ...item.posts] } : item) });
     setProgressTitle(""); setProgressContent(""); removeProgressImage(); setIsProgressComposerOpen(false); setProgressPostPage(1);
   }
-  function handleReactivateBoard(board: ProgressBoard) {
-    if (!currentRoom || !detailState) return;
-    const viewerOwnsBoard = (currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName);
-    if (!viewerOwnsBoard) return;
-    if (activeParticipantCount >= currentRoom.capacity) return;
-    if (isDbRoom) {
+  async function handleReactivateBoard(board: ProgressBoard) {
+    if (pendingAction) return;
+    setPendingAction("reactivate");
+    try {
+      if (!currentRoom || !detailState) return;
+      const viewerOwnsBoard = (currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName);
+      if (!viewerOwnsBoard) return;
+      const isQueuedForReactivation = waitingParticipantsOrdered.some((participant) => participant.userId === board.userId);
+      const hasOpenSlot = activeParticipantCount < currentRoom.capacity;
+      if (isDbRoom) {
+      const user = await ensureSignedIn();
+      if (!user) return;
+      if (isQueuedForReactivation) {
+        if (board.role === "host") {
+          const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
+          if (error) { alert(error.message); return; }
+        } else {
+          const { error: deleteError } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
+          if (deleteError) { alert(deleteError.message); return; }
+          const { error: insertError } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: "participant" });
+          if (insertError) { alert(insertError.message); return; }
+        }
+        setReloadToken((current) => current + 1);
+        setActionFeedback({ type: "success", message: "참여 대기가 취소되었어요." });
+        return;
+      }
+      if (!hasOpenSlot) {
+        const { error: deleteExistingRowError } = await supabase
+          .from("companion_participants")
+          .delete()
+          .eq("room_id", currentRoom.id)
+          .eq("user_id", user.id);
+        if (deleteExistingRowError) { alert(deleteExistingRowError.message); return; }
+
+        const { error: insertWaitingError } = await supabase
+          .from("companion_participants")
+          .insert({ room_id: currentRoom.id, user_id: user.id, role: "waiting" });
+        if (insertWaitingError) { alert(insertWaitingError.message); return; }
+        setReloadToken((current) => current + 1);
+        setActionFeedback({ type: "success", message: "참여 대기에 등록되었어요." });
+        return;
+      }
       updateBoardMeta(board.userId, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
       setReloadToken((current) => current + 1);
-      return;
-    }
-    persistLocalDetail({
+      setActionFeedback({ type: "success", message: "휴면 상태가 해제되었어요." });
+        return;
+      }
+      if (isQueuedForReactivation) {
+      persistLocalDetail({
+        ...detailState,
+        waitingParticipants: detailState.waitingParticipants.filter((participant) => participant.userId !== board.userId),
+      });
+      setActionFeedback({ type: "success", message: "참여 대기가 취소되었어요." });
+        return;
+      }
+      if (!hasOpenSlot) {
+      if (detailState.waitingParticipants.some((participant) => participant.userId === board.userId)) return;
+      persistLocalDetail({
+        ...detailState,
+        waitingParticipants: [
+          ...detailState.waitingParticipants,
+          { id: `${currentRoom.id}-waiting-${board.userId}`, userId: board.userId, name: board.name, joinedAt: new Date().toISOString() },
+        ],
+      });
+      setActionFeedback({ type: "success", message: "참여 대기에 등록되었어요." });
+        return;
+      }
+      persistLocalDetail({
       ...detailState,
       boards: detailState.boards.map((item) =>
         item.id === board.id
@@ -607,11 +810,15 @@ export default function CompanionDetailClient() {
           : item
       ),
     });
+      setActionFeedback({ type: "success", message: "휴면 상태가 해제되었어요." });
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   async function handleHostRemoveParticipant(board: ProgressBoard) {
     if (!currentRoom || !detailState || !isHost || board.role !== "participant") return;
-    if (!window.confirm(`${board.name}?? ????? ?? ?? ??????`)) return;
+    if (!window.confirm(`${board.name}님을 동행방에서 제거할까요?`)) return;
     if (isDbRoom) {
       const { error } = await supabase
         .from("companion_participants")
@@ -621,12 +828,13 @@ export default function CompanionDetailClient() {
         .eq("role", "participant");
       if (error) { alert(error.message); return; }
       removeBoardMeta(board.userId);
+      await promoteFirstWaitingParticipantDb(currentRoom.id);
       if (selectedBoardId === board.id) closeBoardModal();
       setReloadToken((current) => current + 1);
       return;
     }
     if (selectedBoardId === board.id) closeBoardModal();
-    persistLocalDetail({
+    const removedState: DetailState = {
       ...detailState,
       participants: detailState.participants.filter((participant) => participant.userId !== board.userId),
       boards: detailState.boards.filter((item) => item.userId !== board.userId),
@@ -634,7 +842,8 @@ export default function CompanionDetailClient() {
         ...supply,
         checkedBy: supply.checkedBy.filter((userId) => userId !== board.userId),
       })),
-    });
+    };
+    persistLocalDetail(promoteFirstWaitingParticipantLocal(currentRoom.id, removedState));
   }
 
   function openGraduationModal(board: ProgressBoard) {
@@ -678,11 +887,32 @@ export default function CompanionDetailClient() {
     setProgressImageFile(null);
     setProgressImagePreviewUrl("");
   }
-  function confirmGraduation() {
-    if (!currentRoom || !detailState || !graduationTargetId || isRestingViewer) return;
-    const targetBoard = detailState.boards.find((board) => board.id === graduationTargetId); if (!targetBoard) { setGraduationTargetId(null); return; }
-    if (isDbRoom) { updateBoardMeta(targetBoard.userId, { graduatedAt: new Date().toISOString(), lastActivityAt: targetBoard.lastActivityAt }); setGraduationTargetId(null); setReloadToken((current) => current + 1); return; }
-    persistLocalDetail({ ...detailState, boards: detailState.boards.map((board) => board.id === graduationTargetId ? { ...board, graduatedAt: new Date().toISOString() } : board) }); setGraduationTargetId(null);
+  async function confirmGraduation() {
+    if (pendingAction) return;
+    setPendingAction("graduation");
+    try {
+      if (!currentRoom || !detailState || !graduationTargetId || isRestingViewer) return;
+      const targetBoard = detailState.boards.find((board) => board.id === graduationTargetId); if (!targetBoard) { setGraduationTargetId(null); return; }
+      if (isDbRoom) {
+      updateBoardMeta(targetBoard.userId, { graduatedAt: new Date().toISOString(), lastActivityAt: targetBoard.lastActivityAt });
+      await promoteFirstWaitingParticipantDb(currentRoom.id);
+      closeBoardModal();
+      setGraduationTargetId(null);
+      setReloadToken((current) => current + 1);
+      setActionFeedback({ type: "success", message: "졸업 처리되었어요." });
+        return;
+      }
+      const graduatedState: DetailState = {
+      ...detailState,
+      boards: detailState.boards.map((board) => board.id === graduationTargetId ? { ...board, graduatedAt: new Date().toISOString() } : board),
+    };
+      persistLocalDetail(promoteFirstWaitingParticipantLocal(currentRoom.id, graduatedState));
+      closeBoardModal();
+      setGraduationTargetId(null);
+      setActionFeedback({ type: "success", message: "졸업 처리되었어요." });
+    } finally {
+      setPendingAction(null);
+    }
   }
 
   if (!hasLoadedRooms || !isStateReady) return <section className={styles.feedbackCard}><p className={styles.sectionDescription}>동행방을 불러오는 중이에요...</p></section>;
@@ -692,6 +922,11 @@ export default function CompanionDetailClient() {
   return (
     <>
       <LoginRequiredModal open={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} title="로그인 후 동행방 기능을 사용할 수 있어요" description="로그인하면 참여 신청, 준비물 체크, 질문 작성, 진행 기록 등록까지 바로 이어서 할 수 있어요." />
+      {actionFeedback ? (
+        <div className={`${styles.actionToast} ${actionFeedback.type === "success" ? styles.actionToastSuccess : styles.actionToastError}`} role="status" aria-live="polite">
+          {actionFeedback.message}
+        </div>
+      ) : null}
       <div className={styles.shell}><div className={styles.workspace}><div className={styles.mainColumn}>
         <section className={`${styles.hero} ${styles.heroCompact}`}>
           <div className={styles.heroBody}>
@@ -701,16 +936,19 @@ export default function CompanionDetailClient() {
               <span className={`${styles.pill} ${styles.pillMuted}`}>{currentRoom.patternName}</span>
               <span className={`${styles.pill} ${styles.pillMuted}`}>@{currentRoom.hostName}</span>
               <span className={`${styles.pill} ${styles.pillMuted}`}>{formatCompanionSchedule(currentRoom)}</span>
-              <span className={`${styles.pill} ${styles.pillMuted}`}>참여 {activeParticipantCount}/{currentRoom.capacity}</span>
+              <span className={`${styles.pill} ${styles.pillMuted}`}>진행 {activeParticipantCount}/{currentRoom.capacity}</span>
             </div>
           </div>
           <div className={styles.heroActions}><div className={styles.actionRow}>
-            <button type="button" onClick={handleJoinToggle} className={styles.submitButton}>{isJoined ? "참여 취소" : isRecruitingOpen ? "참여 신청" : "정원 마감"}</button>
+            <button type="button" onClick={handleJoinToggle} className={styles.submitButton} disabled={pendingAction === "join"}>{pendingAction === "join" ? "처리 중..." : isJoined ? "참여 취소" : isWaiting ? "참여 대기 취소" : isRecruitingOpen ? "참여 신청" : "참여 대기"}</button>
             <span aria-hidden="true" className={styles.heroActionDivider} />
             <button type="button" onClick={() => setActivePanel("pattern")} className={styles.ghostButton}>연결 도안 보기</button>
             {isHost ? <Link href={`/companion/${currentRoom.id}/edit`} className={styles.ghostButton}>동행방 수정</Link> : null}
             <Link href="/companion" className={styles.secondaryAction}>목록으로</Link>
-          </div>{!isRecruitingOpen && !isJoined ? <span className={styles.hintText}>현재 진행 인원이 정원에 도달해 참여 신청이 닫혀 있어요.</span> : null}</div>
+          </div>
+            {isWaiting ? <span className={styles.hintText}>현재 참여 대기 중이에요. 정원이 비면 선착순으로 참여가 가능해요.</span> : null}
+            {!isRecruitingOpen && !isJoined && !isWaiting ? <span className={styles.hintText}>현재 정원이 꽉 차 있어 참여 대기로 신청할 수 있어요.</span> : null}
+          </div>
         </section>
         <section className={`${styles.sectionCard} ${styles.sectionSpanFull} ${styles.commentsSection}`}>
           <div className={styles.tabRow}>
@@ -895,12 +1133,21 @@ export default function CompanionDetailClient() {
                   const status = getBoardStatus(board);
                   const isOwnBoard = Boolean((currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName));
                   const canReactivate = currentRoom ? activeParticipantCount < currentRoom.capacity : false;
+                  const isQueuedForReactivation = waitingParticipantsOrdered.some((participant) => participant.userId === board.userId);
                   return (
                     <article key={board.id} className={`${styles.progressParticipantCard} ${status === "resting" ? styles.progressParticipantCardResting : status === "graduated" ? styles.progressParticipantCardAlert : ""}`} role="button" tabIndex={0} onClick={() => openBoardModal(board.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openBoardModal(board.id); } }}>
                       <span className={`${styles.progressAvatarWrap} ${status === "resting" ? styles.progressAvatarWrapResting : ""}`}><span className={`${styles.progressAvatarIcon} ${status === "resting" ? styles.progressAvatarIconResting : ""}`}>○</span></span>
                       <strong className={styles.progressParticipantName}>{board.name}</strong>
                       <p className={styles.progressParticipantMeta}>{formatElapsedDayLabel(board.lastActivityAt)}</p>
-                      {status === "resting" && isOwnBoard ? <button type="button" className={styles.smallButton} disabled={!canReactivate} onClick={(event) => { event.stopPropagation(); handleReactivateBoard(board); }}>휴면 해제</button> : null}
+                      {status === "resting" && isOwnBoard ? (
+                        <button
+                          type="button"
+                          className={styles.smallButton}
+                          onClick={(event) => { event.stopPropagation(); void handleReactivateBoard(board); }}
+                        >
+                          {isQueuedForReactivation ? "대기 취소" : canReactivate ? "휴면 해제" : "참여 대기"}
+                        </button>
+                      ) : null}
                       {isHost && board.role === "participant" && status !== "graduated" ? <button type="button" className={styles.textButtonDanger} onClick={(event) => { event.stopPropagation(); void handleHostRemoveParticipant(board); }}>{"\uCC38\uC5EC \uCDE8\uC18C"}</button> : null}
 {status === "graduated" ? <p className={styles.progressParticipantWarn}>졸업 완료</p> : null}
                     </article>
@@ -917,7 +1164,49 @@ export default function CompanionDetailClient() {
             </>
           ) : null}
         </section>
-      </div><aside className={styles.sideColumn}><section className={styles.sectionCard}><div className={styles.summaryList}><div className={styles.summaryRow}><span>진행자</span><span className={styles.summaryValue}>@{currentRoom.hostName}</span></div><div className={styles.summaryRow}><span>일정</span><span className={styles.summaryValue}>{formatCompanionSchedule(currentRoom)}</span></div><div className={styles.summaryRow}><span>난이도</span><span className={styles.summaryValue}>{currentRoom.level}</span></div><div className={styles.summaryRow}><span>도안 방식</span><span className={styles.summaryValue}>{getPatternSourceLabel(currentRoom)}</span></div><div className={styles.summaryRow}><span>참여 인원</span><span className={styles.summaryValue}>{activeParticipantCount}/{currentRoom.capacity}</span></div></div></section>{canViewProgressPanels ? <section className={styles.sectionCard}><div className={styles.summaryList}><div className={styles.summaryRow}><span>진행</span><span className={styles.summaryValue}>{activeBoards.length}</span></div><div className={styles.summaryRow}><span>휴식</span><span className={styles.summaryValue}>{restingBoards.length}</span></div><div className={styles.summaryRow}><span>졸업</span><span className={styles.summaryValue}>{graduatedBoards.length}</span></div><div className={styles.summaryRow}><span>준비도 체크</span><span className={styles.summaryValue}>{detailState.supplies.length > 0 ? `${participantSupplyProgress.filter((row) => row.checkedCount === detailState.supplies.length).length}/${detailState.boards.length}` : `0/${detailState.boards.length}`}</span></div></div></section> : null}</aside></div></div>
+      </div>
+      <aside className={styles.sideColumn}>
+        <section className={styles.sectionCard}>
+          <div className={styles.summaryList}>
+            <div className={styles.summaryRow}><span>진행자</span><span className={styles.summaryValue}>@{currentRoom.hostName}</span></div>
+            <div className={styles.summaryRow}><span>일정</span><span className={styles.summaryValue}>{formatCompanionSchedule(currentRoom)}</span></div>
+            <div className={styles.summaryRow}><span>난이도</span><span className={styles.summaryValue}>{currentRoom.level}</span></div>
+            <div className={styles.summaryRow}><span>도안 방식</span><span className={styles.summaryValue}>{getPatternSourceLabel(currentRoom)}</span></div>
+            <div className={styles.summaryRow}><span>진행 인원</span><span className={styles.summaryValue}>{activeParticipantCount}/{currentRoom.capacity}</span></div>
+          </div>
+        </section>
+        {canViewProgressPanels ? (
+          <section className={styles.sectionCard}>
+            <div className={styles.summaryList}>
+              <div className={styles.summaryRow}><span>진행</span><span className={styles.summaryValue}>{activeBoards.length}</span></div>
+              <div className={styles.summaryRow}><span>휴식</span><span className={styles.summaryValue}>{restingBoards.length}</span></div>
+              <div className={styles.summaryRow}><span>졸업</span><span className={styles.summaryValue}>{graduatedBoards.length}</span></div>
+              <div className={styles.summaryRow}><span>준비도 체크</span><span className={styles.summaryValue}>{detailState.supplies.length > 0 ? `${participantSupplyProgress.filter((row) => row.checkedCount === detailState.supplies.length).length}/${detailState.boards.length}` : `0/${detailState.boards.length}`}</span></div>
+            </div>
+          </section>
+        ) : null}
+        <section className={styles.sectionCard}>
+          <div className={styles.sectionHead}>
+            <div className={styles.noticeHeadMeta}>
+              <h2 className={styles.sectionTitle}>참여 대기 인원</h2>
+              <span className={styles.noticeCountText}>{waitingParticipantsOrdered.length}명</span>
+            </div>
+          </div>
+          {waitingParticipantsOrdered.length > 0 ? (
+            <ol className={styles.waitingList}>
+              {waitingParticipantsOrdered.map((participant, index) => (
+                <li key={participant.id} className={styles.waitingItem}>
+                  <span className={styles.waitingOrder}>{index + 1}.</span>
+                  <span className={styles.waitingName}>{participant.name}</span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className={styles.sectionDescription}>현재 참여 대기 인원이 없어요.</p>
+          )}
+        </section>
+      </aside>
+      </div></div>
       {selectedBoard ? (
         <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="참여자 진행 상황">
           <div className={styles.modalDialog}>
@@ -1029,7 +1318,19 @@ export default function CompanionDetailClient() {
           </div>
         </div>
       ) : null}
-      {graduationTargetId ? <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="졸업 확인"><div className={styles.modalDialog}><h2 className={styles.modalTitle}>정말 졸업하시겠습니까?</h2><p className={styles.sectionDescription}>졸업 상태가 되면 다시 진행 상태로 돌아올 수 없고, 정원 카운트에서도 빠집니다.</p><div className={styles.modalActions}><button type="button" onClick={() => setGraduationTargetId(null)} className={styles.secondaryAction}>취소</button><button type="button" onClick={confirmGraduation} className={styles.dangerButton}>졸업 확정</button></div></div></div> : null}
+      {isWaitingCancelModalOpen ? (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="참여 대기 취소 확인">
+          <div className={styles.modalDialog}>
+            <h2 className={styles.modalTitle}>참여 대기 취소</h2>
+            <p className={styles.sectionDescription}>지금 대기 취소할 경우 추후 대기 시 맨 후순위로 밀립니다. 그래도 취소하시겠습니까?</p>
+            <div className={styles.modalActions}>
+              <button type="button" onClick={() => setIsWaitingCancelModalOpen(false)} className={styles.secondaryAction}>돌아가기</button>
+              <button type="button" onClick={() => void handleConfirmWaitingCancel()} className={styles.dangerButton}>대기 취소</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+      {graduationTargetId ? <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-label="졸업 확인"><div className={styles.modalDialog}><h2 className={styles.modalTitle}>정말 졸업하시겠습니까?</h2><p className={styles.sectionDescription}>졸업 상태가 되면 다시 진행 상태로 돌아올 수 없고, 정원 카운트에서도 빠집니다.</p><div className={styles.modalActions}><button type="button" onClick={() => setGraduationTargetId(null)} className={styles.secondaryAction}>취소</button><button type="button" onClick={() => void confirmGraduation()} className={styles.dangerButton}>졸업 확정</button></div></div></div> : null}
     </>
   );
 }

@@ -10,13 +10,14 @@ export default async function CompanionPage() {
   const supabase = await createServerClient();
   const [{ data: roomRows }, { data: participantRows }] = await Promise.all([
     supabase.from("companion_rooms").select("*").order("created_at", { ascending: false }),
-    supabase.from("companion_participants").select("room_id, user_id"),
+    supabase.from("companion_participants").select("room_id, user_id, role"),
   ]);
 
   const companionRoomRows = ((roomRows ?? []) as CompanionRoomRow[]) ?? [];
   const participantCountMap = new Map<string, number>();
 
-  (((participantRows ?? []) as Array<{ room_id: string; user_id: string }>) ?? []).forEach((row) => {
+  (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting" }>) ?? []).forEach((row) => {
+    if (row.role === "waiting") return;
     participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
   });
 
@@ -72,4 +73,3 @@ export default async function CompanionPage() {
     </>
   );
 }
-

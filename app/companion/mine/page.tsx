@@ -123,7 +123,7 @@ export default async function MyCompanionPage() {
           .select("*")
           .in("id", joinedRoomIds)
           .order("created_at", { ascending: false }),
-        supabase.from("companion_participants").select("room_id, user_id").in("room_id", joinedRoomIds),
+        supabase.from("companion_participants").select("room_id, user_id, role").in("room_id", joinedRoomIds),
         supabase.from("companion_checkins").select("room_id, created_at").eq("author_user_id", user.id).in("room_id", joinedRoomIds),
       ]);
 
@@ -135,7 +135,8 @@ export default async function MyCompanionPage() {
     const participantCountMap = new Map<string, number>();
     const participantUserMap = new Map<string, Set<string>>();
 
-    (((participantRows ?? []) as Array<{ room_id: string; user_id: string }>) ?? []).forEach((row) => {
+    (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting" }>) ?? []).forEach((row) => {
+      if (row.role === "waiting") return;
       participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
 
       const users = participantUserMap.get(row.room_id) ?? new Set<string>();
