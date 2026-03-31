@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
@@ -110,7 +110,6 @@ export default function MyCompanionBoardClient({ rooms, currentUserId, latestMyC
                   <span className={styles.metaChip}>진행자 {room.hostName}</span>
                   <span className={styles.metaChip}>{formatCompanionSchedule(room)}</span>
                   <span className={styles.metaChip}>난이도 {room.level}</span>
-                  <span className={styles.metaChip}>{formatCompanionMembers(room)}</span>
                 </div>
                 {room.tags.length > 0 ? (
                   <div className={styles.tagList}>

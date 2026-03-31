@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
@@ -197,7 +197,6 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
                             <span className={styles.infoChip}>진행자 {room.hostName}</span>
                             <span className={styles.infoChip}>{formatCompanionSchedule(room)}</span>
                             <span className={styles.infoChip}>난이도 {room.level}</span>
-                            <span className={styles.infoChip}>{formatParticipantRatio(room)}</span>
                           </div>
 
                           {room.tags.length > 0 ? (

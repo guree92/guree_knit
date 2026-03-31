@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import Image from "next/image";
 import Link from "next/link";
@@ -308,6 +308,12 @@ export default function CompanionDetailClient() {
     const currentMeta = readBoardMeta(currentRoom.id);
     writeBoardMeta(currentRoom.id, { ...currentMeta, [userId]: { ...(currentMeta[userId] ?? {}), ...patch } });
   }
+  function removeBoardMeta(userId: string) {
+    if (!currentRoom || !isDbRoom) return;
+    const currentMeta = readBoardMeta(currentRoom.id);
+    const { [userId]: _removed, ...nextMeta } = currentMeta;
+    writeBoardMeta(currentRoom.id, nextMeta);
+  }
 
   const isHost = Boolean(currentRoom && ((currentRoom.hostUserId && currentUserId && currentRoom.hostUserId === currentUserId) || (!currentRoom.hostUserId && currentUserName && currentRoom.hostName === currentUserName)));
   const joinedBoard = useMemo(() => {
@@ -316,6 +322,7 @@ export default function CompanionDetailClient() {
   }, [currentUserId, currentUserName, detailState]);
   const isJoined = Boolean(joinedBoard);
   const isRestingViewer = Boolean(joinedBoard && getBoardStatus(joinedBoard) === "resting");
+  const canQuestionInteract = !isRestingViewer || isHost || joinedBoard?.role === "host";
   const canAccessMemberPanels = isHost || isJoined;
   const canViewProgressPanels = isHost || isJoined;
   const visiblePanel = (activePanel === "supplies" && !canAccessMemberPanels) || ((["progress", "resting", "graduated"] as ActivePanel[]).includes(activePanel) && !canViewProgressPanels) ? "notice" : activePanel;
@@ -534,7 +541,7 @@ export default function CompanionDetailClient() {
     persistLocalDetail({ ...detailState, supplies: detailState.supplies.map((supply) => supply.id === supplyId ? { ...supply, checkedBy: isChecked ? supply.checkedBy.filter((userId) => userId !== user.id) : [...supply.checkedBy, user.id] } : supply) });
   }
   async function handleQuestionSubmit() {
-    if (!currentRoom || !detailState || isRestingViewer || !questionInput.trim()) return;
+    if (!currentRoom || !detailState || !canQuestionInteract || !questionInput.trim()) return;
     const user = await ensureSignedIn(); if (!user || !currentUserName) return;
     if (isDbRoom) {
       const { error } = await supabase.from("companion_threads").insert({ room_id: currentRoom.id, author_user_id: user.id, type: "question", content: questionInput.trim() });
@@ -545,7 +552,7 @@ export default function CompanionDetailClient() {
     setQuestionInput("");
   }
   async function handleReplySubmit(questionId: string) {
-    if (!currentRoom || !detailState || isRestingViewer) return;
+    if (!currentRoom || !detailState || !canQuestionInteract) return;
     const reply = replyInputs[questionId]?.trim(); if (!reply) return;
     const user = await ensureSignedIn(); if (!user || !currentUserName) return;
     if (isDbRoom) {
@@ -601,6 +608,35 @@ export default function CompanionDetailClient() {
       ),
     });
   }
+
+  async function handleHostRemoveParticipant(board: ProgressBoard) {
+    if (!currentRoom || !detailState || !isHost || board.role !== "participant") return;
+    if (!window.confirm(`${board.name}?? ????? ?? ?? ??????`)) return;
+    if (isDbRoom) {
+      const { error } = await supabase
+        .from("companion_participants")
+        .delete()
+        .eq("room_id", currentRoom.id)
+        .eq("user_id", board.userId)
+        .eq("role", "participant");
+      if (error) { alert(error.message); return; }
+      removeBoardMeta(board.userId);
+      if (selectedBoardId === board.id) closeBoardModal();
+      setReloadToken((current) => current + 1);
+      return;
+    }
+    if (selectedBoardId === board.id) closeBoardModal();
+    persistLocalDetail({
+      ...detailState,
+      participants: detailState.participants.filter((participant) => participant.userId !== board.userId),
+      boards: detailState.boards.filter((item) => item.userId !== board.userId),
+      supplies: detailState.supplies.map((supply) => ({
+        ...supply,
+        checkedBy: supply.checkedBy.filter((userId) => userId !== board.userId),
+      })),
+    });
+  }
+
   function openGraduationModal(board: ProgressBoard) {
     if (isRestingViewer) return;
     const viewerOwnsBoard = (currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName);
@@ -828,11 +864,11 @@ export default function CompanionDetailClient() {
                   <h2 className={styles.sectionTitle}>질문</h2>
                   <span className={styles.noticeCountText}>{questionList.length}개</span>
                 </div>
-                <button type="button" onClick={() => setIsQuestionComposerOpen((current) => !current)} className={styles.smallButton} disabled={isRestingViewer}>
+                <button type="button" onClick={() => setIsQuestionComposerOpen((current) => !current)} className={styles.smallButton} disabled={!canQuestionInteract}>
                   {isQuestionComposerOpen ? "질문하기 닫기" : "질문하기 열기"}
                 </button>
               </div>
-              {isQuestionComposerOpen && !isRestingViewer ? (
+              {isQuestionComposerOpen && canQuestionInteract ? (
                 <div className={styles.composer}>
                   <label className={styles.label}>질문 작성</label>
                   <textarea value={questionInput} onChange={(event) => setQuestionInput(event.target.value)} placeholder="도안, 일정, 재료에 대해 궁금한 점을 남겨보세요." rows={4} className={styles.textarea} />
@@ -842,7 +878,7 @@ export default function CompanionDetailClient() {
                 </div>
               ) : null}
               <div className={styles.commentList}>
-                {questionList.length > 0 ? questionList.map((question) => <article key={question.id} className={styles.commentCard}><div className={styles.commentHead}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{question.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(question.createdAt)}</span></div></div><p className={styles.commentBody}>{question.content}</p><div className={styles.replyList}>{question.replies.map((reply) => <div key={reply.id} className={styles.replyCard}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{reply.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(reply.createdAt)}</span></div><p className={styles.commentBody}>{reply.content}</p></div>)}</div><div className={styles.inlineForm}><label className={styles.label}>답글 입력</label><textarea value={replyInputs[question.id] ?? ""} onChange={(event) => setReplyInputs((current) => ({ ...current, [question.id]: event.target.value }))} placeholder="한 단계까지만 답글을 이어갈 수 있어요." rows={3} className={styles.inlineTextarea} disabled={isRestingViewer} /><div className={styles.inlineActions}><button type="button" onClick={() => void handleReplySubmit(question.id)} className={styles.smallButton} disabled={isRestingViewer}>답글 등록</button></div></div></article>) : <div className={styles.emptyState}><p className={styles.emptyStateTitle}>아직 질문이 없어요</p><p className={styles.emptyStateDescription}>첫 질문을 남기면 진행자와 참여자가 함께 답변을 이어갈 수 있어요.</p></div>}
+                {questionList.length > 0 ? questionList.map((question) => <article key={question.id} className={styles.commentCard}><div className={styles.commentHead}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{question.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(question.createdAt)}</span></div></div><p className={styles.commentBody}>{question.content}</p><div className={styles.replyList}>{question.replies.map((reply) => <div key={reply.id} className={styles.replyCard}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{reply.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(reply.createdAt)}</span></div><p className={styles.commentBody}>{reply.content}</p></div>)}</div><div className={styles.inlineForm}><label className={styles.label}>답글 입력</label><textarea value={replyInputs[question.id] ?? ""} onChange={(event) => setReplyInputs((current) => ({ ...current, [question.id]: event.target.value }))} placeholder="한 단계까지만 답글을 이어갈 수 있어요." rows={3} className={styles.inlineTextarea} disabled={!canQuestionInteract} /><div className={styles.inlineActions}><button type="button" onClick={() => void handleReplySubmit(question.id)} className={styles.smallButton} disabled={!canQuestionInteract}>{"\uCC38\uC5EC \uCDE8\uC18C"}</button></div></div></article>) : <div className={styles.emptyState}><p className={styles.emptyStateTitle}>아직 질문이 없어요</p><p className={styles.emptyStateDescription}>첫 질문을 남기면 진행자와 참여자가 함께 답변을 이어갈 수 있어요.</p></div>}
               </div>
             </>
           ) : null}
@@ -865,7 +901,8 @@ export default function CompanionDetailClient() {
                       <strong className={styles.progressParticipantName}>{board.name}</strong>
                       <p className={styles.progressParticipantMeta}>{formatElapsedDayLabel(board.lastActivityAt)}</p>
                       {status === "resting" && isOwnBoard ? <button type="button" className={styles.smallButton} disabled={!canReactivate} onClick={(event) => { event.stopPropagation(); handleReactivateBoard(board); }}>휴면 해제</button> : null}
-                      {status === "graduated" ? <p className={styles.progressParticipantWarn}>졸업 완료</p> : null}
+                      {isHost && board.role === "participant" && status !== "graduated" ? <button type="button" className={styles.textButtonDanger} onClick={(event) => { event.stopPropagation(); void handleHostRemoveParticipant(board); }}>{"\uCC38\uC5EC \uCDE8\uC18C"}</button> : null}
+{status === "graduated" ? <p className={styles.progressParticipantWarn}>졸업 완료</p> : null}
                     </article>
                   );
                 }) : <div className={`${styles.emptyState} ${styles.progressEmptyState}`}><p className={`${styles.emptyStateTitle} ${styles.progressEmptyStateTitle}`}>해당 상태의 참여자가 아직 없어요</p><p className={`${styles.emptyStateDescription} ${styles.progressEmptyStateDescription}`}>참여자가 생기면 이곳에 카드가 만들어집니다.</p></div>}
