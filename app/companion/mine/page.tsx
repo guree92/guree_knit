@@ -1,10 +1,10 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import Link from "next/link";
 import Header from "@/components/layout/Header";
 import MyCompanionBoardClient from "@/components/companion/MyCompanionBoardClient";
 import MyCompanionStatusPanelClient from "@/components/companion/MyCompanionStatusPanelClient";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
+import { getEffectiveCompanionParticipantActivityStatus, isCompanionParticipantCounted, type CompanionParticipantActivityStatus, mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
 import styles from "./page.module.css";
 import heroHeaderImage from "../../../Image/headerlogo.png";
 
@@ -98,7 +98,7 @@ export default async function MyCompanionPage() {
 
   const [{ data: myParticipantRows, error: myParticipantError }, { data: myHostedRows, error: myHostedError }] =
     await Promise.all([
-      supabase.from("companion_participants").select("room_id").eq("user_id", user.id),
+      supabase.from("companion_participants").select("room_id, role, activity_status, last_activity_at, joined_at").eq("user_id", user.id),
       supabase.from("companion_rooms").select("id").eq("host_user_id", user.id),
     ]);
 
@@ -113,51 +113,38 @@ export default async function MyCompanionPage() {
   );
 
   let rooms: CompanionRoom[] = [];
-  const latestMyCheckInByRoom: Record<string, string | null> = {};
+  const roomStatuses: Record<string, CompanionParticipantActivityStatus> = {};
 
   if (joinedRoomIds.length > 0) {
-    const [{ data: roomRows, error: roomError }, { data: participantRows, error: participantError }, { data: myCheckInRows, error: myCheckInError }] =
+    const [{ data: roomRows, error: roomError }, { data: participantRows, error: participantError }] =
       await Promise.all([
         supabase
           .from("companion_rooms")
           .select("*")
           .in("id", joinedRoomIds)
           .order("created_at", { ascending: false }),
-        supabase.from("companion_participants").select("room_id, user_id, role").in("room_id", joinedRoomIds),
-        supabase.from("companion_checkins").select("room_id, created_at").eq("author_user_id", user.id).in("room_id", joinedRoomIds),
+        supabase.from("companion_participants").select("room_id, user_id, role, activity_status, last_activity_at, joined_at").in("room_id", joinedRoomIds),
       ]);
 
     if (roomError) throw new Error(roomError.message);
     if (participantError) throw new Error(participantError.message);
-    if (myCheckInError) throw new Error(myCheckInError.message);
 
     const companionRoomRows = ((roomRows ?? []) as CompanionRoomRow[]) ?? [];
     const participantCountMap = new Map<string, number>();
-    const participantUserMap = new Map<string, Set<string>>();
 
-    (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting" }>) ?? []).forEach((row) => {
-      if (row.role === "waiting") return;
-      participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
-
-      const users = participantUserMap.get(row.room_id) ?? new Set<string>();
-      users.add(row.user_id);
-      participantUserMap.set(row.room_id, users);
-    });
-
-    // 진행자도 참여 인원 1명으로 포함되도록 집계합니다.
-    companionRoomRows.forEach((row) => {
-      if (!row.host_user_id) return;
-
-      const users = participantUserMap.get(row.id);
-      if (users?.has(row.host_user_id)) return;
-
-      participantCountMap.set(row.id, (participantCountMap.get(row.id) ?? 0) + 1);
-    });
-    (((myCheckInRows ?? []) as Array<{ room_id: string; created_at: string }>) ?? []).forEach((row) => {
-      const currentLatest = latestMyCheckInByRoom[row.room_id];
-      if (!currentLatest || new Date(row.created_at).getTime() > new Date(currentLatest).getTime()) {
-        latestMyCheckInByRoom[row.room_id] = row.created_at;
+    (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting"; activity_status: CompanionParticipantActivityStatus | null; last_activity_at: string | null; joined_at: string | null }>) ?? []).forEach((row) => {
+      if (isCompanionParticipantCounted(row)) {
+        participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
       }
+
+      if (row.user_id === user.id && row.role !== "waiting") {
+        roomStatuses[row.room_id] = getEffectiveCompanionParticipantActivityStatus(row);
+      }
+    });
+
+    (((myParticipantRows ?? []) as Array<{ room_id: string; role: "host" | "participant" | "waiting"; activity_status: CompanionParticipantActivityStatus | null; last_activity_at: string | null; joined_at: string | null }>) ?? []).forEach((row) => {
+      if (row.role === "waiting") return;
+      roomStatuses[row.room_id] = getEffectiveCompanionParticipantActivityStatus(row);
     });
 
     const hostIds = Array.from(
@@ -196,6 +183,7 @@ export default async function MyCompanionPage() {
     }));
   }
 
+
   return (
     <>
       <Header />
@@ -214,7 +202,7 @@ export default async function MyCompanionPage() {
 
               <section className={styles.listSection}>
                 {rooms.length > 0 ? (
-                  <MyCompanionBoardClient rooms={rooms} currentUserId={user.id} latestMyCheckInByRoom={latestMyCheckInByRoom} />
+                  <MyCompanionBoardClient rooms={rooms} roomStatuses={roomStatuses} />
                 ) : (
                   <div className={styles.feedbackCard}>
                     <p className={styles.feedbackTitle}>아직 참여한 동행방이 없어요.</p>
@@ -235,7 +223,7 @@ export default async function MyCompanionPage() {
             </div>
 
             <aside className={styles.sideColumn}>
-              <MyCompanionStatusPanelClient rooms={rooms} currentUserId={user.id} latestMyCheckInByRoom={latestMyCheckInByRoom} />
+              <MyCompanionStatusPanelClient rooms={rooms} roomStatuses={roomStatuses} />
 
               <section className={styles.sidePanel}>
                 <div className={styles.sectionHeader}>

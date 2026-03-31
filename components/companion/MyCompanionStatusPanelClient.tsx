@@ -1,33 +1,15 @@
 "use client";
 
-import { useMemo, useSyncExternalStore } from "react";
-import type { CompanionRoom } from "@/lib/companion";
-import { getMyCompanionState, readCompanionBoardMeta, type MyCompanionState } from "@/lib/companion-board-meta";
+import { useMemo } from "react";
+import type { CompanionParticipantActivityStatus, CompanionRoom } from "@/lib/companion";
 import styles from "@/app/companion/mine/page.module.css";
 
 type Props = {
   rooms: CompanionRoom[];
-  currentUserId: string;
-  latestMyCheckInByRoom: Record<string, string | null>;
+  roomStatuses: Record<string, CompanionParticipantActivityStatus>;
 };
 
-export default function MyCompanionStatusPanelClient({ rooms, currentUserId, latestMyCheckInByRoom }: Props) {
-  const isHydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,
-    () => false
-  );
-  const roomStatuses = useMemo(
-    () =>
-      Object.fromEntries(
-        rooms.map((room) => {
-          const meta = isHydrated ? readCompanionBoardMeta(room.id)[currentUserId] : undefined;
-          return [room.id, getMyCompanionState(meta, latestMyCheckInByRoom[room.id] ?? room.createdAt ?? null)];
-        })
-      ) as Record<string, MyCompanionState>,
-    [isHydrated, rooms, currentUserId, latestMyCheckInByRoom]
-  );
-
+export default function MyCompanionStatusPanelClient({ rooms, roomStatuses }: Props) {
   const counts = useMemo(() => {
     return rooms.reduce(
       (acc, room) => {

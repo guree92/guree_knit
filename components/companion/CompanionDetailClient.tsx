@@ -14,8 +14,10 @@ import {
   formatCompanionSchedule,
   getCompanionRoomStateStorageKey,
   mapCompanionRoom,
+  getEffectiveCompanionParticipantActivityStatus,
   type CompanionCheckInRow,
   type CompanionNoticeRow,
+  type CompanionParticipantActivityStatus,
   type CompanionRoom,
   type CompanionRoomRow,
   type CompanionSupplyCheckRow,
@@ -46,7 +48,7 @@ type DetailSupply = { id: string; label: string; checkedBy: string[] };
 type DetailReply = { id: string; author: string; content: string; createdAt: string };
 type DetailQuestion = { id: string; author: string; content: string; createdAt: string; replies: DetailReply[] };
 type ProgressPost = { id: string; title: string; content: string; imagePath: string | null; createdAt: string };
-type ProgressBoard = { id: string; userId: string; name: string; role: "host" | "participant"; lastActivityAt: string; graduatedAt: string | null; posts: ProgressPost[] };
+type ProgressBoard = { id: string; userId: string; name: string; role: "host" | "participant"; activityStatus: CompanionParticipantActivityStatus; lastActivityAt: string; graduatedAt: string | null; posts: ProgressPost[] };
 type DetailState = { participants: DetailParticipant[]; waitingParticipants: DetailWaitingParticipant[]; notices: DetailNotice[]; supplies: DetailSupply[]; questions: DetailQuestion[]; boards: ProgressBoard[] };
 type BoardMetaRecord = Record<string, { lastActivityAt?: string; graduatedAt?: string | null }>;
 
@@ -56,7 +58,8 @@ function getStatusClassName(status: string) {
   return styles.statusSoon;
 }
 function getBoardStatus(board: ProgressBoard) {
-  if (board.graduatedAt) return "graduated" as const;
+  if (board.activityStatus === "graduated" || board.graduatedAt) return "graduated" as const;
+  if (board.activityStatus === "resting") return "resting" as const;
   const lastActivity = new Date(board.lastActivityAt).getTime();
   if (!Number.isNaN(lastActivity) && Date.now() - lastActivity > 1000 * 60 * 60 * 24 * 7) return "resting" as const;
   return "active" as const;
@@ -150,7 +153,7 @@ function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState)
   const nextBoards: ProgressBoard[] = existingBoard
     ? state.boards.map((board) =>
         board.userId === nextWaiting.userId
-          ? { ...board, lastActivityAt: new Date().toISOString(), graduatedAt: null }
+          ? { ...board, activityStatus: "progress", lastActivityAt: new Date().toISOString(), graduatedAt: null }
           : board
       )
     : [
@@ -160,6 +163,7 @@ function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState)
           userId: nextWaiting.userId,
           name: nextWaiting.name,
           role: "participant",
+          activityStatus: "progress",
           lastActivityAt: new Date().toISOString(),
           graduatedAt: null,
           posts: [],
@@ -207,7 +211,7 @@ function convertLegacyState(room: CompanionRoom): DetailState {
     notices: legacy.notices.map((notice, index) => parseLegacyNotice(notice, index, room)),
     supplies: legacy.supplies.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: [] })),
     questions: legacy.threads.filter((thread) => thread.type === "질문").map((thread) => ({ id: thread.id, author: thread.author, content: thread.content, createdAt: thread.createdAt, replies: (thread.comments ?? []).map((comment) => ({ id: comment.id, author: comment.author, content: comment.content, createdAt: comment.createdAt })) })),
-    boards: participants.map((participant) => ({ id: `board-${participant.userId}`, userId: participant.userId, name: participant.name, role: participant.role, lastActivityAt: (postsByAuthor.get(participant.name) ?? [])[0]?.createdAt ?? room.createdAt, graduatedAt: null, posts: (postsByAuthor.get(participant.name) ?? []).sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()) })),
+    boards: participants.map((participant) => ({ id: `board-${participant.userId}`, userId: participant.userId, name: participant.name, role: participant.role, activityStatus: "progress", lastActivityAt: (postsByAuthor.get(participant.name) ?? [])[0]?.createdAt ?? room.createdAt, graduatedAt: null, posts: (postsByAuthor.get(participant.name) ?? []).sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()) })),
   };
 }
 
@@ -239,6 +243,7 @@ export default function CompanionDetailClient() {
   const [supplyInput, setSupplyInput] = useState("");
   const [questionInput, setQuestionInput] = useState("");
   const [replyInputs, setReplyInputs] = useState<Record<string, string>>({});
+  const [openReplyQuestionId, setOpenReplyQuestionId] = useState<string | null>(null);
   const [progressTitle, setProgressTitle] = useState("");
   const [progressContent, setProgressContent] = useState("");
   const [progressImageFile, setProgressImageFile] = useState<File | null>(null);
@@ -249,7 +254,7 @@ export default function CompanionDetailClient() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isWaitingCancelModalOpen, setIsWaitingCancelModalOpen] = useState(false);
   const [graduationTargetId, setGraduationTargetId] = useState<string | null>(null);
-  const [pendingAction, setPendingAction] = useState<"join" | "reactivate" | "graduation" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"join" | "reactivate" | "resting" | "graduation" | null>(null);
   const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   useEffect(() => {
     async function loadUser() {
@@ -272,8 +277,11 @@ export default function CompanionDetailClient() {
 
   useEffect(() => {
     async function loadRoomDetail() {
-      setIsStateReady(false);
-      setLinkedPattern(null);
+      const shouldShowInitialLoading = !hasLoadedRooms && !currentRoom && !detailState;
+      if (shouldShowInitialLoading) {
+        setIsStateReady(false);
+        setLinkedPattern(null);
+      }
       const { data: roomRow } = await supabase.from("companion_rooms").select("*").eq("id", roomId).maybeSingle();
       if (roomRow) {
         const dbRoomRow = roomRow as CompanionRoomRow;
@@ -286,13 +294,13 @@ export default function CompanionDetailClient() {
           supabase.from("companion_thread_comments").select("id, thread_id, author_user_id, content, created_at, companion_threads!inner(room_id)").eq("companion_threads.room_id", roomId).order("created_at", { ascending: true }),
           supabase.from("companion_checkins").select("*").eq("room_id", roomId).order("created_at", { ascending: false }),
         ]);
-        const participantRows = (((participantsResult.data ?? []) as Array<{ id: string; room_id: string; user_id: string; role: "host" | "participant" | "waiting"; joined_at: string }>) ?? []);
+        const participantRows = (((participantsResult.data ?? []) as Array<{ id: string; room_id: string; user_id: string; role: "host" | "participant" | "waiting"; activity_status: CompanionParticipantActivityStatus | null; last_activity_at: string | null; joined_at: string | null }>) ?? []);
         const threadRows = ((threadsResult.data ?? []) as CompanionThreadRow[]) ?? [];
         const checkInRows = ((checkInsResult.data ?? []) as CompanionCheckInRow[]) ?? [];
         const noticeRows = ((noticesResult.data ?? []) as CompanionNoticeRow[]) ?? [];
         const supplyRows = ((suppliesResult.data ?? []) as CompanionSupplyRow[]) ?? [];
         const threadCommentRows = (((threadCommentsResult.data ?? []) as CompanionThreadCommentRow[]) ?? []);
-        const authorIds = Array.from(new Set([...
+        const authorIds = Array.from(new Set([
           participantRows.map((row) => row.user_id),
           ...threadRows.map((row) => row.author_user_id),
           ...threadCommentRows.map((row) => row.author_user_id),
@@ -323,12 +331,19 @@ export default function CompanionDetailClient() {
           existing.push({ id: comment.id, author: nicknameMap.get(comment.author_user_id) ?? "참여자", content: comment.content, createdAt: comment.created_at });
           commentsByThreadId.set(comment.thread_id, existing);
         });
-        const boardMeta = readBoardMeta(room.id);
-        const hasHistoryUserIds = new Set<string>([
-          ...checkInRows.map((checkIn) => checkIn.author_user_id),
-          ...Object.keys(boardMeta),
-        ]);
-        const participants: DetailParticipant[] = [{ id: `${room.id}-host`, userId: room.hostUserId ?? `${room.id}-host`, name: room.hostName, role: "host", joinedAt: room.createdAt }, ...participantRows.filter((participant) => participant.user_id !== room.hostUserId && (participant.role === "participant" || (participant.role === "waiting" && hasHistoryUserIds.has(participant.user_id)))).map((participant) => ({ id: participant.id, userId: participant.user_id, name: nicknameMap.get(participant.user_id) ?? "참여자", role: "participant" as const, joinedAt: participant.joined_at ?? room.createdAt }))];
+        const participantRowByUserId = new Map(participantRows.filter((participant) => participant.role !== "waiting").map((participant) => [participant.user_id, participant]));
+        const participantsFromRows: DetailParticipant[] = participantRows
+          .filter((participant) => participant.role !== "waiting")
+          .map((participant) => ({
+            id: participant.id,
+            userId: participant.user_id,
+            name: nicknameMap.get(participant.user_id) ?? (participant.role === "host" ? room.hostName : "참여자"),
+            role: participant.role === "host" ? "host" : "participant",
+            joinedAt: participant.joined_at ?? room.createdAt,
+          }));
+        const participants: DetailParticipant[] = participantsFromRows.some((participant) => participant.role === "host")
+          ? participantsFromRows
+          : [{ id: `${room.id}-host`, userId: room.hostUserId ?? `${room.id}-host`, name: room.hostName, role: "host", joinedAt: room.createdAt }, ...participantsFromRows];
         const waitingParticipants: DetailWaitingParticipant[] = participantRows
           .filter((participant) => participant.role === "waiting")
           .map((participant) => ({
@@ -339,9 +354,23 @@ export default function CompanionDetailClient() {
           }));
         const boards: ProgressBoard[] = participants.map((participant) => {
           const posts = checkInRows.filter((checkIn) => checkIn.author_user_id === participant.userId).map((checkIn) => ({ id: checkIn.id, title: checkIn.title, content: checkIn.content, imagePath: checkIn.image_path ?? null, createdAt: checkIn.created_at })).sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
-          const meta = boardMeta[participant.userId] ?? {};
-          return { id: `${room.id}-board-${participant.userId}`, userId: participant.userId, name: participant.name, role: participant.role, lastActivityAt: getLatestTimestamp([meta.lastActivityAt, posts[0]?.createdAt, room.createdAt], room.createdAt), graduatedAt: meta.graduatedAt ?? null, posts };
+          const participantRow = participantRowByUserId.get(participant.userId);
+          const lastActivityAt = getLatestTimestamp([participantRow?.last_activity_at, posts[0]?.createdAt, participant.joinedAt, room.createdAt], participant.joinedAt);
+          const activityStatus = participantRow
+            ? getEffectiveCompanionParticipantActivityStatus(participantRow, posts[0]?.createdAt ?? participant.joinedAt)
+            : getEffectiveCompanionParticipantActivityStatus({ role: participant.role, activity_status: "progress", last_activity_at: lastActivityAt, joined_at: participant.joinedAt }, lastActivityAt);
+          return { id: `${room.id}-board-${participant.userId}`, userId: participant.userId, name: participant.name, role: participant.role, activityStatus, lastActivityAt, graduatedAt: activityStatus === "graduated" ? lastActivityAt : null, posts };
         });
+        setCurrentRoom(room);
+        setDetailState({
+          participants,
+          waitingParticipants,
+          notices: noticeRows.map((notice) => ({ id: notice.id, title: notice.title, content: notice.content, author: nicknameMap.get(notice.author_user_id) ?? room.hostName, createdAt: notice.created_at, isPinned: notice.is_pinned })),
+          supplies: supplyRows.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: checkedBySupply.get(supply.id) ?? [] })),
+          questions: threadRows.filter((thread) => thread.type === "question").map((thread) => ({ id: thread.id, author: nicknameMap.get(thread.author_user_id) ?? "참여자", content: thread.content, createdAt: thread.created_at, replies: commentsByThreadId.get(thread.id) ?? [] })),
+          boards,
+        });
+        setIsDbRoom(true); setHasLoadedRooms(true); setIsStateReady(true); return;
         setCurrentRoom(room);
         setDetailState({
           participants,
@@ -385,18 +414,37 @@ export default function CompanionDetailClient() {
     setDetailState(nextState);
     writeLocalDetailState(currentRoom.id, nextState);
   }
-  function updateBoardMeta(userId: string, patch: { lastActivityAt?: string; graduatedAt?: string | null }) {
-    if (!currentRoom || !isDbRoom) return;
-    const currentMeta = readBoardMeta(currentRoom.id);
-    writeBoardMeta(currentRoom.id, { ...currentMeta, [userId]: { ...(currentMeta[userId] ?? {}), ...patch } });
+  async function updateDbParticipantActivity(
+    userId: string,
+    patch: { activityStatus?: CompanionParticipantActivityStatus; lastActivityAt?: string }
+  ) {
+    if (!currentRoom || !isDbRoom) return false;
+    const nextValues: { activity_status?: CompanionParticipantActivityStatus; last_activity_at?: string } = {};
+    if (patch.activityStatus) nextValues.activity_status = patch.activityStatus;
+    if (patch.lastActivityAt) nextValues.last_activity_at = patch.lastActivityAt;
+    if (Object.keys(nextValues).length === 0) return true;
+
+    const { data, error } = await supabase
+      .from("companion_participants")
+      .update(nextValues)
+      .eq("room_id", currentRoom.id)
+      .eq("user_id", userId)
+      .in("role", ["host", "participant"])
+      .select("id");
+
+    if (error) {
+      alert(error.message);
+      return false;
+    }
+
+    if (!data || data.length === 0) {
+      alert("참여 상태가 아직 반영되지 않았어요. 다시 시도해 주세요.");
+      return false;
+    }
+
+    return true;
   }
-  function removeBoardMeta(userId: string) {
-    if (!currentRoom || !isDbRoom) return;
-    const currentMeta = readBoardMeta(currentRoom.id);
-    const nextMeta = { ...currentMeta };
-    delete nextMeta[userId];
-    writeBoardMeta(currentRoom.id, nextMeta);
-  }
+
 
   const isHost = Boolean(currentRoom && ((currentRoom.hostUserId && currentUserId && currentRoom.hostUserId === currentUserId) || (!currentRoom.hostUserId && currentUserName && currentRoom.hostName === currentUserName)));
   const joinedBoard = useMemo(() => {
@@ -414,7 +462,7 @@ export default function CompanionDetailClient() {
   const isJoined = Boolean(joinedBoard);
   const isWaiting = Boolean(waitingParticipant);
   const isRestingViewer = Boolean(joinedBoard && getBoardStatus(joinedBoard) === "resting");
-  const canQuestionInteract = !isRestingViewer || isHost || joinedBoard?.role === "host";
+  const canQuestionInteract = isHost || Boolean(joinedBoard && getBoardStatus(joinedBoard) !== "resting");
   const canAccessMemberPanels = isHost || isJoined;
   const canViewProgressPanels = isHost || isJoined;
   const visiblePanel = (activePanel === "supplies" && !canAccessMemberPanels) || ((["progress", "resting", "graduated"] as ActivePanel[]).includes(activePanel) && !canViewProgressPanels) ? "notice" : activePanel;
@@ -531,12 +579,10 @@ export default function CompanionDetailClient() {
     return user;
   }
   async function promoteFirstWaitingParticipantDb(targetRoomId: string) {
-    const { data: promotedUserId, error: promoteError } = await supabase.rpc("promote_first_waiting_participant", {
+    const { error: promoteError } = await supabase.rpc("promote_first_waiting_participant", {
       p_room_id: targetRoomId,
     });
-    if (promoteError) { alert(promoteError.message); return; }
-    if (!promotedUserId || typeof promotedUserId !== "string") return;
-    updateBoardMeta(promotedUserId, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+    if (promoteError) { alert(promoteError.message); }
   }
   async function handleJoinToggle() {
     if (pendingAction) return;
@@ -549,15 +595,16 @@ export default function CompanionDetailClient() {
       if (isWaiting) { setIsWaitingCancelModalOpen(true); return; }
       if (isDbRoom) {
         if (isJoined) {
-          const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id);
+          const { data: deletedRows, error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).select("id");
           if (error) { alert(error.message); return; }
+          if (!deletedRows || deletedRows.length === 0) { alert("참여 취소가 아직 반영되지 않았어요. 다시 시도해 주세요."); return; }
           await promoteFirstWaitingParticipantDb(currentRoom.id);
           setActionFeedback({ type: "success", message: "참여가 취소되었어요." });
         } else {
           const nextRole = isRecruitingOpen ? "participant" : "waiting";
-          const { error } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: nextRole });
+          const { data: insertedRows, error } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: nextRole, activity_status: nextRole === "participant" ? "progress" : "progress", last_activity_at: new Date().toISOString() }).select("id, role");
           if (error) { alert(error.message); return; }
-          if (nextRole === "participant") updateBoardMeta(user.id, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+          if (!insertedRows || insertedRows.length === 0) { alert(nextRole === "participant" ? "참여 처리가 아직 완료되지 않았어요. 다시 시도해 주세요." : "참여 대기 등록이 아직 완료되지 않았어요. 다시 시도해 주세요."); return; }
           setActionFeedback({ type: "success", message: nextRole === "participant" ? "참여가 완료되었어요." : "참여 대기에 등록되었어요." });
         }
         setReloadToken((current) => current + 1); return;
@@ -575,7 +622,7 @@ export default function CompanionDetailClient() {
         return;
       }
       if (isRecruitingOpen) {
-        persistLocalDetail({ ...detailState, participants: [...detailState.participants, { id: `${currentRoom.id}-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", joinedAt: new Date().toISOString() }], boards: [{ id: `${currentRoom.id}-board-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", lastActivityAt: new Date().toISOString(), graduatedAt: null, posts: [] }, ...detailState.boards] });
+        persistLocalDetail({ ...detailState, participants: [...detailState.participants, { id: `${currentRoom.id}-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", joinedAt: new Date().toISOString() }], boards: [{ id: `${currentRoom.id}-board-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", activityStatus: "progress", lastActivityAt: new Date().toISOString(), graduatedAt: null, posts: [] }, ...detailState.boards] });
         setActionFeedback({ type: "success", message: "참여가 완료되었어요." });
         return;
       }
@@ -590,8 +637,9 @@ export default function CompanionDetailClient() {
     const user = await ensureSignedIn();
     if (!user) return;
     if (isDbRoom) {
-      const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
+      const { data: deletedRows, error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting").select("id");
       if (error) { alert(error.message); return; }
+      if (!deletedRows || deletedRows.length === 0) { alert("참여 대기 취소가 아직 반영되지 않았어요. 다시 시도해 주세요."); return; }
       setIsWaitingCancelModalOpen(false);
       setActionFeedback({ type: "success", message: "참여 대기가 취소되었어요." });
       setReloadToken((current) => current + 1);
@@ -676,17 +724,22 @@ export default function CompanionDetailClient() {
     const user = await ensureSignedIn(); if (!user) return;
     const currentSupply = detailState.supplies.find((supply) => supply.id === supplyId); if (!currentSupply) return;
     const isChecked = currentSupply.checkedBy.includes(user.id);
+    const nextState = {
+      ...detailState,
+      supplies: detailState.supplies.map((supply) => supply.id === supplyId ? { ...supply, checkedBy: isChecked ? supply.checkedBy.filter((userId) => userId !== user.id) : [...supply.checkedBy, user.id] } : supply),
+    };
     if (isDbRoom) {
+      setDetailState(nextState);
       if (isChecked) {
         const { error } = await supabase.from("companion_supply_checks").delete().eq("supply_id", supplyId).eq("user_id", user.id);
-        if (error) { alert(error.message); return; }
+        if (error) { setDetailState(detailState); alert(error.message); return; }
       } else {
         const { error } = await supabase.from("companion_supply_checks").insert({ supply_id: supplyId, user_id: user.id });
-        if (error) { alert(error.message); return; }
+        if (error) { setDetailState(detailState); alert(error.message); return; }
       }
-      setReloadToken((current) => current + 1); return;
+      return;
     }
-    persistLocalDetail({ ...detailState, supplies: detailState.supplies.map((supply) => supply.id === supplyId ? { ...supply, checkedBy: isChecked ? supply.checkedBy.filter((userId) => userId !== user.id) : [...supply.checkedBy, user.id] } : supply) });
+    persistLocalDetail(nextState);
   }
   async function handleQuestionSubmit() {
     if (!currentRoom || !detailState || !canQuestionInteract || !questionInput.trim()) return;
@@ -706,10 +759,11 @@ export default function CompanionDetailClient() {
     if (isDbRoom) {
       const { error } = await supabase.from("companion_thread_comments").insert({ thread_id: questionId, author_user_id: user.id, content: reply });
       if (error) { alert(error.message); return; }
-      setReplyInputs((current) => ({ ...current, [questionId]: "" })); setReloadToken((current) => current + 1); return;
+      setReplyInputs((current) => ({ ...current, [questionId]: "" })); setOpenReplyQuestionId(null); setReloadToken((current) => current + 1); return;
     }
     persistLocalDetail({ ...detailState, questions: detailState.questions.map((question) => question.id === questionId ? { ...question, replies: [...question.replies, { id: `${questionId}-reply-${Date.now()}`, author: currentUserName, content: reply, createdAt: new Date().toISOString() }] } : question) });
     setReplyInputs((current) => ({ ...current, [questionId]: "" }));
+    setOpenReplyQuestionId(null);
   }
   async function handleProgressSubmit(board: ProgressBoard) {
     if (!currentRoom || !detailState || isRestingViewer || !progressTitle.trim() || !progressContent.trim()) return;
@@ -730,11 +784,12 @@ export default function CompanionDetailClient() {
       }
       const { error } = await supabase.from("companion_checkins").insert({ room_id: currentRoom.id, author_user_id: user.id, title: progressTitle.trim(), content: progressContent.trim(), image_path: imagePath });
       if (error) { alert(error.message); return; }
-      updateBoardMeta(board.userId, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+      const didUpdateActivity = await updateDbParticipantActivity(board.userId, { activityStatus: "progress", lastActivityAt: new Date().toISOString() });
+      if (!didUpdateActivity) return;
       setProgressTitle(""); setProgressContent(""); removeProgressImage(); setIsProgressComposerOpen(false); setProgressPostPage(1); setReloadToken((current) => current + 1); return;
     }
     if (progressImageFile) imagePath = await readFileAsDataUrl(progressImageFile);
-    persistLocalDetail({ ...detailState, boards: detailState.boards.map((item) => item.id === board.id ? { ...item, lastActivityAt: new Date().toISOString(), posts: [{ id: `${item.id}-post-${Date.now()}`, title: progressTitle.trim(), content: progressContent.trim(), imagePath, createdAt: new Date().toISOString() }, ...item.posts] } : item) });
+    persistLocalDetail({ ...detailState, boards: detailState.boards.map((item) => item.id === board.id ? { ...item, activityStatus: "progress", lastActivityAt: new Date().toISOString(), posts: [{ id: `${item.id}-post-${Date.now()}`, title: progressTitle.trim(), content: progressContent.trim(), imagePath, createdAt: new Date().toISOString() }, ...item.posts] } : item) });
     setProgressTitle(""); setProgressContent(""); removeProgressImage(); setIsProgressComposerOpen(false); setProgressPostPage(1);
   }
   async function handleReactivateBoard(board: ProgressBoard) {
@@ -751,12 +806,12 @@ export default function CompanionDetailClient() {
       if (!user) return;
       if (isQueuedForReactivation) {
         if (board.role === "host") {
-          const { error } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
-          if (error) { alert(error.message); return; }
+          const { error: deleteError } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
+          if (deleteError) { alert(deleteError.message); return; }
         } else {
           const { error: deleteError } = await supabase.from("companion_participants").delete().eq("room_id", currentRoom.id).eq("user_id", user.id).eq("role", "waiting");
           if (deleteError) { alert(deleteError.message); return; }
-          const { error: insertError } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: "participant" });
+          const { error: insertError } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: "participant", activity_status: "progress", last_activity_at: new Date().toISOString() });
           if (insertError) { alert(insertError.message); return; }
         }
         setReloadToken((current) => current + 1);
@@ -779,7 +834,13 @@ export default function CompanionDetailClient() {
         setActionFeedback({ type: "success", message: "참여 대기에 등록되었어요." });
         return;
       }
-      updateBoardMeta(board.userId, { lastActivityAt: new Date().toISOString(), graduatedAt: null });
+      const didUpdateActivity = await updateDbParticipantActivity(board.userId, { activityStatus: "progress", lastActivityAt: new Date().toISOString() });
+      if (!didUpdateActivity) return;
+      setDetailState((current) => current ? ({
+        ...current,
+        boards: current.boards.map((item) => item.id === board.id ? { ...item, activityStatus: "progress", lastActivityAt: new Date().toISOString(), graduatedAt: null } : item),
+      }) : current);
+      setActivePanel("progress");
       setReloadToken((current) => current + 1);
       setActionFeedback({ type: "success", message: "휴면 상태가 해제되었어요." });
         return;
@@ -808,11 +869,48 @@ export default function CompanionDetailClient() {
       ...detailState,
       boards: detailState.boards.map((item) =>
         item.id === board.id
-          ? { ...item, lastActivityAt: new Date().toISOString(), graduatedAt: null }
+          ? { ...item, activityStatus: "progress", lastActivityAt: new Date().toISOString(), graduatedAt: null }
           : item
       ),
     });
+      setActivePanel("progress");
       setActionFeedback({ type: "success", message: "휴면 상태가 해제되었어요." });
+    } finally {
+      setPendingAction(null);
+    }
+  }
+
+  async function handleRestBoard(board: ProgressBoard) {
+    if (pendingAction) return;
+    setPendingAction("resting");
+    try {
+      if (!currentRoom || !detailState) return;
+      const viewerOwnsBoard = (currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName);
+      if (!viewerOwnsBoard) return;
+
+      if (isDbRoom) {
+        const didUpdateActivity = await updateDbParticipantActivity(board.userId, { activityStatus: "resting" });
+        if (!didUpdateActivity) return;
+        setDetailState((current) => current ? ({
+          ...current,
+          boards: current.boards.map((item) => item.id === board.id ? { ...item, activityStatus: "resting" } : item),
+        }) : current);
+        setActivePanel("resting");
+        setReloadToken((current) => current + 1);
+        setActionFeedback({ type: "success", message: "휴식 상태로 전환되었어요." });
+        return;
+      }
+
+      persistLocalDetail({
+        ...detailState,
+        boards: detailState.boards.map((item) =>
+          item.id === board.id
+            ? { ...item, activityStatus: "resting" }
+            : item
+        ),
+      });
+      setActivePanel("resting");
+      setActionFeedback({ type: "success", message: "휴식 상태로 전환되었어요." });
     } finally {
       setPendingAction(null);
     }
@@ -829,7 +927,6 @@ export default function CompanionDetailClient() {
         .eq("user_id", board.userId)
         .eq("role", "participant");
       if (error) { alert(error.message); return; }
-      removeBoardMeta(board.userId);
       await promoteFirstWaitingParticipantDb(currentRoom.id);
       if (selectedBoardId === board.id) closeBoardModal();
       setReloadToken((current) => current + 1);
@@ -896,7 +993,8 @@ export default function CompanionDetailClient() {
       if (!currentRoom || !detailState || !graduationTargetId || isRestingViewer) return;
       const targetBoard = detailState.boards.find((board) => board.id === graduationTargetId); if (!targetBoard) { setGraduationTargetId(null); return; }
       if (isDbRoom) {
-      updateBoardMeta(targetBoard.userId, { graduatedAt: new Date().toISOString(), lastActivityAt: targetBoard.lastActivityAt });
+      const didUpdateActivity = await updateDbParticipantActivity(targetBoard.userId, { activityStatus: "graduated" });
+      if (!didUpdateActivity) return;
       await promoteFirstWaitingParticipantDb(currentRoom.id);
       closeBoardModal();
       setGraduationTargetId(null);
@@ -906,7 +1004,7 @@ export default function CompanionDetailClient() {
       }
       const graduatedState: DetailState = {
       ...detailState,
-      boards: detailState.boards.map((board) => board.id === graduationTargetId ? { ...board, graduatedAt: new Date().toISOString() } : board),
+      boards: detailState.boards.map((board) => board.id === graduationTargetId ? { ...board, activityStatus: "graduated", graduatedAt: new Date().toISOString() } : board),
     };
       persistLocalDetail(promoteFirstWaitingParticipantLocal(currentRoom.id, graduatedState));
       closeBoardModal();
@@ -917,7 +1015,7 @@ export default function CompanionDetailClient() {
     }
   }
 
-  if (!hasLoadedRooms || !isStateReady) return <section className={styles.feedbackCard}><p className={styles.sectionDescription}>동행방을 불러오는 중이에요...</p></section>;
+  if (!hasLoadedRooms && !currentRoom && !detailState) return <section className={styles.feedbackCard}><p className={styles.sectionDescription}>동행방을 불러오는 중이에요...</p></section>;
   if (!currentRoom || !detailState) return <section className={styles.feedbackCard}><h1 className={styles.sectionTitle}>동행방을 찾을 수 없어요</h1><p className={styles.sectionDescription}>요청하신 동행방이 없거나 아직 불러오지 못했어요.</p><Link href="/companion" className={styles.submitButton}>목록으로</Link></section>;
   const questionList = [...detailState.questions].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 
@@ -937,7 +1035,7 @@ export default function CompanionDetailClient() {
               <span className={`${styles.pill} ${getStatusClassName(currentRoom.status)}`}>{currentRoom.status}</span>
               <span className={`${styles.pill} ${styles.pillMuted}`}>{currentRoom.patternName}</span>
               <span className={`${styles.pill} ${styles.pillMuted}`}>@{currentRoom.hostName}</span>
-              <span className={`${styles.pill} ${styles.pillMuted}`}>{formatCompanionSchedule(currentRoom)}</span>
+
               <span className={`${styles.pill} ${styles.pillMuted}`}>진행 {activeParticipantCount}/{currentRoom.capacity}</span>
             </div>
           </div>
@@ -1118,7 +1216,74 @@ export default function CompanionDetailClient() {
                 </div>
               ) : null}
               <div className={styles.commentList}>
-                {questionList.length > 0 ? questionList.map((question) => <article key={question.id} className={styles.commentCard}><div className={styles.commentHead}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{question.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(question.createdAt)}</span></div></div><p className={styles.commentBody}>{question.content}</p><div className={styles.replyList}>{question.replies.map((reply) => <div key={reply.id} className={styles.replyCard}><div className={styles.commentMeta}><span className={styles.commentAuthor}>@{reply.author}</span><span className={styles.commentDate}>{formatDateTimeLabel(reply.createdAt)}</span></div><p className={styles.commentBody}>{reply.content}</p></div>)}</div><div className={styles.inlineForm}><label className={styles.label}>답글 입력</label><textarea value={replyInputs[question.id] ?? ""} onChange={(event) => setReplyInputs((current) => ({ ...current, [question.id]: event.target.value }))} placeholder="한 단계까지만 답글을 이어갈 수 있어요." rows={3} className={styles.inlineTextarea} disabled={!canQuestionInteract} /><div className={styles.inlineActions}><button type="button" onClick={() => void handleReplySubmit(question.id)} className={styles.smallButton} disabled={!canQuestionInteract}>{"\uCC38\uC5EC \uCDE8\uC18C"}</button></div></div></article>) : <div className={styles.emptyState}><p className={styles.emptyStateTitle}>아직 질문이 없어요</p><p className={styles.emptyStateDescription}>첫 질문을 남기면 진행자와 참여자가 함께 답변을 이어갈 수 있어요.</p></div>}
+                {questionList.length > 0 ? questionList.map((question) => {
+                  const isReplyComposerOpen = openReplyQuestionId === question.id;
+                  return (
+                    <article key={question.id} className={styles.commentCard}>
+                      <div className={styles.commentHead}>
+                        <div className={styles.commentMeta}>
+                          <span className={styles.commentAuthor}>@{question.author}</span>
+                          <span className={styles.commentDate}>{formatDateTimeLabel(question.createdAt)}</span>
+                        </div>
+                        <div className={styles.commentActions}>
+                          <button
+                            type="button"
+                            onClick={() => setOpenReplyQuestionId((current) => current === question.id ? null : question.id)}
+                            className={styles.textButtonAccent}
+                            disabled={!canQuestionInteract}
+                          >
+                            {isReplyComposerOpen ? "답글 닫기" : "답글 달기"}
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className={styles.commentBody}>{question.content}</p>
+
+                      {isReplyComposerOpen ? (
+                        <div className={styles.inlineForm}>
+                          <label className={styles.label}>답글 입력</label>
+                          <textarea
+                            value={replyInputs[question.id] ?? ""}
+                            onChange={(event) => setReplyInputs((current) => ({ ...current, [question.id]: event.target.value }))}
+                            placeholder="댓글에 대한 답글을 남겨보세요."
+                            rows={3}
+                            className={styles.inlineTextarea}
+                            disabled={!canQuestionInteract}
+                          />
+                          <div className={styles.inlineActions}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setOpenReplyQuestionId(null);
+                                setReplyInputs((current) => ({ ...current, [question.id]: "" }));
+                              }}
+                              className={styles.smallGhostButton}
+                            >
+                              취소
+                            </button>
+                            <button type="button" onClick={() => void handleReplySubmit(question.id)} className={styles.smallButton} disabled={!canQuestionInteract}>답글 등록</button>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {question.replies.length > 0 ? (
+                        <div className={styles.replyList}>
+                          {question.replies.map((reply) => (
+                            <div key={reply.id} className={styles.replyCard}>
+                              <div className={styles.commentHead}>
+                                <div className={styles.commentMeta}>
+                                  <span className={styles.commentAuthor}>@{reply.author}</span>
+                                  <span className={styles.commentDate}>{formatDateTimeLabel(reply.createdAt)}</span>
+                                </div>
+                              </div>
+                              <p className={styles.commentBody}>{reply.content}</p>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                    </article>
+                  );
+                }) : <div className={styles.emptyState}><p className={styles.emptyStateTitle}>아직 질문이 없어요</p><p className={styles.emptyStateDescription}>첫 질문을 남기면 진행자와 참여자가 함께 답변을 이어갈 수 있어요.</p></div>}
               </div>
             </>
           ) : null}
@@ -1141,6 +1306,16 @@ export default function CompanionDetailClient() {
                       <span className={`${styles.progressAvatarWrap} ${status === "resting" ? styles.progressAvatarWrapResting : ""}`}><span className={`${styles.progressAvatarIcon} ${status === "resting" ? styles.progressAvatarIconResting : ""}`}>○</span></span>
                       <strong className={styles.progressParticipantName}>{board.name}</strong>
                       <p className={styles.progressParticipantMeta}>{formatElapsedDayLabel(board.lastActivityAt)}</p>
+                      {status === "active" && isOwnBoard ? (
+                        <button
+                          type="button"
+                          className={styles.smallGhostButton}
+                          onClick={(event) => { event.stopPropagation(); void handleRestBoard(board); }}
+                          disabled={pendingAction === "resting"}
+                        >
+                          {pendingAction === "resting" ? "처리 중..." : "휴식으로 가기"}
+                        </button>
+                      ) : null}
                       {status === "resting" && isOwnBoard ? (
                         <button
                           type="button"
@@ -1150,7 +1325,6 @@ export default function CompanionDetailClient() {
                           {isQueuedForReactivation ? "대기 취소" : canReactivate ? "휴면 해제" : "참여 대기"}
                         </button>
                       ) : null}
-                      {isHost && board.role === "participant" && status !== "graduated" ? <button type="button" className={styles.textButtonDanger} onClick={(event) => { event.stopPropagation(); void handleHostRemoveParticipant(board); }}>{"\uCC38\uC5EC \uCDE8\uC18C"}</button> : null}
 {status === "graduated" ? <p className={styles.progressParticipantWarn}>졸업 완료</p> : null}
                     </article>
                   );

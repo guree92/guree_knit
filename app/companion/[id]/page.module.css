@@ -1,4 +1,4 @@
-﻿.page {
+.page {
   --card-border: #d8dee5;
   --card-bg: #ffffff;
   --surface-border: #d8dee5;
@@ -700,11 +700,13 @@
 }
 
 .commentCard {
-  padding: 16px;
+  gap: 6px;
+  padding: 14px 18px;
 }
 
 .replyCard,
 .replyCardChecked {
+  margin-left: 28px;
   padding: 14px;
   background: #f8fafc;
   box-shadow: none;
@@ -734,10 +736,10 @@
 }
 
 .commentBody {
-  margin: 12px 0 0;
+  margin: 0;
   color: #5f5349;
   font-size: 0.88rem;
-  line-height: 1.8;
+  line-height: 1.65;
   white-space: pre-wrap;
 }
 
@@ -826,7 +828,7 @@
 
 .inlineActions {
   justify-content: flex-end;
-  margin-top: 12px;
+  margin-top: 0;
 }
 
 .checkbox {
@@ -1203,6 +1205,11 @@
   background: #f9fbfc;
 }
 
+.inlineForm {
+  margin-top: 12px;
+  padding: 14px;
+}
+
 .inlineActionGroup,
 .inlineActions {
   display: flex;
@@ -1234,12 +1241,20 @@
 }
 
 .supplyCard,
-.commentCard,
 .replyCard,
 .timelineCard {
   display: grid;
   gap: 10px;
   padding: 16px 18px;
+  border: 1px solid #d8dee5;
+  border-radius: 18px;
+  background: #ffffff;
+}
+
+.commentCard {
+  display: grid;
+  gap: 4px;
+  padding: 12px 18px;
   border: 1px solid #d8dee5;
   border-radius: 18px;
   background: #ffffff;
@@ -1435,12 +1450,41 @@
   color: #9d584f;
 }
 
-.textButtonDanger {
-  border: none;
+.textButton,
+.textButtonDanger,
+.textButtonAccent {
+  padding: 0;
+  border: 0;
   background: transparent;
-  color: #9d584f;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
+  transition: color 140ms ease, opacity 140ms ease;
+}
+
+.textButton {
+  color: #7b8794;
+}
+
+.textButtonDanger {
+  color: #9d584f;
+}
+
+.textButtonAccent {
+  color: #6f8b66;
+}
+
+.textButton:hover,
+.textButtonDanger:hover,
+.textButtonAccent:hover {
+  opacity: 0.78;
+}
+
+.textButton:disabled,
+.textButtonDanger:disabled,
+.textButtonAccent:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .commentList,
@@ -1451,7 +1495,9 @@
 }
 
 .replyList {
-  padding-top: 2px;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #e5e7eb;
 }
 
 .boardColumns {

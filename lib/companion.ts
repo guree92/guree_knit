@@ -1,4 +1,4 @@
-﻿import type { DetailRow } from "@/lib/pattern-detail";
+import type { DetailRow } from "@/lib/pattern-detail";
 
 export const companionStatuses = ["모집중", "진행중"] as const;
 export const companionLevels = ["입문", "초급", "초중급", "중급", "중상급", "고급"] as const;
@@ -11,6 +11,10 @@ export type CompanionStatus = (typeof companionStatuses)[number];
 export type CompanionLevel = (typeof companionLevels)[number];
 export type CompanionThreadType = (typeof companionThreadTypes)[number];
 export type CompanionPatternSourceType = (typeof companionPatternSourceTypes)[number];
+export type CompanionParticipantRole = "host" | "participant" | "waiting";
+export type CompanionParticipantActivityStatus = "progress" | "resting" | "graduated";
+
+const COMPANION_RESTING_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7;
 
 export type CompanionCustomPatternData = {
   title: string;
@@ -183,6 +187,35 @@ export function getEffectiveCompanionStatus(
 ): CompanionStatus {
   if (capacity > 0 && participantCount >= capacity) return "진행중";
   return "모집중";
+}
+
+type CompanionParticipantStatusSource = {
+  role: CompanionParticipantRole;
+  activity_status?: CompanionParticipantActivityStatus | null;
+  last_activity_at?: string | null;
+  joined_at?: string | null;
+};
+
+export function getEffectiveCompanionParticipantActivityStatus(
+  participant: CompanionParticipantStatusSource,
+  fallbackLastActivityAt?: string | null
+): CompanionParticipantActivityStatus {
+  if (participant.activity_status === "graduated") return "graduated";
+  if (participant.activity_status === "resting") return "resting";
+  const lastActivityAt = participant.last_activity_at ?? fallbackLastActivityAt ?? participant.joined_at ?? null;
+  if (lastActivityAt) {
+    const timestamp = new Date(lastActivityAt).getTime();
+    if (!Number.isNaN(timestamp) && Date.now() - timestamp > COMPANION_RESTING_THRESHOLD_MS) return "resting";
+  }
+  return "progress";
+}
+
+export function isCompanionParticipantCounted(
+  participant: CompanionParticipantStatusSource,
+  fallbackLastActivityAt?: string | null
+) {
+  if (participant.role === "waiting") return false;
+  return getEffectiveCompanionParticipantActivityStatus(participant, fallbackLastActivityAt) === "progress";
 }
 
 export function mapCompanionRoom(

@@ -195,7 +195,6 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
 
                           <div className={styles.infoChipRow}>
                             <span className={styles.infoChip}>진행자 {room.hostName}</span>
-                            <span className={styles.infoChip}>{formatCompanionSchedule(room)}</span>
                             <span className={styles.infoChip}>난이도 {room.level}</span>
                           </div>
 
@@ -327,7 +326,7 @@ export default function CompanionBoardClient({ rooms }: CompanionBoardClientProp
                     </div>
                   </div>
                   <div className={styles.highlightBottomRow}>
-                    <span className={styles.boardMetaText}>{formatCompanionSchedule(room)}</span>
+
                     <span className={styles.readMore}>동행 정보 보기</span>
                   </div>
                 </Link>

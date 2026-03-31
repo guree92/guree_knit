@@ -1,8 +1,14 @@
-﻿import Image from "next/image";
+import Image from "next/image";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 import Header from "@/components/layout/Header";
 import CompanionBoardClient from "@/components/companion/CompanionBoardClient";
-import { mapCompanionRoom, type CompanionRoom, type CompanionRoomRow } from "@/lib/companion";
+import {
+  isCompanionParticipantCounted,
+  mapCompanionRoom,
+  type CompanionParticipantActivityStatus,
+  type CompanionRoom,
+  type CompanionRoomRow,
+} from "@/lib/companion";
 import styles from "./page.module.css";
 import heroHeaderImage from "../../Image/headerlogo.png";
 
@@ -10,14 +16,14 @@ export default async function CompanionPage() {
   const supabase = await createServerClient();
   const [{ data: roomRows }, { data: participantRows }] = await Promise.all([
     supabase.from("companion_rooms").select("*").order("created_at", { ascending: false }),
-    supabase.from("companion_participants").select("room_id, user_id, role"),
+    supabase.from("companion_participants").select("room_id, user_id, role, activity_status, last_activity_at, joined_at"),
   ]);
 
   const companionRoomRows = ((roomRows ?? []) as CompanionRoomRow[]) ?? [];
   const participantCountMap = new Map<string, number>();
 
-  (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting" }>) ?? []).forEach((row) => {
-    if (row.role === "waiting") return;
+  (((participantRows ?? []) as Array<{ room_id: string; user_id: string; role: "host" | "participant" | "waiting"; activity_status: CompanionParticipantActivityStatus | null; last_activity_at: string | null; joined_at: string | null }>) ?? []).forEach((row) => {
+    if (!isCompanionParticipantCounted(row)) return;
     participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
   });
 
