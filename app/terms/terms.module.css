@@ -1,0 +1,237 @@
+.page {
+  min-height: 100vh;
+  padding: 40px 24px;
+  color: #374151;
+  background: #f3f4f6;
+}
+
+.shell {
+  min-height: calc(100vh - 48px);
+  width: 100%;
+  max-width: 860px;
+  margin: 0 auto;
+  display: block;
+}
+
+.card {
+  width: 100%;
+  max-width: 860px;
+  border-radius: 32px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 32px;
+  box-shadow: 0 18px 48px rgba(17, 24, 39, 0.08);
+}
+
+.header {
+  margin-bottom: 28px;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 14px 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.7;
+  color: #6b7280;
+}
+
+.allAgreeBox {
+  margin-bottom: 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #f9fafb;
+  padding: 16px;
+}
+
+.allAgreeTitle {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.allAgreeDescription {
+  margin: 6px 0 0;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.termsList {
+  display: grid;
+  gap: 14px;
+}
+
+.termItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 18px;
+}
+
+.checkboxRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+}
+
+.termHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.termTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.requiredBadge,
+.optionalBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.requiredBadge {
+  background: #eef4ee;
+  color: #6f866d;
+}
+
+.optionalBadge {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.termContent {
+  margin: 12px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #4b5563;
+}
+
+.checkbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
+  flex-shrink: 0;
+}
+
+.checkbox:checked {
+  background: var(--app-sage-deep);
+  border-color: var(--app-sage-deep);
+}
+
+.checkbox:checked::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3 4.6 9 10 3.5' fill='none' stroke='%23ffffff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+
+.checkbox:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(168, 188, 147, 0.28);
+}
+
+.buttonRow {
+  margin-top: 28px;
+  display: flex;
+  gap: 12px;
+}
+
+.primaryButton,
+.secondaryButton {
+  height: 56px;
+  flex: 1;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 700;
+  transition: all 160ms ease;
+}
+
+.primaryButton {
+  border: 0;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: #ffffff;
+  box-shadow: 0 12px 26px rgba(168, 188, 147, 0.28);
+}
+
+.primaryButton:hover {
+  background: linear-gradient(135deg, #aecd98 0%, #9fb68a 100%);
+}
+
+.primaryButton:disabled {
+  background: #c9d3c7;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+}
+
+.secondaryButton:hover {
+  background: #f9fafb;
+}
+
+.footerText {
+  margin-top: 24px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.loginLink {
+  color: #8ea18c;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 20px 14px;
+  }
+
+  .shell {
+    max-width: none;
+  }
+
+  .card {
+    border-radius: 24px;
+    padding: 20px;
+  }
+
+  .buttonRow {
+    flex-direction: column;
+  }
+}

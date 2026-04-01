@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import styles from "./signup.module.css";
 
 function normalizeNickname(value: string) {
   return value.trim();
@@ -14,13 +15,81 @@ function isValidNickname(value: string) {
   return /^[가-힣a-zA-Z0-9_]{2,12}$/.test(nickname);
 }
 
+function removeWhitespace(value: string) {
+  return value.replace(/\s/g, "");
+}
+
+const blockedNicknameTerms = [
+  "시발",
+  "씨발",
+  "씹",
+  "좆",
+  "병신",
+  "븅신",
+  "개새끼",
+  "새끼",
+  "느금",
+  "니애미",
+  "니애비",
+  "느개비",
+  "느금마",
+  "느금빠",
+  "애미",
+  "애비",
+  "엠창",
+  "앰창",
+  "엄창",
+  "맘충",
+  "한남충",
+  "김치녀",
+  "미친놈",
+  "미친년",
+  "걸레년",
+  "보지년",
+  "창년",
+  "창놈",
+  "자지",
+  "잠지",
+  "보지",
+  "섹스",
+  "성교",
+  "자위",
+  "딸딸이",
+  "야동",
+  "애널",
+  "오럴",
+  "강간",
+  "강간범",
+  "창녀",
+  "걸레",
+  "fuck",
+  "fuxk",
+  "shit",
+  "bitch",
+  "porn",
+  "sex",
+  "xnxx",
+  "xvideo",
+] as const;
+
+function hasBlockedNicknameTerm(value: string) {
+  const compact = normalizeNickname(value)
+    .toLowerCase()
+    .replace(/[\s_.-]/g, "");
+  const compactWithoutDigits = compact.replace(/[0-9]/g, "");
+
+  return blockedNicknameTerms.some(
+    (term) => compact.includes(term) || compactWithoutDigits.includes(term)
+  );
+}
+
 export default function SignupPage() {
   const router = useRouter();
   const [supabase] = useState(() => createClient());
   const [nickname, setNickname] = useState("");
   const [nicknameChecked, setNicknameChecked] = useState("");
   const [nicknameStatus, setNicknameStatus] = useState<
-    "" | "checking" | "available" | "taken" | "invalid" | "error"
+    "" | "checking" | "available" | "taken" | "invalid" | "blocked" | "error"
   >("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -34,6 +103,44 @@ export default function SignupPage() {
   const isNicknameVerified =
     nicknameStatus === "available" && nicknameChecked === normalizedNickname;
 
+  const nicknameMessage =
+    nicknameStatus === "available"
+      ? "사용 가능한 닉네임이에요."
+      : nicknameStatus === "taken"
+        ? "이미 사용 중인 닉네임이에요."
+        : nicknameStatus === "invalid"
+          ? "닉네임 형식을 다시 확인해 주세요."
+          : nicknameStatus === "blocked"
+            ? "선정적이거나 부적절한 표현은 닉네임으로 사용할 수 없어요."
+          : nicknameStatus === "error"
+            ? "중복확인 중 오류가 발생했어요."
+            : "";
+
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+
+    const previousBackground = document.body.style.background;
+    const previousBackgroundColor = document.body.style.backgroundColor;
+    const previousHtmlBackgroundColor = document.documentElement.style.backgroundColor;
+    const previousOverflow = document.body.style.overflow;
+
+    document.body.classList.add("signup-page-mode");
+    document.documentElement.classList.add("signup-page-mode");
+    document.body.style.background = "#f3f4f6";
+    document.body.style.backgroundColor = "#f3f4f6";
+    document.documentElement.style.backgroundColor = "#f3f4f6";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.classList.remove("signup-page-mode");
+      document.documentElement.classList.remove("signup-page-mode");
+      document.body.style.background = previousBackground;
+      document.body.style.backgroundColor = previousBackgroundColor;
+      document.documentElement.style.backgroundColor = previousHtmlBackgroundColor;
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
+
   async function handleCheckNickname() {
     setMessage("");
 
@@ -41,6 +148,12 @@ export default function SignupPage() {
 
     if (!currentNickname || !isValidNickname(currentNickname)) {
       setNicknameStatus("invalid");
+      return;
+    }
+
+    if (hasBlockedNicknameTerm(currentNickname)) {
+      setNicknameStatus("blocked");
+      setNicknameChecked("");
       return;
     }
 
@@ -87,6 +200,11 @@ export default function SignupPage() {
       return;
     }
 
+    if (hasBlockedNicknameTerm(normalizedNickname)) {
+      setMessage("선정적이거나 부적절한 표현은 닉네임으로 사용할 수 없어요.");
+      return;
+    }
+
     if (!isNicknameVerified) {
       setMessage("닉네임 중복확인을 먼저 해 주세요.");
       return;
@@ -94,6 +212,11 @@ export default function SignupPage() {
 
     if (!email.trim() || !password.trim() || !passwordConfirm.trim()) {
       setMessage("이메일과 비밀번호를 모두 입력해 주세요.");
+      return;
+    }
+
+    if (removeWhitespace(password) !== password || removeWhitespace(passwordConfirm) !== passwordConfirm) {
+      setMessage("비밀번호에는 공백을 사용할 수 없어요.");
       return;
     }
 
@@ -114,7 +237,7 @@ export default function SignupPage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/login`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/signup/verified`,
           data: {
             nickname: normalizedNickname,
           },
@@ -138,27 +261,24 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f7f2ea_45%,#eef3ec_100%)] px-6 py-10 text-[#4b3f36]">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
-        <div className="w-full max-w-[520px] rounded-[2rem] border border-[#ddd3c6] bg-[#fffdfa]/95 p-8 shadow-[0_18px_50px_rgba(87,72,57,0.08)] backdrop-blur-sm sm:p-10">
-          <div className="mb-8 text-center">
-            <h1 className="mt-8 text-4xl font-extrabold tracking-[-0.04em] text-[#4b3f36]">
-              회원가입
-            </h1>
-            <p className="mt-3 text-sm leading-6 text-[#8a7a6b]">
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <section className={styles.formCard}>
+          <div className={styles.formHeader}>
+            <h1 className={styles.title}>회원가입</h1>
+            <p className={styles.subtitle}>
               이메일, 닉네임, 비밀번호로 계정을 만들고
               <br />
               도안과 작업 기록을 시작해 보세요.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label htmlFor="nickname" className="mb-2 block text-sm font-bold text-[#5a4c42]">
+          <form onSubmit={handleSubmit} className={styles.form}>
+            <div className={styles.fieldBlock}>
+              <label htmlFor="nickname" className={styles.label}>
                 닉네임
               </label>
-
-              <div className="flex gap-2">
+              <div className={styles.inlineField}>
                 <input
                   id="nickname"
                   type="text"
@@ -170,39 +290,33 @@ export default function SignupPage() {
                     setNicknameChecked("");
                   }}
                   disabled={loading}
-                  className="h-14 flex-1 rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc] disabled:opacity-60"
+                  className={styles.input}
                 />
-
                 <button
                   type="button"
                   onClick={handleCheckNickname}
                   disabled={loading || nicknameStatus === "checking"}
-                  className="h-14 min-w-[110px] rounded-[1.2rem] border border-[#d9d0c4] bg-white/80 px-4 text-sm font-bold text-[#6f6257] transition hover:bg-[#faf6f0] disabled:opacity-60"
+                  className={styles.secondaryAction}
                 >
                   {nicknameStatus === "checking" ? "확인 중..." : "중복확인"}
                 </button>
               </div>
-
-              <p className="mt-2 text-xs leading-5 text-[#9a8d81]">
-                2~12자의 한글, 영문, 숫자, 밑줄(_)만 사용할 수 있어요.
+              <p className={styles.helpText}>
+                2~12자의 한글, 영문, 숫자, 밑줄(_)만 사용할 수 있고 부적절한 표현은 제한돼요.
               </p>
-
-              {nicknameStatus === "available" ? (
-                <p className="mt-2 text-sm font-bold text-[#7a8e78]">사용 가능한 닉네임이에요.</p>
-              ) : null}
-              {nicknameStatus === "taken" ? (
-                <p className="mt-2 text-sm font-bold text-[#c26b61]">이미 사용 중인 닉네임이에요.</p>
-              ) : null}
-              {nicknameStatus === "invalid" ? (
-                <p className="mt-2 text-sm font-bold text-[#c26b61]">닉네임 형식을 다시 확인해 주세요.</p>
-              ) : null}
-              {nicknameStatus === "error" ? (
-                <p className="mt-2 text-sm font-bold text-[#c26b61]">중복확인 중 오류가 발생했어요.</p>
+              {nicknameMessage ? (
+                <p
+                  className={
+                    nicknameStatus === "available" ? styles.statusSuccess : styles.statusError
+                  }
+                >
+                  {nicknameMessage}
+                </p>
               ) : null}
             </div>
 
-            <div>
-              <label htmlFor="email" className="mb-2 block text-sm font-bold text-[#5a4c42]">
+            <div className={styles.fieldBlock}>
+              <label htmlFor="email" className={styles.label}>
                 이메일
               </label>
               <input
@@ -212,80 +326,78 @@ export default function SignupPage() {
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
                 disabled={loading}
-                className="h-14 w-full rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc] disabled:opacity-60"
+                className={styles.input}
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="mb-2 block text-sm font-bold text-[#5a4c42]">
+            <div className={styles.fieldBlock}>
+              <label htmlFor="password" className={styles.label}>
                 비밀번호
               </label>
-              <div className="flex gap-2">
+              <div className={styles.inlineField}>
                 <input
                   id="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="비밀번호를 입력해 주세요"
                   value={password}
-                  onChange={(event) => setPassword(event.target.value)}
+                  onChange={(event) => setPassword(removeWhitespace(event.target.value))}
                   disabled={loading}
-                  className="h-14 flex-1 rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc] disabled:opacity-60"
+                  className={styles.input}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword((prev) => !prev)}
-                  className="h-14 min-w-[92px] rounded-[1.2rem] border border-[#d9d0c4] bg-white/80 px-4 text-sm font-bold text-[#6f6257] transition hover:bg-[#faf6f0]"
+                  disabled={loading}
+                  className={styles.secondaryAction}
                 >
                   {showPassword ? "HIDE" : "SHOW"}
                 </button>
               </div>
             </div>
 
-            <div>
-              <label htmlFor="passwordConfirm" className="mb-2 block text-sm font-bold text-[#5a4c42]">
+            <div className={styles.fieldBlock}>
+              <label htmlFor="passwordConfirm" className={styles.label}>
                 비밀번호 확인
               </label>
-              <div className="flex gap-2">
+              <div className={styles.inlineField}>
                 <input
                   id="passwordConfirm"
                   type={showPasswordConfirm ? "text" : "password"}
                   placeholder="비밀번호를 한 번 더 입력해 주세요"
                   value={passwordConfirm}
-                  onChange={(event) => setPasswordConfirm(event.target.value)}
+                  onChange={(event) => setPasswordConfirm(removeWhitespace(event.target.value))}
                   disabled={loading}
-                  className="h-14 flex-1 rounded-[1.2rem] border border-[#d8cfc2] bg-[#f8f4ee] px-5 text-base text-[#4b3f36] outline-none transition placeholder:text-[#b7aa9b] focus:border-[#9aae97] focus:bg-[#fcfaf6] focus:ring-4 focus:ring-[#dfe8dc] disabled:opacity-60"
+                  className={styles.input}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPasswordConfirm((prev) => !prev)}
-                  className="h-14 min-w-[92px] rounded-[1.2rem] border border-[#d9d0c4] bg-white/80 px-4 text-sm font-bold text-[#6f6257] transition hover:bg-[#faf6f0]"
+                  disabled={loading}
+                  className={styles.secondaryAction}
                 >
                   {showPasswordConfirm ? "HIDE" : "SHOW"}
                 </button>
               </div>
             </div>
 
-            {message ? (
-              <p className="rounded-[1.2rem] bg-[#f7ebe8] px-4 py-3 text-sm font-medium text-[#b15b54]">
-                {message}
-              </p>
-            ) : null}
+            {message ? <p className={styles.message}>{message}</p> : null}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="h-14 w-full rounded-[1.35rem] bg-[#8ca08b] text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#7d927d] disabled:opacity-60"
-            >
-              {loading ? "가입 중..." : "회원가입"}
-            </button>
+            <div className={styles.buttonGroup}>
+              <button type="submit" disabled={loading} className={styles.primaryButton}>
+                {loading ? "가입 중..." : "회원가입"}
+              </button>
+            </div>
 
-            <p className="text-center text-sm text-[#8a7a6b]">
-              이미 계정이 있나요?{" "}
-              <Link href="/login" className="font-bold text-[#6d8270] underline underline-offset-4">
+            <div className={styles.inlineLinks}>
+              <Link href="/terms" className={styles.inlineLink}>
+                이용약관
+              </Link>
+              <Link href="/login" className={styles.inlineLinkEmphasis}>
                 로그인하러 가기
               </Link>
-            </p>
+            </div>
           </form>
-        </div>
+        </section>
       </div>
     </main>
   );

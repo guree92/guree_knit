@@ -1,8 +1,9 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import styles from "./terms.module.css";
 
 const termsList = [
   {
@@ -52,6 +53,47 @@ const termsList = [
 export default function TermsPage() {
   const router = useRouter();
 
+  useEffect(() => {
+    if (typeof document === "undefined" || typeof window === "undefined") return;
+
+    const previousPadding = document.body.style.padding;
+    const previousBackground = document.body.style.background;
+    const previousBackgroundColor = document.body.style.backgroundColor;
+    const previousHtmlBackgroundColor = document.documentElement.style.backgroundColor;
+
+    const syncPadding = () => {
+      if (window.innerWidth <= 900) {
+        document.body.style.padding = "16px";
+        return;
+      }
+
+      if (window.innerWidth <= 1180) {
+        document.body.style.padding = "20px";
+        return;
+      }
+
+      document.body.style.padding = "24px";
+    };
+
+    document.body.classList.add("terms-page-mode");
+    document.documentElement.classList.add("terms-page-mode");
+    syncPadding();
+    document.body.style.background = "#f3f4f6";
+    document.body.style.backgroundColor = "#f3f4f6";
+    document.documentElement.style.backgroundColor = "#f3f4f6";
+    window.addEventListener("resize", syncPadding);
+
+    return () => {
+      window.removeEventListener("resize", syncPadding);
+      document.body.classList.remove("terms-page-mode");
+      document.documentElement.classList.remove("terms-page-mode");
+      document.body.style.padding = previousPadding;
+      document.body.style.background = previousBackground;
+      document.body.style.backgroundColor = previousBackgroundColor;
+      document.documentElement.style.backgroundColor = previousHtmlBackgroundColor;
+    };
+  }, []);
+
   const [checkedItems, setCheckedItems] = useState<Record<string, boolean>>({
     age: false,
     service: false,
@@ -61,11 +103,11 @@ export default function TermsPage() {
     marketing: false,
   });
 
-  const requiredTerms = termsList.filter((t) => t.required);
+  const requiredTerms = useMemo(() => termsList.filter((t) => t.required), []);
 
   const isRequiredChecked = useMemo(
     () => requiredTerms.every((t) => checkedItems[t.id]),
-    [checkedItems]
+    [checkedItems, requiredTerms]
   );
 
   const isAllChecked = useMemo(
@@ -102,90 +144,69 @@ export default function TermsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fffdf8_0%,#f7f2ea_45%,#eef3ec_100%)] px-6 py-10 text-[#4b3f36]">
-      <div className="mx-auto flex min-h-[calc(100vh-5rem)] max-w-6xl items-center justify-center">
-        <section className="w-full max-w-[760px] rounded-[2rem] border border-[#ddd3c6] bg-[#fffdfa]/95 p-8 shadow-[0_18px_50px_rgba(87,72,57,0.08)] backdrop-blur-sm">
-          <div className="mb-8 text-center">
-            <h1 className="mt-8 text-3xl font-extrabold">약관 동의</h1>
-
-            <p className="mt-3 text-sm text-[#8a7a6b]">
+    <main className={styles.page}>
+      <div className={styles.shell}>
+        <section className={styles.card}>
+          <div className={styles.header}>
+            <h1 className={styles.title}>약관 동의</h1>
+            <p className={styles.subtitle}>
               회원가입 전에 아래 약관을 확인하시고
               <br />
               필수 항목에 동의해 주세요.
             </p>
           </div>
 
-          <div className="mb-6 rounded-xl border border-[#d9d0c4] bg-[#f8f4ee] p-4">
-            <label className="flex cursor-pointer items-center justify-between">
+          <div className={styles.allAgreeBox}>
+            <label className={styles.checkboxRow}>
               <div>
-                <p className="font-bold">전체 약관에 동의합니다.</p>
-                <p className="text-sm text-[#8a7a6b]">
-                  선택 항목을 포함한 모든 약관에 동의합니다.
-                </p>
+                <p className={styles.allAgreeTitle}>전체 약관에 동의합니다.</p>
+                <p className={styles.allAgreeDescription}>선택 항목을 포함한 모든 약관에 동의합니다.</p>
               </div>
-
               <input
                 type="checkbox"
                 checked={isAllChecked}
                 onChange={toggleAll}
-                className="h-5 w-5 accent-[#8ea18c]"
+                className={styles.checkbox}
               />
             </label>
           </div>
 
-          <div className="space-y-4">
+          <div className={styles.termsList}>
             {termsList.map((term) => (
-              <div key={term.id} className="rounded-xl border border-[#e2d9cc] bg-white p-5">
-                <label className="flex cursor-pointer justify-between gap-4">
+              <div key={term.id} className={styles.termItem}>
+                <label className={styles.checkboxRow}>
                   <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold">{term.title}</span>
-
-                      {term.required ? (
-                        <span className="rounded-full bg-[#eef3ec] px-2 py-1 text-xs font-bold text-[#7a8e78]">
-                          필수
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-[#f1efe9] px-2 py-1 text-xs font-bold text-[#8a7a6b]">
-                          선택
-                        </span>
-                      )}
+                    <div className={styles.termHeader}>
+                      <span className={styles.termTitle}>{term.title}</span>
+                      <span className={term.required ? styles.requiredBadge : styles.optionalBadge}>
+                        {term.required ? "필수" : "선택"}
+                      </span>
                     </div>
-
-                    <p className="mt-3 text-sm leading-6 text-[#7c6d61]">{term.content}</p>
+                    <p className={styles.termContent}>{term.content}</p>
                   </div>
-
                   <input
                     type="checkbox"
                     checked={checkedItems[term.id]}
                     onChange={() => toggleItem(term.id)}
-                    className="mt-1 h-5 w-5 accent-[#8ea18c]"
+                    className={styles.checkbox}
                   />
                 </label>
               </div>
             ))}
           </div>
 
-          <div className="mt-8 flex gap-3">
-            <button
-              onClick={handleAgree}
-              disabled={!isRequiredChecked}
-              className="h-14 flex-1 rounded-full bg-[#8ea18c] font-bold text-white shadow hover:bg-[#7f937d] disabled:bg-[#c7d1c5]"
-            >
+          <div className={styles.buttonRow}>
+            <button onClick={handleAgree} disabled={!isRequiredChecked} className={styles.primaryButton}>
               동의
             </button>
-
-            <button
-              onClick={handleCancel}
-              className="h-14 flex-1 rounded-full border border-[#d9d0c4] font-bold text-[#7d6d60] hover:bg-[#faf6f0]"
-            >
+            <button onClick={handleCancel} className={styles.secondaryButton}>
               취소
             </button>
           </div>
 
-          <div className="mt-6 text-center text-sm text-[#8a7a6b]">
+          <div className={styles.footerText}>
             이미 계정이 있으신가요?{" "}
-            <Link href="/login" className="font-bold text-[#6f806a] underline-offset-4 hover:underline">
+            <Link href="/login" className={styles.loginLink}>
               로그인
             </Link>
           </div>

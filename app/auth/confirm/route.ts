@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const tokenHash = requestUrl.searchParams.get("token_hash");
   const type = requestUrl.searchParams.get("type") as EmailOtpType | null;
-  const next = requestUrl.searchParams.get("next") ?? "/login";
+  const next = requestUrl.searchParams.get("next") ?? "/signup/verified";
 
   const redirectUrl = new URL(next, requestUrl.origin);
 

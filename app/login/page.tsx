@@ -140,7 +140,7 @@ function LoginPageContent() {
 
               <div className={styles.inlineLinks}>
                 <Link href="/terms" className={styles.inlineLink}>
-                  이용약관
+                  회원가입
                 </Link>
                 <Link href="#" className={styles.inlineLink}>
                   아이디·비밀번호 찾기

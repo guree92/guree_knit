@@ -1,0 +1,291 @@
+.page {
+  min-height: 100vh;
+  padding: 0;
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.shell {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px 24px;
+  transform: none;
+}
+
+.formCard {
+  display: grid;
+  width: min(100%, 540px);
+  margin-inline: auto;
+  gap: 22px;
+  padding: 38px 26px 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 30px;
+  background: #ffffff;
+  box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+}
+
+.formHeader {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+
+.logo {
+  display: block;
+  width: min(100%, 210px);
+  height: auto;
+}
+
+.title {
+  margin: 2px 0 0;
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: #111827;
+}
+
+.subtitle {
+  margin: 0;
+  text-align: center;
+  font-size: 0.9rem;
+  line-height: 1.65;
+  color: #6b7280;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.fieldBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.label {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.inlineField {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #f8fafc;
+  color: #111827;
+  outline: none;
+  transition:
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    background-color 0.18s ease;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.input:focus {
+  border-color: #8ea18c;
+  background: #ffffff;
+  box-shadow: 0 0 0 4px rgba(142, 161, 140, 0.18);
+}
+
+.secondaryAction {
+  min-width: 92px;
+  min-height: 56px;
+  padding: 0 14px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  transition:
+    transform 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    background-color 0.16s ease;
+}
+
+.secondaryAction:hover:not(:disabled) {
+  transform: translateY(-1px);
+  border-color: #8ea18c;
+  color: #38563b;
+  background: #f7faf7;
+}
+
+.secondaryAction:disabled,
+.input:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.helpText {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+.statusSuccess,
+.statusError {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.statusSuccess {
+  color: #5f7d5e;
+}
+
+.statusError {
+  color: #b4534e;
+}
+
+.message {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid #f1c9c6;
+  border-radius: 14px;
+  background: #fef2f2;
+  color: #b4534e;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.buttonGroup {
+  margin-top: 4px;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 54px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 800;
+  box-shadow: 0 12px 26px rgba(168, 188, 147, 0.28);
+  transition: transform 0.18s ease;
+}
+
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.inlineLinks {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 0 2px;
+}
+
+.inlineLink,
+.inlineLinkEmphasis {
+  font-size: 0.8rem;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.inlineLink {
+  color: #6b7280;
+}
+
+.inlineLinkEmphasis {
+  color: #6f866d;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.inlineLink:hover {
+  color: #111827;
+}
+
+@media (max-width: 900px) {
+  .page,
+  .shell {
+    min-height: auto;
+  }
+
+  .shell {
+    padding: 24px 16px;
+    transform: none;
+  }
+
+  .formCard {
+    width: min(100%, 500px);
+    border-radius: 24px;
+    padding: 30px 20px 20px;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    place-items: start center;
+    padding: 16px 8px;
+    transform: none;
+  }
+
+  .formCard {
+    width: 100%;
+    gap: 16px;
+    padding: 22px 12px 16px;
+    border-radius: 20px;
+  }
+
+  .title {
+    font-size: 1.6rem;
+  }
+
+  .subtitle {
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .inlineField {
+    grid-template-columns: 1fr;
+  }
+
+  .input,
+  .secondaryAction,
+  .primaryButton {
+    min-height: 48px;
+    border-radius: 14px;
+  }
+
+  .secondaryAction {
+    width: 100%;
+    min-width: 0;
+    letter-spacing: 0.05em;
+  }
+
+  .inlineLinks {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+    column-gap: 12px;
+  }
+}

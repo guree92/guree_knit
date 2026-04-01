@@ -43,6 +43,41 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+html.terms-page-mode,
+body.terms-page-mode,
+html.signup-page-mode,
+body.signup-page-mode,
+html.success-page-mode,
+body.success-page-mode,
+html.verified-page-mode,
+body.verified-page-mode {
+  background: #f3f4f6 !important;
+  background-color: #f3f4f6 !important;
+}
+
+body.terms-page-mode,
+body.signup-page-mode {
+  padding: 24px !important;
+}
+
+body.success-page-mode {
+  padding: 0 !important;
+}
+
+body.verified-page-mode {
+  padding: 0 !important;
+}
+
+html.signup-page-mode,
+body.signup-page-mode {
+  height: 100vh !important;
+  overflow: hidden !important;
+}
+
+body.signup-page-mode {
+  padding: 0 !important;
+}
+
 a {
   color: inherit;
 }
@@ -68,6 +103,23 @@ main {
     padding: 72px 20px 20px;
   }
 
+  body.terms-page-mode,
+  body.signup-page-mode {
+    padding: 20px !important;
+  }
+
+  body.success-page-mode {
+    padding: 0 !important;
+  }
+
+  body.verified-page-mode {
+    padding: 0 !important;
+  }
+
+  body.signup-page-mode {
+    padding: 0 !important;
+  }
+
   main {
     min-height: auto;
   }
@@ -78,9 +130,24 @@ main {
     padding: 72px 16px 16px;
   }
 
+  body.terms-page-mode,
+  body.signup-page-mode {
+    padding: 16px !important;
+  }
+
+  body.success-page-mode {
+    padding: 0 !important;
+  }
+
+  body.verified-page-mode {
+    padding: 0 !important;
+  }
+
+  body.signup-page-mode {
+    padding: 0 !important;
+  }
+
   main {
     min-height: auto;
   }
 }
-
-
