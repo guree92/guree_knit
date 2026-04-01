@@ -1,0 +1,1 @@
+drop policy if exists "hosts can remove participants in their rooms" on public.companion_participants;

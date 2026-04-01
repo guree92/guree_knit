@@ -916,35 +916,6 @@ export default function CompanionDetailClient() {
     }
   }
 
-  async function handleHostRemoveParticipant(board: ProgressBoard) {
-    if (!currentRoom || !detailState || !isHost || board.role !== "participant") return;
-    if (!window.confirm(`${board.name}님을 동행방에서 제거할까요?`)) return;
-    if (isDbRoom) {
-      const { error } = await supabase
-        .from("companion_participants")
-        .delete()
-        .eq("room_id", currentRoom.id)
-        .eq("user_id", board.userId)
-        .eq("role", "participant");
-      if (error) { alert(error.message); return; }
-      await promoteFirstWaitingParticipantDb(currentRoom.id);
-      if (selectedBoardId === board.id) closeBoardModal();
-      setReloadToken((current) => current + 1);
-      return;
-    }
-    if (selectedBoardId === board.id) closeBoardModal();
-    const removedState: DetailState = {
-      ...detailState,
-      participants: detailState.participants.filter((participant) => participant.userId !== board.userId),
-      boards: detailState.boards.filter((item) => item.userId !== board.userId),
-      supplies: detailState.supplies.map((supply) => ({
-        ...supply,
-        checkedBy: supply.checkedBy.filter((userId) => userId !== board.userId),
-      })),
-    };
-    persistLocalDetail(promoteFirstWaitingParticipantLocal(currentRoom.id, removedState));
-  }
-
   function openGraduationModal(board: ProgressBoard) {
     if (isRestingViewer) return;
     const viewerOwnsBoard = (currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName);
