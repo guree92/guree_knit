@@ -114,7 +114,7 @@ export default function SignupPage() {
         email: email.trim(),
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/auth/confirm?next=/login`,
           data: {
             nickname: normalizedNickname,
           },

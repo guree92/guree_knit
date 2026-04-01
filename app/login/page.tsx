@@ -45,6 +45,18 @@ function LoginPageContent() {
     };
   }, []);
 
+  useEffect(() => {
+    const verified = searchParams.get("verified");
+    if (verified === "1") {
+      setMessage("이메일 인증이 완료됐어요. 로그인해 주세요.");
+      return;
+    }
+
+    if (verified === "0") {
+      setMessage("인증 링크가 만료되었거나 올바르지 않아요. 다시 회원가입해 주세요.");
+    }
+  }, [searchParams]);
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setMessage("");
