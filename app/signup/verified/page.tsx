@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useLayoutEffect } from "react";
+import { Suspense, useLayoutEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./verified.module.css";
 
-export default function SignupVerifiedPage() {
+function SignupVerifiedPageContent() {
   const searchParams = useSearchParams();
   const verified = searchParams.get("verified") ?? undefined;
   const isSuccess = verified !== "0";
@@ -69,5 +69,13 @@ export default function SignupVerifiedPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function SignupVerifiedPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupVerifiedPageContent />
+    </Suspense>
   );
 }

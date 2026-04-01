@@ -1,11 +1,11 @@
- "use client";
+"use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import styles from "./success.module.css";
 
-export default function SignupSuccessPage() {
+function SignupSuccessPageContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email") ?? undefined;
   const nickname = searchParams.get("nickname") ?? undefined;
@@ -65,5 +65,13 @@ export default function SignupSuccessPage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function SignupSuccessPage() {
+  return (
+    <Suspense fallback={null}>
+      <SignupSuccessPageContent />
+    </Suspense>
   );
 }
