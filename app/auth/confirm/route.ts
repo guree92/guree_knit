@@ -33,6 +33,20 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(redirectUrl);
       }
     }
+
+    // 링크 재클릭 등으로 토큰 교환이 실패해도 이미 인증된 세션이면 성공으로 본다.
+    const { data: userResult } = await supabase.auth.getUser();
+    const confirmedUser = userResult.user as
+      | {
+          email_confirmed_at?: string | null;
+          confirmed_at?: string | null;
+        }
+      | null;
+
+    if (confirmedUser?.email_confirmed_at || confirmedUser?.confirmed_at) {
+      redirectUrl.searchParams.set("verified", "1");
+      return NextResponse.redirect(redirectUrl);
+    }
   } catch (error) {
     console.error(error);
   }
