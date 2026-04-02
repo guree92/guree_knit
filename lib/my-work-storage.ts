@@ -4,6 +4,11 @@ export const MY_WORK_STORAGE_KEY = "knit_my_work_extra";
 
 export type StoredWorkItem = WorkItem & {
   source?: "seed" | "local";
+  sourcePatternId?: string;
+  sourcePatternTitle?: string;
+  sourcePatternLevel?: string;
+  sourcePatternCategory?: string;
+  lastQuickLogAt?: string;
 };
 
 const VALID_PROGRESS = new Set<WorkProgress>(["완성", "진행 중", "중단"]);
@@ -59,7 +64,10 @@ export function readStoredWorkItems() {
 export function writeStoredWorkItems(items: StoredWorkItem[]) {
   if (typeof window === "undefined") return;
 
-  const localItems = items.map(({ source: _source, ...item }) => item);
+  const localItems = items.map(({ source, ...item }) => {
+    void source;
+    return item;
+  });
   window.localStorage.setItem(MY_WORK_STORAGE_KEY, JSON.stringify(localItems));
 }
 

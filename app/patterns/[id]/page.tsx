@@ -468,6 +468,12 @@ export default function PatternDetailPage() {
               </div>
               <div className={styles.heroActions}>
                 <div className={styles.actionRow}>
+                  <Link
+                    href={`/my-work?startPatternId=${pattern.id}&startPatternTitle=${encodeURIComponent(pattern.title)}&startPatternLevel=${encodeURIComponent(pattern.level ?? "")}&startPatternCategory=${encodeURIComponent(pattern.category ?? "")}`}
+                    className={styles.actionButton}
+                  >
+                    도안뜨기
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLike}
@@ -711,4 +717,3 @@ export default function PatternDetailPage() {
     </main>
   );
 }
-
