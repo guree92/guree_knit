@@ -9,6 +9,9 @@ export type StoredWorkItem = WorkItem & {
   sourcePatternLevel?: string;
   sourcePatternCategory?: string;
   lastQuickLogAt?: string;
+  lastQuickLogSummary?: string;
+  quickLogPhotoDataUrl?: string;
+  quickLogPhotoName?: string;
 };
 
 const VALID_PROGRESS = new Set<WorkProgress>(["완성", "진행 중", "중단"]);

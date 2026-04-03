@@ -43,7 +43,7 @@ const menus: MenuItem[] = [
   {
     href: "/community",
     label: "뜨개마당",
-    meta: "Forum",
+    meta: "Community",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M5 7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v5A2.5 2.5 0 0 1 16.5 15H11l-4 4v-4.2A2.5 2.5 0 0 1 5 12.5z" />
@@ -53,7 +53,7 @@ const menus: MenuItem[] = [
   {
     href: "/companion",
     label: "동행",
-    meta: "Together",
+    meta: "Companion",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M8.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" />
@@ -64,9 +64,9 @@ const menus: MenuItem[] = [
     ),
   },
   {
-    href: "/my-work",
-    label: "작업기록",
-    meta: "Journal",
+    href: "/archive",
+    label: "작품서랍",
+    meta: "Archive",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M7 4.5h10A1.5 1.5 0 0 1 18.5 6v12A1.5 1.5 0 0 1 17 19.5H7A1.5 1.5 0 0 1 5.5 18V6A1.5 1.5 0 0 1 7 4.5Z" />
@@ -77,8 +77,8 @@ const menus: MenuItem[] = [
   },
   {
     href: "/dot-maker",
-    label: "도트메이커",
-    meta: "Tool",
+    label: "도구",
+    meta: "Tools",
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="7" cy="7" r="2" />

@@ -103,7 +103,7 @@ export default function MyWorkDetailPage() {
     const nextLocalItems = readStoredWorkItems().filter((item) => item.id !== work.id);
     writeStoredWorkItems(nextLocalItems);
     alert("작품을 삭제했어요.");
-    router.push("/my-work");
+    router.push("/archive");
   }
 
   if (!work) {
@@ -116,7 +116,7 @@ export default function MyWorkDetailPage() {
             <h1 className="text-2xl font-black text-slate-800">작품을 찾을 수 없어요.</h1>
             <p className="mt-3 text-slate-600">요청한 작업기록 정보가 없거나 이미 삭제되었어요.</p>
             <Link
-              href="/my-work"
+              href="/archive"
               className="mt-6 inline-flex rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white"
             >
               작업기록으로 돌아가기
@@ -134,7 +134,7 @@ export default function MyWorkDetailPage() {
 
         <section className="mt-12 grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-sm">
-            <Link href="/my-work" className="mb-6 inline-flex text-sm font-semibold text-emerald-700">
+            <Link href="/archive" className="mb-6 inline-flex text-sm font-semibold text-emerald-700">
               작업기록으로
             </Link>
 

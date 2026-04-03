@@ -469,7 +469,7 @@ export default function PatternDetailPage() {
               <div className={styles.heroActions}>
                 <div className={styles.actionRow}>
                   <Link
-                    href={`/my-work?startPatternId=${pattern.id}&startPatternTitle=${encodeURIComponent(pattern.title)}&startPatternLevel=${encodeURIComponent(pattern.level ?? "")}&startPatternCategory=${encodeURIComponent(pattern.category ?? "")}`}
+                    href={`/archive?startPatternId=${pattern.id}&startPatternTitle=${encodeURIComponent(pattern.title)}&startPatternLevel=${encodeURIComponent(pattern.level ?? "")}&startPatternCategory=${encodeURIComponent(pattern.category ?? "")}`}
                     className={styles.actionButton}
                   >
                     도안뜨기

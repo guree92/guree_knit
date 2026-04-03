@@ -87,7 +87,7 @@ export default function CommunitySection() {
         </p>
 
         <Link
-          href="/my-work"
+          href="/archive"
           className="mt-6 inline-flex rounded-2xl bg-[#8ca08b] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#7d927d] hover:shadow-md"
         >
           작품기록 보러가기

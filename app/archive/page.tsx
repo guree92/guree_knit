@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { createClient } from "@/lib/supabase/client";
@@ -21,13 +21,16 @@ import {
   writeStoredWorkItems,
   type StoredWorkItem,
 } from "@/lib/my-work-storage";
+import { getPatternImageUrl, getPatterns, type PatternItem as PatternCatalogItem } from "@/lib/patterns";
 import { workItems, type WorkProgress } from "@/data/my-work";
-import styles from "./my-work-page.module.css";
+import styles from "./archive-page.module.css";
 import heroHeaderImage from "../../Image/headerlogo.png";
 
 type SortOption = "최신순" | "이름순";
 type LibraryTab = "전체" | "진행 중" | "완성" | "중단" | "도안 연결";
-type SectionTab = "시작" | "지금 하는 작업" | "내 작품" | "기록" | "작품 정보";
+type SectionTab = "시작" | "지금 하는 작업" | "내 작품" | "기록";
+type QuickLogPreset = "한 단 완료" | "실 교체" | "수정 진행" | "오늘은 여기까지";
+type QuickLogDuration = "10분" | "30분" | "1시간+";
 
 type MyCompanionItem = CompanionRoom & {
   myRole: "진행자" | "참여자";
@@ -56,6 +59,15 @@ type TimelineItem = {
 };
 
 const DRAFT_STORAGE_KEY = "knit_my_work_draft";
+const PATTERN_SEARCH_PAGE_SIZE = 10;
+const QUICK_LOG_PRESETS: QuickLogPreset[] = ["한 단 완료", "실 교체", "수정 진행", "오늘은 여기까지"];
+const QUICK_LOG_DURATIONS: QuickLogDuration[] = ["10분", "30분", "1시간+"];
+const SECTION_TAB_LABELS: Record<SectionTab, string> = {
+  시작: "시작",
+  "지금 하는 작업": "진행중",
+  "내 작품": "완성작품",
+  기록: "History",
+};
 const seedWorkItems: StoredWorkItem[] = workItems.map((item) => ({
   ...item,
   source: "seed",
@@ -145,26 +157,41 @@ export default function MyWorkPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const processedPatternKeyRef = useRef<string | null>(null);
-  const [draftDefaults] = useState(() => readDraft());
 
-  const [works, setWorks] = useState<StoredWorkItem[]>(() => {
-    const localItems = readStoredWorkItems();
-    return mergeStoredAndSeedWorkItems(localItems, seedWorkItems);
-  });
+  const [works, setWorks] = useState<StoredWorkItem[]>(seedWorkItems);
   const [companions, setCompanions] = useState<MyCompanionItem[]>([]);
+  const [patternCatalog, setPatternCatalog] = useState<PatternCatalogItem[]>([]);
   const [libraryTab, setLibraryTab] = useState<LibraryTab>("전체");
   const [sectionTab, setSectionTab] = useState<SectionTab>("지금 하는 작업");
-  const [isAdding, setIsAdding] = useState(false);
-  const [title, setTitle] = useState(draftDefaults?.title ?? "");
-  const [progress, setProgress] = useState<WorkProgress>(draftDefaults?.progress ?? "진행 중");
-  const [yarn, setYarn] = useState(draftDefaults?.yarn ?? "");
-  const [note, setNote] = useState(draftDefaults?.note ?? "");
+  const [title, setTitle] = useState("");
+  const [progress, setProgress] = useState<WorkProgress>("진행 중");
+  const [yarn, setYarn] = useState("");
+  const [note, setNote] = useState("");
+  const [patternSearchText, setPatternSearchText] = useState("");
+  const [patternSearchPage, setPatternSearchPage] = useState(1);
   const [searchText, setSearchText] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("최신순");
   const [isCompanionLoading, setIsCompanionLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activityNotice, setActivityNotice] = useState("");
   const [quickLogTargetId, setQuickLogTargetId] = useState("");
+  const [quickLogPreset, setQuickLogPreset] = useState<QuickLogPreset>("한 단 완료");
+  const [quickLogDuration, setQuickLogDuration] = useState<QuickLogDuration>("30분");
+  const [quickLogPhoto, setQuickLogPhoto] = useState<{ name: string; dataUrl: string } | null>(null);
+  const [quickLogMemo, setQuickLogMemo] = useState("");
+
+  useEffect(() => {
+    const localItems = readStoredWorkItems();
+    setWorks(mergeStoredAndSeedWorkItems(localItems, seedWorkItems));
+
+    const draft = readDraft();
+    if (!draft) return;
+
+    setTitle(draft.title);
+    setProgress(draft.progress);
+    setYarn(draft.yarn);
+    setNote(draft.note);
+  }, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -185,6 +212,12 @@ export default function MyWorkPage() {
       })
     );
   }, [note, progress, title, yarn]);
+
+  useEffect(() => {
+    if (!activityNotice) return;
+    const timeoutId = window.setTimeout(() => setActivityNotice(""), 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [activityNotice]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -339,6 +372,34 @@ export default function MyWorkPage() {
     };
   }, [supabase]);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchPatterns() {
+      try {
+        const items = await getPatterns();
+        if (!isCancelled) {
+          setPatternCatalog(items);
+        }
+      } catch (error) {
+        console.error("도안 목록을 불러오지 못했어요.", error);
+        if (!isCancelled) {
+          setPatternCatalog([]);
+        }
+      }
+    }
+
+    void fetchPatterns();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    setPatternSearchPage(1);
+  }, [patternSearchText]);
+
   const activeWorks = useMemo(
     () => works.filter((work) => work.progress === "진행 중"),
     [works]
@@ -409,6 +470,43 @@ export default function MyWorkPage() {
     [activeWorks, pausedWorks]
   );
 
+  const linkedPatternSearchMatches = useMemo(() => {
+    const keyword = patternSearchText.trim().toLowerCase();
+    if (!keyword) return [] as PatternCatalogItem[];
+
+    return patternCatalog
+      .filter((pattern) =>
+        [
+          pattern.title,
+          pattern.description,
+          pattern.category,
+          pattern.level,
+          pattern.author_nickname ?? "",
+          pattern.yarn,
+          pattern.needle,
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(keyword)
+      );
+  }, [patternCatalog, patternSearchText]);
+
+  const patternSearchPageCount = useMemo(
+    () => Math.max(1, Math.ceil(linkedPatternSearchMatches.length / PATTERN_SEARCH_PAGE_SIZE)),
+    [linkedPatternSearchMatches]
+  );
+
+  useEffect(() => {
+    if (patternSearchPage > patternSearchPageCount) {
+      setPatternSearchPage(patternSearchPageCount);
+    }
+  }, [patternSearchPage, patternSearchPageCount]);
+
+  const linkedPatternSearchResults = useMemo(() => {
+    const startIndex = (patternSearchPage - 1) * PATTERN_SEARCH_PAGE_SIZE;
+    return linkedPatternSearchMatches.slice(startIndex, startIndex + PATTERN_SEARCH_PAGE_SIZE);
+  }, [linkedPatternSearchMatches, patternSearchPage]);
+
   const timelineItems = useMemo<TimelineItem[]>(() => {
     const workTimeline = works.map((work) => ({
       id: `work-${work.id}`,
@@ -416,10 +514,12 @@ export default function MyWorkPage() {
       title: work.title,
       description:
         work.lastQuickLogAt === work.updatedAt
-          ? `${formatDate(work.updatedAt)}에 작업 기록이 남겨졌어요.`
+          ? work.lastQuickLogSummary
+            ? `${formatDate(work.updatedAt)}에 ${work.lastQuickLogSummary} 기록을 남겼어요.`
+            : `${formatDate(work.updatedAt)}에 작업 기록이 남겨졌어요.`
           : `${work.sourcePatternTitle ? "도안에서 시작한 " : ""}${work.note}`,
       label: work.sourcePatternTitle ? "도안 연결" : "작품 업데이트",
-      href: `/my-work/${work.id}`,
+      href: `/archive/${work.id}`,
       tone: work.sourcePatternTitle ? "pattern" : "work",
     }));
 
@@ -437,11 +537,6 @@ export default function MyWorkPage() {
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 8);
   }, [companions, works]);
-
-  const recruitingCompanions = useMemo(
-    () => companions.filter((item) => !item.isArchived && item.status === "모집중").slice(0, 4),
-    [companions]
-  );
 
   const summary = useMemo(
     () => ({
@@ -485,12 +580,6 @@ export default function MyWorkPage() {
     window.localStorage.removeItem(DRAFT_STORAGE_KEY);
   }
 
-  function handleCancelAdd() {
-    setIsAdding(false);
-    resetForm();
-    clearDraft();
-  }
-
   function handleSubmitWork() {
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
@@ -519,7 +608,8 @@ export default function MyWorkPage() {
     upsertLocalWork(newWork);
     setLibraryTab("전체");
     setActivityNotice(`${trimmedTitle} 작품이 서랍에 추가됐어요.`);
-    handleCancelAdd();
+    resetForm();
+    clearDraft();
   }
 
   function handleChangeProgress(work: StoredWorkItem, nextProgress: WorkProgress) {
@@ -536,29 +626,55 @@ export default function MyWorkPage() {
   function handleQuickLog() {
     const target = activeWorks.find((work) => work.id === effectiveQuickLogTargetId) ?? activeWorks[0] ?? null;
     if (!target) {
-      setIsAdding(true);
-      setActivityNotice("기록할 작품이 아직 없어서 먼저 하나 만들어둘게요.");
+      setActivityNotice("기록할 작품이 아직 없어서 시작 탭에서 먼저 작품을 하나 추가해볼까요?");
       setSectionTab("시작");
       return;
     }
 
     const today = getTodayKey();
-    const nextChecklist = [`${today} 작업 기록 추가`, ...target.checklist.filter((item) => item !== `${today} 작업 기록 추가`)];
+    const quickLogSummary = [quickLogPreset, quickLogDuration, quickLogPhoto ? `사진 ${quickLogPhoto.name}` : null]
+      .filter(Boolean)
+      .join(" · ");
+    const checklistEntry = `${today} ${quickLogPreset}`;
+    const nextChecklist = [checklistEntry, ...target.checklist.filter((item) => item !== checklistEntry)];
+    const quickLogLead = [quickLogPreset, `${quickLogDuration} 작업`, quickLogPhoto ? "사진 추가" : null]
+      .filter(Boolean)
+      .join(", ");
+    const memoSuffix = quickLogMemo.trim() ? ` 메모: ${quickLogMemo.trim()}` : "";
     const updated: StoredWorkItem = {
       ...target,
       updatedAt: today,
       lastQuickLogAt: today,
-      note: target.note.includes("오늘")
-        ? target.note
-        : `오늘도 한 단계를 진행했어요. ${target.note}`,
-      detail: target.detail,
+      lastQuickLogSummary: quickLogSummary,
+      note: `${quickLogPreset} 기록을 남겼어요. ${quickLogDuration} 동안 작업했어요.${quickLogPhoto ? " 사진도 함께 남겼어요." : ""}${memoSuffix} ${target.note}`.trim(),
+      detail: `${quickLogLead} 기록을 남겼어요.${memoSuffix} ${target.detail}`.trim(),
       checklist: nextChecklist.slice(0, 5),
+      quickLogPhotoDataUrl: quickLogPhoto?.dataUrl,
+      quickLogPhotoName: quickLogPhoto?.name,
       source: "local",
     };
 
     upsertLocalWork(updated);
-    setActivityNotice(`${target.title}에 오늘 기록을 남겼어요.`);
+    setQuickLogPreset("한 단 완료");
+    setQuickLogDuration("30분");
+    setQuickLogPhoto(null);
+    setQuickLogMemo("");
+    setActivityNotice(`${target.title}에 ${quickLogSummary} 기록을 남겼어요.`);
     setSectionTab("기록");
+  }
+
+  function handleQuickLogPhotoChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (!result) return;
+      setQuickLogPhoto({ name: file.name, dataUrl: result });
+    };
+    reader.readAsDataURL(file);
+    event.currentTarget.value = "";
   }
 
   useEffect(() => {
@@ -581,7 +697,7 @@ export default function MyWorkPage() {
       queueMicrotask(() => {
         setActivityNotice(`${startPatternTitle} 도안으로 시작한 작품이 이미 있어서 그 작업을 이어서 볼 수 있어요.`);
       });
-      void router.replace("/my-work", { scroll: false });
+      void router.replace("/archive", { scroll: false });
       return;
     }
 
@@ -610,7 +726,7 @@ export default function MyWorkPage() {
       setLibraryTab("도안 연결");
       setSectionTab("내 작품");
     });
-    void router.replace("/my-work", { scroll: false });
+    void router.replace("/archive", { scroll: false });
   }, [router, searchParams, upsertLocalWork, works]);
 
   return (
@@ -637,117 +753,177 @@ export default function MyWorkPage() {
             <section className={styles.hero}>
               <div className={styles.heroTop}>
                 <div className={styles.heroIntro}>
-                  <span className={styles.heroBadge}>Work Archive</span>
                   <h1 className={styles.heroTitle}>작품서랍</h1>
                   <p className={styles.heroDescription}>
-                    시작은 가볍게, 기록은 천천히 쌓이게 설계한 내 작업 아카이브예요. 도안에서
-                    바로 시작하고, 오늘 한 작업은 한 번에 남길 수 있어요.
+                    시작은 가볍게, 기록은 천천히 쌓이게 설계한 내 작업 아카이브예요.
                   </p>
                 </div>
-                <div className={`${styles.heroActions} ${styles.heroActionsInline}`}>
-                  <button type="button" onClick={handleQuickLog} className={styles.secondaryLinkAction}>
-                    원클릭 오늘 기록
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsAdding((prev) => !prev)}
-                    className={styles.primaryAction}
-                  >
-                    {isAdding ? "입력 접기" : "작품 추가"}
-                  </button>
-                </div>
-              </div>
-
-              <div className={styles.heroStats}>
-                <article className={styles.heroStatCard}>
-                  <span>전체 작품</span>
-                  <strong>{summary.workCount}</strong>
-                </article>
-                <article className={styles.heroStatCard}>
-                  <span>진행 중</span>
-                  <strong>{summary.activeCount}</strong>
-                </article>
-                <article className={styles.heroStatCard}>
-                  <span>도안 연결</span>
-                  <strong>{summary.patternLinkedCount}</strong>
-                </article>
-                <article className={styles.heroStatCard}>
-                  <span>진행 동행</span>
-                  <strong>{summary.activeCompanionCount}</strong>
-                </article>
               </div>
 
               <div className={styles.sectionTabRow}>
-                {(["시작", "지금 하는 작업", "내 작품", "기록", "작품 정보"] as SectionTab[]).map((tab) => (
+                {(["시작", "지금 하는 작업", "내 작품", "기록"] as SectionTab[]).map((tab) => (
                   <button
                     key={tab}
                     type="button"
                     onClick={() => setSectionTab(tab)}
-                    className={sectionTab === tab ? styles.filterChipActive : styles.filterChip}
+                    className={[
+                      sectionTab === tab ? styles.sectionTabButtonActive : styles.sectionTabButton,
+                      tab === "시작"
+                        ? sectionTab === tab
+                          ? styles.sectionTabNeutralActive
+                          : styles.sectionTabNeutral
+                        : tab === "지금 하는 작업"
+                          ? sectionTab === tab
+                            ? styles.sectionTabGreenActive
+                            : styles.sectionTabGreen
+                          : tab === "내 작품"
+                            ? sectionTab === tab
+                              ? styles.sectionTabBlueActive
+                              : styles.sectionTabBlue
+                            : sectionTab === tab
+                              ? styles.sectionTabYellowActive
+                              : styles.sectionTabYellow,
+                    ].join(" ")}
                   >
-                    {tab}
+                    {SECTION_TAB_LABELS[tab]}
                   </button>
                 ))}
               </div>
             </section>
 
             {activityNotice ? (
-              <section className={styles.noticeBanner}>
-                <p>{activityNotice}</p>
-              </section>
+              <div className={`${styles.actionToast} ${styles.actionToastSuccess}`} role="status" aria-live="polite">
+                {activityNotice}
+              </div>
             ) : null}
 
             {sectionTab === "시작" ? (
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>시작</h2>
-                  <p className={styles.sectionDescription}>
-                    입력을 많이 요구하지 않고, 바로 작업을 만들거나 오늘 기록부터 남길 수 있게
-                    구성했어요.
+            <section className={styles.startSection}>
+              <section className={styles.quickAddPanel}>
+                <div className={styles.quickAddCopy}>
+                  <h3 className={styles.quickAddTitle}>직접 작품 추가</h3>
+                  <p className={styles.quickAddDescription}>
+                    작품명만 입력해도 서랍에 바로 저장돼요. 재료와 메모는 나중에 채워도 괜찮아요.
                   </p>
                 </div>
-                <div className={styles.sectionActions}>
-                  <Link href="/patterns" className={styles.secondaryLinkAction}>
-                    도안에서 시작하기
-                  </Link>
+                <div className={styles.quickAddAction}>
+                  <input
+                    value={title}
+                    onChange={(event) => setTitle(event.target.value)}
+                    placeholder="예: 봄 네트백"
+                    className={styles.quickAddInput}
+                  />
+                  <button type="button" onClick={handleSubmitWork} className={styles.primaryAction}>
+                    입력
+                  </button>
                 </div>
-              </div>
+              </section>
 
-              {works.length === 0 ? (
-                <div className={styles.onboardingCard}>
-                  <div className={styles.onboardingCopy}>
-                    <span className={styles.onboardingEyebrow}>첫 시작</span>
-                    <h3>작품이 아직 없어요. 가장 쉬운 방법으로 바로 시작해볼까요?</h3>
-                    <p>
-                      도안 상세에서 `도안뜨기`를 누르거나, 여기서 작품명을 하나만 적고 바로
-                      서랍을 열 수 있어요.
+              <section className={styles.patternLinkPanel}>
+                <div className={styles.patternLinkHeader}>
+                  <h3 className={styles.patternLinkTitle}>도안을 검색해서 바로 작품에 연결해보세요</h3>
+                  <p className={styles.patternLinkDescription}>
+                    검색어를 입력하면 연결 가능한 도안이 카드로 나타나요.
+                  </p>
+                </div>
+                <input
+                  value={patternSearchText}
+                  onChange={(event) => setPatternSearchText(event.target.value)}
+                  placeholder="도안명, 카테고리, 난이도로 검색"
+                  className={styles.searchInput}
+                />
+
+                {patternSearchText.trim() ? (
+                  linkedPatternSearchResults.length > 0 ? (
+                    <div className={styles.patternSearchResults}>
+                      <div className={styles.patternSearchGrid}>
+                        {linkedPatternSearchResults.map((pattern) => {
+                          const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
+                          return (
+                            <article key={pattern.id} className={styles.patternSearchCard}>
+                              <Link href={`/patterns/${pattern.id}`} className={styles.patternSearchThumbLink}>
+                                <div className={styles.patternSearchThumb}>
+                                  {imageUrl ? (
+                                    <Image
+                                      src={imageUrl}
+                                      alt={pattern.title}
+                                      fill
+                                      className={styles.patternSearchImage}
+                                      sizes="(max-width: 920px) 50vw, (max-width: 1200px) 25vw, 18vw"
+                                    />
+                                  ) : (
+                                    <div className={styles.patternSearchFallback} />
+                                  )}
+                                </div>
+                              </Link>
+                              <div className={styles.patternSearchBody}>
+                                <Link href={`/patterns/${pattern.id}`} className={styles.patternSearchTitleLink}>
+                                  <strong>{pattern.title}</strong>
+                                </Link>
+                                <div className={styles.patternSearchMeta}>
+                                  <span className={styles.patternSearchTag}>{pattern.category ?? "기타"}</span>
+                                  <span className={styles.patternSearchTag}>{pattern.level ?? "난이도 미정"}</span>
+                                </div>
+                                <div className={styles.patternSearchFooter}>
+                                  <span className={styles.patternSearchLike}>{`♥ ${pattern.like_count ?? 0}`}</span>
+                                  <Link
+                                    href={`/archive?startPatternId=${pattern.id}&startPatternTitle=${encodeURIComponent(pattern.title)}&startPatternLevel=${encodeURIComponent(pattern.level ?? "")}&startPatternCategory=${encodeURIComponent(pattern.category ?? "")}`}
+                                    className={styles.patternSearchAction}
+                                  >
+                                    도안 연결
+                                  </Link>
+                                </div>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+
+                      {patternSearchPageCount > 1 ? (
+                        <div className={styles.patternSearchPagination} aria-label="도안 검색 페이지">
+                          {Array.from({ length: patternSearchPageCount }, (_, index) => {
+                            const pageNumber = index + 1;
+                            return (
+                              <button
+                                key={pageNumber}
+                                type="button"
+                                onClick={() => setPatternSearchPage(pageNumber)}
+                                className={
+                                  pageNumber === patternSearchPage
+                                    ? `${styles.patternSearchPageButton} ${styles.patternSearchPageButtonActive}`
+                                    : styles.patternSearchPageButton
+                                }
+                                aria-current={pageNumber === patternSearchPage ? "page" : undefined}
+                              >
+                                {pageNumber}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <div className={styles.emptyStateCompact}>검색된 도안이 아직 없어요.</div>
+                  )
+                ) : null}
+              </section>
+            </section>
+            ) : null}
+
+            {sectionTab === "지금 하는 작업" ? (
+            <section>
+              <section className={styles.quickLogPanel}>
+                <div className={styles.quickLogPanelHeader}>
+                  <div className={styles.quickLogPanelCopy}>
+                    <span className={styles.startCardTone}>오늘 기록</span>
+                    <h3 className={styles.quickLogPanelTitle}>한 번으로 작업 남기기</h3>
+                    <p className={styles.quickLogPanelDescription}>
+                      진행 중인 작품 하나를 고르고, 오늘 작업한 내용만 빠르게 남길 수 있어요.
                     </p>
                   </div>
-                  <div className={styles.onboardingActions}>
-                    <Link href="/patterns" className={styles.primaryAction}>
-                      도안 보러 가기
-                    </Link>
-                    <button type="button" onClick={() => setIsAdding(true)} className={styles.secondaryLinkAction}>
-                      직접 작품 추가
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className={styles.startGrid}>
-                  <article className={styles.startCard}>
-                    <span className={styles.startCardTone}>빠른 시작</span>
-                    <h3>직접 작품 추가</h3>
-                    <p>작품명만 입력해도 서랍에 바로 저장되고, 재료와 메모는 나중에 채워도 돼요.</p>
-                    <button type="button" onClick={() => setIsAdding(true)} className={styles.secondaryLinkAction}>
-                      입력 열기
-                    </button>
-                  </article>
-                  <article className={styles.startCard}>
-                    <span className={styles.startCardTone}>오늘 기록</span>
-                    <h3>한 번으로 작업 남기기</h3>
-                    <p>지금 진행 중인 작품 중 하나를 고르고, 오늘 작업을 한 번에 빠르게 남길 수 있어요.</p>
-                    <div className={styles.quickLogControls}>
+                  <div className={styles.quickLogTopActions}>
+                    <div className={styles.quickLogSelectWrap}>
+                      <span className={styles.quickLogTopLabel}>작품 선택</span>
                       <select
                         value={effectiveQuickLogTargetId}
                         onChange={(event) => setQuickLogTargetId(event.target.value)}
@@ -768,105 +944,110 @@ export default function MyWorkPage() {
                     <button
                       type="button"
                       onClick={handleQuickLog}
-                      className={styles.secondaryLinkAction}
+                      className={`${styles.secondaryLinkAction} ${styles.quickLogSubmitButtonTop}`}
                       disabled={activeWorks.length === 0}
                     >
-                      바로 기록
+                      기록 하기
                     </button>
-                  </article>
-                  <article className={styles.startCard}>
-                    <span className={styles.startCardTone}>자동 저장</span>
-                    <h3>작성 중 초안 유지</h3>
-                    <p>입력 중 화면을 벗어나도 초안은 로컬에 남겨두고 다음 방문 때 이어서 불러와요.</p>
-                    <span className={styles.metaPill}>
-                      {title || yarn || note ? "초안 저장됨" : "초안 비어 있음"}
-                    </span>
-                  </article>
+                  </div>
                 </div>
-              )}
-
-              {isAdding ? (
-                <div className={styles.formPanel}>
-                  <div className={styles.formHeader}>
-                    <div>
-                      <h3 className={styles.formTitle}>새 작품 빠르게 추가</h3>
-                      <p className={styles.formDescription}>
-                        작품명만 입력해도 시작할 수 있어요. 지금 필요한 만큼만 적고 나머지는 나중에
-                        채우면 됩니다.
-                      </p>
+                <div className={styles.quickLogCompactGrid}>
+                  <section className={styles.quickLogOptionPanel}>
+                    <div className={styles.quickLogPanelLabelRow}>
+                      <strong className={styles.quickLogSectionTitle}>기록 옵션</strong>
+                      <span className={styles.quickLogSectionCaption}>오늘 한 작업 내용을 빠르게 선택해요.</span>
                     </div>
-                    <span className={styles.metaPill}>자동 저장 중</span>
-                  </div>
-
-                  <div className={styles.formGrid}>
-                    <label className={styles.labelBlock}>
-                      <span className={styles.label}>작품명</span>
-                      <input
-                        value={title}
-                        onChange={(event) => setTitle(event.target.value)}
-                        placeholder="예: 봄 네트백"
-                        className={styles.input}
+                    <div className={styles.quickLogField}>
+                      <span className={styles.label}>빠른 기록 프리셋</span>
+                      <div className={styles.quickLogChipRow}>
+                        {QUICK_LOG_PRESETS.map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setQuickLogPreset(preset)}
+                            className={quickLogPreset === preset ? styles.quickLogChipActive : styles.quickLogChip}
+                          >
+                            {preset}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className={styles.quickLogField}>
+                      <span className={styles.label}>오늘 한 작업 시간</span>
+                      <div className={styles.quickLogChipRow}>
+                        {QUICK_LOG_DURATIONS.map((duration) => (
+                          <button
+                            key={duration}
+                            type="button"
+                            onClick={() => setQuickLogDuration(duration)}
+                            className={quickLogDuration === duration ? styles.quickLogChipActive : styles.quickLogChip}
+                          >
+                            {duration}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </section>
+                  <section className={styles.quickLogMemoPanel}>
+                    <div className={styles.quickLogPanelLabelRow}>
+                      <strong className={styles.quickLogSectionTitle}>메모</strong>
+                      <span className={styles.quickLogSectionCaption}>선택사항이에요. 오늘 한 작업을 짧게 남겨요.</span>
+                    </div>
+                    <div className={styles.quickLogField}>
+                      <textarea
+                        value={quickLogMemo}
+                        onChange={(event) => setQuickLogMemo(event.target.value)}
+                        placeholder="예: 코수 정리 완료, 다음엔 손잡이 시작"
+                        className={styles.quickLogMemoInput}
+                        rows={6}
                       />
-                    </label>
-                    <label className={styles.labelBlock}>
-                      <span className={styles.label}>상태</span>
-                      <select
-                        value={progress}
-                        onChange={(event) => setProgress(event.target.value as WorkProgress)}
-                        className={styles.select}
-                      >
-                        <option value="진행 중">진행 중</option>
-                        <option value="완성">완성</option>
-                        <option value="중단">중단</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div className={styles.formGrid}>
-                    <label className={styles.labelBlock}>
-                      <span className={styles.label}>사용 실</span>
-                      <input
-                        value={yarn}
-                        onChange={(event) => setYarn(event.target.value)}
-                        placeholder="예: 코튼사 / 메리노 혼방"
-                        className={styles.input}
-                      />
-                    </label>
-                    <label className={styles.labelBlock}>
-                      <span className={styles.label}>메모</span>
-                      <input
-                        value={note}
-                        onChange={(event) => setNote(event.target.value)}
-                        placeholder="예: 손잡이 길이 테스트 필요"
-                        className={styles.input}
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.formActionRow}>
-                    <button type="button" onClick={handleSubmitWork} className={styles.primaryAction}>
-                      서랍에 추가
-                    </button>
-                    <button type="button" onClick={handleCancelAdd} className={styles.secondaryLinkAction}>
-                      초안 닫기
-                    </button>
-                  </div>
+                    </div>
+                  </section>
+                  <section className={styles.quickLogActionPanel}>
+                    <div className={styles.quickLogPanelLabelRow}>
+                      <strong className={styles.quickLogSectionTitle}>첨부 및 저장</strong>
+                      <span className={styles.quickLogSectionCaption}>사진을 함께 남기거나 바로 기록해요.</span>
+                    </div>
+                    <div className={styles.quickLogField}>
+                      <div className={styles.quickLogPhotoRow}>
+                        <span className={styles.label}>사진 먼저 추가</span>
+                        <label className={styles.quickLogPhotoLabel}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleQuickLogPhotoChange}
+                            className={styles.quickLogPhotoInput}
+                          />
+                          사진 선택
+                        </label>
+                      </div>
+                      {quickLogPhoto ? (
+                        <div className={styles.quickLogPhotoPreviewCompact}>
+                          <img
+                            src={quickLogPhoto.dataUrl}
+                            alt={quickLogPhoto.name}
+                            className={styles.quickLogPhotoImageCompact}
+                          />
+                          <div className={styles.quickLogPhotoMetaCompact}>
+                            <strong>{quickLogPhoto.name}</strong>
+                            <button
+                              type="button"
+                              onClick={() => setQuickLogPhoto(null)}
+                              className={styles.quickLogClearButton}
+                            >
+                              제거
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className={styles.quickLogPhotoEmpty}>
+                          <p className={styles.quickLogHintCompact}>선택한 사진은 오늘 기록과 함께 바로 저장돼요.</p>
+                        </div>
+                      )}
+                    </div>
+                  </section>
                 </div>
-              ) : null}
-            </section>
-            ) : null}
-
-            {sectionTab === "지금 하는 작업" ? (
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>지금 하는 작업</h2>
-                  <p className={styles.sectionDescription}>
-                    진행 중인 작품과 연결된 동행을 한 화면에서 보고, 오늘 해야 할 다음 액션을 바로
-                    잡을 수 있어요.
-                  </p>
-                </div>
-              </div>
+              </section>
 
               <div className={styles.activeGrid}>
                 <div className={styles.focusColumn}>
@@ -914,7 +1095,7 @@ export default function MyWorkPage() {
                               >
                                 {work.progress === "중단" ? "다시 시작" : "상태 유지"}
                               </button>
-                              <Link href={`/my-work/${work.id}`} className={styles.secondaryMiniAction}>
+                              <Link href={`/archive/${work.id}`} className={styles.secondaryMiniAction}>
                                 상세 보기
                               </Link>
                             </div>
@@ -1086,7 +1267,7 @@ export default function MyWorkPage() {
                             원본 도안
                           </Link>
                         ) : null}
-                        <Link href={`/my-work/${work.id}`} className={styles.secondaryMiniAction}>
+                        <Link href={`/archive/${work.id}`} className={styles.secondaryMiniAction}>
                           상세 보기
                         </Link>
                       </div>
@@ -1143,79 +1324,27 @@ export default function MyWorkPage() {
             </section>
             ) : null}
 
-            {sectionTab === "작품 정보" ? (
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>작품 정보</h2>
-                  <p className={styles.sectionDescription}>
-                    재료, 회고, 도안 연결 같은 보강 정보는 메인 작업 흐름과 분리해서 필요할 때만
-                    확인할 수 있게 두었어요.
-                  </p>
-                </div>
-              </div>
-
-              <div className={styles.infoDetailGrid}>
-                <section className={styles.infoDetailCard}>
-                  <h3 className={styles.snapshotTitle}>기본 요약</h3>
-                  <div className={styles.summaryList}>
-                    <div className={styles.summaryRow}>
-                      <span>완성 작품</span>
-                      <strong>{summary.completedCount}</strong>
-                    </div>
-                    <div className={styles.summaryRow}>
-                      <span>연결 도안</span>
-                      <strong>{summary.patternLinkedCount}</strong>
-                    </div>
-                    <div className={styles.summaryRow}>
-                      <span>최근 기록</span>
-                      <strong>{timelineItems[0] ? getRelativeText(timelineItems[0].date) : "-"}</strong>
-                    </div>
-                  </div>
-                </section>
-
-                <section className={styles.infoDetailCard}>
-                  <h3 className={styles.snapshotTitle}>입력 전략</h3>
-                  <div className={styles.infoList}>
-                    <article className={styles.infoCard}>
-                      <strong>재료/비용</strong>
-                      <p>처음엔 비워두고, 작업이 익숙해졌을 때 상세에서 천천히 채우도록 유도해요.</p>
-                    </article>
-                    <article className={styles.infoCard}>
-                      <strong>회고/메모</strong>
-                      <p>완성 시점에 짧게 남기고, 지금은 기록을 시작하는 경험에 집중하게 해요.</p>
-                    </article>
-                    <article className={styles.infoCard}>
-                      <strong>연결 동행</strong>
-                      <p>작품서랍에서는 요약만 보여주고, 운영이나 상세 상호작용은 나와의 동행으로 보냅니다.</p>
-                    </article>
-                  </div>
-                </section>
-              </div>
-            </section>
-            ) : null}
           </div>
 
           <aside className={styles.sideColumn}>
-            <section className={styles.sidePanel}>
-              <h3 className={styles.sideTitle}>작품 정보</h3>
-              <div className={styles.summaryList}>
-                <div className={styles.summaryRow}>
-                  <span>완성 작품</span>
-                  <strong>{summary.completedCount}</strong>
-                </div>
-                <div className={styles.summaryRow}>
-                  <span>활성 초안</span>
-                  <strong>{title || yarn || note ? 1 : 0}</strong>
-                </div>
-                <div className={styles.summaryRow}>
-                  <span>연결 도안</span>
-                  <strong>{summary.patternLinkedCount}</strong>
-                </div>
-                <div className={styles.summaryRow}>
-                  <span>최근 기록</span>
-                  <strong>{timelineItems[0] ? getRelativeText(timelineItems[0].date) : "-"}</strong>
-                </div>
+            <section className={`${styles.sidePanel} ${styles.sideSummaryPanel}`}>
+              <div className={styles.sideStatsGrid}>
+                <article className={styles.sideStatCard}>
+                  <span className={styles.sideStatLabel}>전체 작품</span>
+                  <strong className={styles.sideStatValue}>{summary.workCount}</strong>
+                </article>
+                <article className={styles.sideStatCard}>
+                  <span className={styles.sideStatLabel}>진행 중</span>
+                  <strong className={styles.sideStatValue}>{summary.activeCount}</strong>
+                </article>
+                <article className={styles.sideStatCard}>
+                  <span className={styles.sideStatLabel}>완성 작품</span>
+                  <strong className={styles.sideStatValue}>{summary.completedCount}</strong>
+                </article>
+                <article className={styles.sideStatCard}>
+                  <span className={styles.sideStatLabel}>최근 기록</span>
+                  <strong className={styles.sideStatValue}>{timelineItems[0] ? getRelativeText(timelineItems[0].date) : "-"}</strong>
+                </article>
               </div>
             </section>
 
@@ -1233,45 +1362,6 @@ export default function MyWorkPage() {
               </div>
             </section>
 
-            <section className={styles.sidePanel}>
-              <div className={styles.snapshotHeader}>
-                <h3 className={styles.sideTitle}>모집 중 동행</h3>
-                <Link href="/companion" className={styles.inlineLink}>
-                  둘러보기
-                </Link>
-              </div>
-              <div className={styles.sideList}>
-                {recruitingCompanions.length > 0 ? (
-                  recruitingCompanions.map((room) => (
-                    <Link key={room.id} href={`/companion/${room.id}`} className={styles.sideListItem}>
-                      <div className={styles.sideListTop}>
-                        <span className={styles.metaPill}>모집중</span>
-                        <span>{room.participantCount}/{room.capacity}</span>
-                      </div>
-                      <strong>{room.title}</strong>
-                      <p>{room.patternName}</p>
-                    </Link>
-                  ))
-                ) : (
-                  <p className={styles.sideEmpty}>지금 확인할 모집 중 동행이 없어요.</p>
-                )}
-              </div>
-            </section>
-
-            <section className={styles.sidePanel}>
-              <h3 className={styles.sideTitle}>빠른 실행</h3>
-              <div className={styles.sideActionList}>
-                <button type="button" onClick={() => setIsAdding(true)} className={styles.primaryAction}>
-                  작품 추가
-                </button>
-                <Link href="/patterns" className={styles.secondaryLinkAction}>
-                  도안 둘러보기
-                </Link>
-                <Link href="/companion/mine" className={styles.secondaryLinkAction}>
-                  나와의 동행
-                </Link>
-              </div>
-            </section>
           </aside>
         </div>
       </div>
