@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Header from "@/components/layout/Header";
 import { createClient } from "@/lib/supabase/client";
@@ -152,7 +152,7 @@ function readDraft() {
   }
 }
 
-export default function MyWorkPage() {
+function MyWorkPageContent() {
   const [supabase] = useState(() => createClient());
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -508,7 +508,7 @@ export default function MyWorkPage() {
   }, [linkedPatternSearchMatches, patternSearchPage]);
 
   const timelineItems = useMemo<TimelineItem[]>(() => {
-    const workTimeline = works.map((work) => ({
+    const workTimeline = works.map<TimelineItem>((work) => ({
       id: `work-${work.id}`,
       date: work.lastQuickLogAt ?? work.updatedAt,
       title: work.title,
@@ -1366,5 +1366,13 @@ export default function MyWorkPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+export default function MyWorkPage() {
+  return (
+    <Suspense fallback={null}>
+      <MyWorkPageContent />
+    </Suspense>
   );
 }
