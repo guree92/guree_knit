@@ -15,10 +15,12 @@ type Props = {
   roomStatuses: Record<string, CompanionParticipantActivityStatus>;
 };
 
-type StatusFilter = "all" | "progress" | "resting" | "graduated";
+type StatusFilter = "all" | "waiting" | "progress" | "resting" | "graduated";
 
 function getStatusClassName(status: CompanionParticipantActivityStatus) {
   switch (status) {
+    case "waiting":
+      return styles.statusWaiting;
     case "progress":
       return styles.statusRecruiting;
     case "resting":
@@ -32,6 +34,8 @@ function getStatusClassName(status: CompanionParticipantActivityStatus) {
 
 function getTabTone(status: StatusFilter) {
   switch (status) {
+    case "waiting":
+      return styles.tabWaiting;
     case "progress":
       return styles.tabRecruiting;
     case "resting":
@@ -45,6 +49,7 @@ function getTabTone(status: StatusFilter) {
 
 function getStatusLabel(status: StatusFilter | CompanionParticipantActivityStatus) {
   if (status === "all") return "전체";
+  if (status === "waiting") return "참여 대기";
   if (status === "progress") return "진행";
   if (status === "resting") return "휴식";
   return "졸업";
@@ -62,7 +67,7 @@ export default function MyCompanionBoardClient({ rooms, roomStatuses }: Props) {
     <>
       <div className={styles.toolbar}>
         <div className={styles.tabRow}>
-          {(["all", "progress", "resting", "graduated"] as const).map((status) => (
+          {(["all", "waiting", "progress", "resting", "graduated"] as const).map((status) => (
             <button
               key={status}
               type="button"

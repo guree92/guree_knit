@@ -684,18 +684,24 @@
   min-width: 40px;
   min-height: 40px;
   padding: 0 14px;
-  border: 1px solid #ddd4c9;
+  border: 1px solid #c7d6c1;
   background: #fff;
-  color: #6f6257;
+  color: #71826c;
   font-size: 0.85rem;
   cursor: pointer;
 }
 
 .pageNumberActive {
   border-color: transparent;
-  background: linear-gradient(135deg, #8a9b84, #70806b);
+  background: #a8bc93;
   color: white;
-  box-shadow: 0 10px 18px rgba(111, 130, 107, 0.24);
+  box-shadow: 0 10px 18px rgba(168, 188, 147, 0.24);
+}
+
+.pageNavButton:hover,
+.pageNumber:hover {
+  border-color: #8a9b84;
+  color: #5f7455;
 }
 
 .pageNavButton:disabled {
@@ -890,15 +896,27 @@
 .categoryChip,
 .pageNavButton,
 .pageNumber {
-  border-color: var(--community-border);
-  background: var(--community-main);
-  color: var(--community-muted);
+  border-color: #c7d6c1;
+  background: #ffffff;
+  color: var(--community-accent-strong);
 }
 
 .searchInput:focus,
 .sortSelect:focus {
   border-color: var(--community-accent);
   box-shadow: 0 0 0 4px var(--community-focus);
+}
+
+.pageNavButton:hover,
+.pageNumber:hover {
+  border-color: var(--community-accent);
+  background: #edf4e8;
+  color: var(--community-accent-strong);
+}
+
+.pageNumberActive {
+  background: #a8bc93;
+  box-shadow: 0 10px 18px rgba(168, 188, 147, 0.24);
 }
 
 .resultChip,
@@ -1316,4 +1334,3 @@
   background: linear-gradient(135deg, rgba(127, 159, 216, 0.26), rgba(95, 127, 189, 0.16));
   color: #46639b;
 }
-

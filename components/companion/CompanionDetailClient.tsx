@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import LoginRequiredModal from "@/components/auth/LoginRequiredModal";
 import { getCompanionRoomById } from "@/data/companion";
@@ -28,6 +28,7 @@ import {
 import { normalizeDetailRows } from "@/lib/pattern-detail";
 import { getPatternImageUrl, type PatternItem } from "@/lib/patterns";
 import { createClient } from "@/lib/supabase/client";
+import { ensureCompanionLinkedWork, getCompanionLinkedWorkId, readStoredWorkItems, writeStoredWorkItems } from "@/lib/my-work-storage";
 import styles from "@/app/companion/[id]/page.module.css";
 
 const copyrightPolicyRows = [
@@ -128,6 +129,50 @@ function sortWaitingParticipantsByJoinedAt(participants: DetailWaitingParticipan
     return (Number.isNaN(leftTime) ? 0 : leftTime) - (Number.isNaN(rightTime) ? 0 : rightTime);
   });
 }
+function normalizeProgressBoards(boards: ProgressBoard[]) {
+  const boardMap = new Map<string, ProgressBoard>();
+
+  boards.forEach((board) => {
+    const existing = boardMap.get(board.userId);
+    if (!existing) {
+      boardMap.set(board.userId, { ...board, posts: [...board.posts] });
+      return;
+    }
+
+    const mergedPosts = [...existing.posts, ...board.posts]
+      .reduce<ProgressPost[]>((posts, post) => {
+        if (posts.some((item) => item.id === post.id)) return posts;
+        posts.push(post);
+        return posts;
+      }, [])
+      .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
+
+    const existingTime = new Date(existing.lastActivityAt).getTime();
+    const boardTime = new Date(board.lastActivityAt).getTime();
+    const shouldPreferBoard = (Number.isNaN(existingTime) ? 0 : existingTime) <= (Number.isNaN(boardTime) ? 0 : boardTime);
+    const preferred = shouldPreferBoard ? board : existing;
+
+    boardMap.set(board.userId, {
+      ...preferred,
+      posts: mergedPosts,
+      graduatedAt: preferred.graduatedAt ?? existing.graduatedAt ?? board.graduatedAt ?? null,
+    });
+  });
+
+  return [...boardMap.values()];
+}
+function normalizeDetailState(state: DetailState): DetailState {
+  return {
+    ...state,
+    boards: normalizeProgressBoards(state.boards),
+  };
+}
+function ensureArchiveWorkForCompanion(room: CompanionRoom) {
+  if (typeof window === "undefined") return;
+  const localItems = readStoredWorkItems();
+  const ensured = ensureCompanionLinkedWork(localItems, room);
+  writeStoredWorkItems(ensured.items);
+}
 function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState) {
   if (state.waitingParticipants.length === 0) return state;
   const waitingQueue = sortWaitingParticipantsByJoinedAt(state.waitingParticipants);
@@ -174,7 +219,7 @@ function promoteFirstWaitingParticipantLocal(roomId: string, state: DetailState)
     ...state,
     waitingParticipants: waitingQueue.slice(1),
     participants: nextParticipants,
-    boards: nextBoards,
+    boards: normalizeProgressBoards(nextBoards),
   };
 }
 function getBoardMetaStorageKey(roomId: string) { return `knit_companion_room_board_meta:${roomId}`; }
@@ -193,7 +238,7 @@ function readLocalDetailState(roomId: string) {
 }
 function writeLocalDetailState(roomId: string, state: DetailState) {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(getDetailStateStorageKey(roomId), JSON.stringify(state));
+  window.localStorage.setItem(getDetailStateStorageKey(roomId), JSON.stringify(normalizeDetailState(state)));
 }
 function convertLegacyState(room: CompanionRoom): DetailState {
   const fallback = createDefaultCompanionRoomState(room);
@@ -217,6 +262,7 @@ function convertLegacyState(room: CompanionRoom): DetailState {
 
 export default function CompanionDetailClient() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const roomId = params.id;
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
@@ -362,24 +408,14 @@ export default function CompanionDetailClient() {
           return { id: `${room.id}-board-${participant.userId}`, userId: participant.userId, name: participant.name, role: participant.role, activityStatus, lastActivityAt, graduatedAt: activityStatus === "graduated" ? lastActivityAt : null, posts };
         });
         setCurrentRoom(room);
-        setDetailState({
+        setDetailState(normalizeDetailState({
           participants,
           waitingParticipants,
           notices: noticeRows.map((notice) => ({ id: notice.id, title: notice.title, content: notice.content, author: nicknameMap.get(notice.author_user_id) ?? room.hostName, createdAt: notice.created_at, isPinned: notice.is_pinned })),
           supplies: supplyRows.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: checkedBySupply.get(supply.id) ?? [] })),
           questions: threadRows.filter((thread) => thread.type === "question").map((thread) => ({ id: thread.id, author: nicknameMap.get(thread.author_user_id) ?? "참여자", content: thread.content, createdAt: thread.created_at, replies: commentsByThreadId.get(thread.id) ?? [] })),
           boards,
-        });
-        setIsDbRoom(true); setHasLoadedRooms(true); setIsStateReady(true); return;
-        setCurrentRoom(room);
-        setDetailState({
-          participants,
-          waitingParticipants,
-          notices: noticeRows.map((notice) => ({ id: notice.id, title: notice.title, content: notice.content, author: nicknameMap.get(notice.author_user_id) ?? room.hostName, createdAt: notice.created_at, isPinned: notice.is_pinned })),
-          supplies: supplyRows.map((supply) => ({ id: supply.id, label: supply.label, checkedBy: checkedBySupply.get(supply.id) ?? [] })),
-          questions: threadRows.filter((thread) => thread.type === "question").map((thread) => ({ id: thread.id, author: nicknameMap.get(thread.author_user_id) ?? "참여자", content: thread.content, createdAt: thread.created_at, replies: commentsByThreadId.get(thread.id) ?? [] })),
-          boards,
-        });
+        }));
         setIsDbRoom(true); setHasLoadedRooms(true); setIsStateReady(true); return;
       }
       if (typeof window !== "undefined") {
@@ -388,7 +424,7 @@ export default function CompanionDetailClient() {
         if (localRoom) {
           const storedDetail = readLocalDetailState(localRoom.id);
           const nextState = storedDetail ?? convertLegacyState(localRoom);
-          const normalizedState: DetailState = {
+          const normalizedState: DetailState = normalizeDetailState({
             ...nextState,
             participants: nextState.participants.map((participant) => ({
               ...participant,
@@ -398,7 +434,7 @@ export default function CompanionDetailClient() {
               ...participant,
               joinedAt: participant.joinedAt ?? localRoom.createdAt,
             })),
-          };
+          });
           if (!storedDetail) writeLocalDetailState(localRoom.id, normalizedState);
           setCurrentRoom(localRoom);
           setDetailState(normalizedState);
@@ -411,8 +447,9 @@ export default function CompanionDetailClient() {
 
   function persistLocalDetail(nextState: DetailState) {
     if (!currentRoom) return;
-    setDetailState(nextState);
-    writeLocalDetailState(currentRoom.id, nextState);
+    const normalizedState = normalizeDetailState(nextState);
+    setDetailState(normalizedState);
+    writeLocalDetailState(currentRoom.id, normalizedState);
   }
   async function updateDbParticipantActivity(
     userId: string,
@@ -605,6 +642,7 @@ export default function CompanionDetailClient() {
           const { data: insertedRows, error } = await supabase.from("companion_participants").insert({ room_id: currentRoom.id, user_id: user.id, role: nextRole, activity_status: nextRole === "participant" ? "progress" : "progress", last_activity_at: new Date().toISOString() }).select("id, role");
           if (error) { alert(error.message); return; }
           if (!insertedRows || insertedRows.length === 0) { alert(nextRole === "participant" ? "참여 처리가 아직 완료되지 않았어요. 다시 시도해 주세요." : "참여 대기 등록이 아직 완료되지 않았어요. 다시 시도해 주세요."); return; }
+          if (nextRole === "participant") ensureArchiveWorkForCompanion(currentRoom);
           setActionFeedback({ type: "success", message: nextRole === "participant" ? "참여가 완료되었어요." : "참여 대기에 등록되었어요." });
         }
         setReloadToken((current) => current + 1); return;
@@ -622,6 +660,7 @@ export default function CompanionDetailClient() {
         return;
       }
       if (isRecruitingOpen) {
+        ensureArchiveWorkForCompanion(currentRoom);
         persistLocalDetail({ ...detailState, participants: [...detailState.participants, { id: `${currentRoom.id}-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", joinedAt: new Date().toISOString() }], boards: [{ id: `${currentRoom.id}-board-${viewerId}`, userId: viewerId, name: currentUserName, role: "participant", activityStatus: "progress", lastActivityAt: new Date().toISOString(), graduatedAt: null, posts: [] }, ...detailState.boards] });
         setActionFeedback({ type: "success", message: "참여가 완료되었어요." });
         return;
@@ -929,6 +968,14 @@ export default function CompanionDetailClient() {
     setIsProgressComposerOpen(false);
     setProgressTitle("");
     setProgressContent("");
+  }
+  function openBoardDestination(board: ProgressBoard) {
+    const viewerOwnsBoard = Boolean((currentUserId && board.userId === currentUserId) || (currentUserName && board.name === currentUserName));
+    if (viewerOwnsBoard && currentRoom) {
+      router.push(`/archive/${getCompanionLinkedWorkId(currentRoom.id)}`);
+      return;
+    }
+    openBoardModal(board.id);
   }
   function closeBoardModal() {
     removeProgressImage();
@@ -1273,7 +1320,7 @@ export default function CompanionDetailClient() {
                   const canReactivate = currentRoom ? activeParticipantCount < currentRoom.capacity : false;
                   const isQueuedForReactivation = waitingParticipantsOrdered.some((participant) => participant.userId === board.userId);
                   return (
-                    <article key={board.id} className={`${styles.progressParticipantCard} ${status === "resting" ? styles.progressParticipantCardResting : status === "graduated" ? styles.progressParticipantCardAlert : ""}`} role="button" tabIndex={0} onClick={() => openBoardModal(board.id)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openBoardModal(board.id); } }}>
+                    <article key={board.id} className={`${styles.progressParticipantCard} ${status === "resting" ? styles.progressParticipantCardResting : status === "graduated" ? styles.progressParticipantCardAlert : ""}`} role="button" tabIndex={0} onClick={() => openBoardDestination(board)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openBoardDestination(board); } }}>
                       <span className={`${styles.progressAvatarWrap} ${status === "resting" ? styles.progressAvatarWrapResting : ""}`}><span className={`${styles.progressAvatarIcon} ${status === "resting" ? styles.progressAvatarIconResting : ""}`}>○</span></span>
                       <strong className={styles.progressParticipantName}>{board.name}</strong>
                       <p className={styles.progressParticipantMeta}>{formatElapsedDayLabel(board.lastActivityAt)}</p>

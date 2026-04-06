@@ -137,13 +137,12 @@ export default async function MyCompanionPage() {
         participantCountMap.set(row.room_id, (participantCountMap.get(row.room_id) ?? 0) + 1);
       }
 
-      if (row.user_id === user.id && row.role !== "waiting") {
+      if (row.user_id === user.id) {
         roomStatuses[row.room_id] = getEffectiveCompanionParticipantActivityStatus(row);
       }
     });
 
     (((myParticipantRows ?? []) as Array<{ room_id: string; role: "host" | "participant" | "waiting"; activity_status: CompanionParticipantActivityStatus | null; last_activity_at: string | null; joined_at: string | null }>) ?? []).forEach((row) => {
-      if (row.role === "waiting") return;
       roomStatuses[row.room_id] = getEffectiveCompanionParticipantActivityStatus(row);
     });
 

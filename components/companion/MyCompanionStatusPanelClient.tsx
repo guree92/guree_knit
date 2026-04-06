@@ -14,12 +14,13 @@ export default function MyCompanionStatusPanelClient({ rooms, roomStatuses }: Pr
     return rooms.reduce(
       (acc, room) => {
         const status = roomStatuses[room.id] ?? "progress";
+        if (status === "waiting") acc.waiting += 1;
         if (status === "progress") acc.progress += 1;
         if (status === "resting") acc.resting += 1;
         if (status === "graduated") acc.graduated += 1;
         return acc;
       },
-      { total: rooms.length, progress: 0, resting: 0, graduated: 0 }
+      { total: rooms.length, waiting: 0, progress: 0, resting: 0, graduated: 0 }
     );
   }, [rooms, roomStatuses]);
 
@@ -33,6 +34,10 @@ export default function MyCompanionStatusPanelClient({ rooms, roomStatuses }: Pr
         <div className={styles.sideRow}>
           <span>내가 참여한 동행</span>
           <strong>{counts.total}개</strong>
+        </div>
+        <div className={styles.sideRow}>
+          <span>참여 대기 동행</span>
+          <strong>{counts.waiting}개</strong>
         </div>
         <div className={styles.sideRow}>
           <span>진행 동행</span>

@@ -4,11 +4,13 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/layout/Header";
+import { getEffectiveCompanionParticipantActivityStatus, type CompanionParticipantActivityStatus } from "@/lib/companion";
 import {
   getProgressBadgeClass,
   workItems,
   type WorkProgress,
 } from "@/data/my-work";
+import { createClient } from "@/lib/supabase/client";
 import { readStoredWorkItems, writeStoredWorkItems, type StoredWorkItem } from "@/lib/my-work-storage";
 
 const seedWorkItems: StoredWorkItem[] = workItems.map((item) => ({
@@ -20,6 +22,7 @@ export default function MyWorkDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = String(params.id);
+  const supabase = useMemo(() => createClient(), []);
 
   const [work, setWork] = useState<StoredWorkItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -27,6 +30,7 @@ export default function MyWorkDetailPage() {
   const [progress, setProgress] = useState<WorkProgress>("진행 중");
   const [yarn, setYarn] = useState("");
   const [note, setNote] = useState("");
+  const [companionActivity, setCompanionActivity] = useState<CompanionParticipantActivityStatus | null>(null);
 
   useEffect(() => {
     const seedMatch = seedWorkItems.find((item) => item.id === id) ?? null;
@@ -43,7 +47,73 @@ export default function MyWorkDetailPage() {
     }
   }, [id]);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function fetchCompanionActivity() {
+      if (!work?.sourceCompanionRoomId) {
+        setCompanionActivity(null);
+        return;
+      }
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        if (!isCancelled) setCompanionActivity(null);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("companion_participants")
+        .select("role, activity_status, last_activity_at, joined_at")
+        .eq("room_id", work.sourceCompanionRoomId)
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (isCancelled) return;
+
+      if (error || !data) {
+        if (error) console.error(error);
+        setCompanionActivity(null);
+        return;
+      }
+
+      setCompanionActivity(
+        getEffectiveCompanionParticipantActivityStatus({
+          role: data.role,
+          activity_status: data.activity_status,
+          last_activity_at: data.last_activity_at,
+          joined_at: data.joined_at,
+        })
+      );
+    }
+
+    void fetchCompanionActivity();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [supabase, work?.sourceCompanionRoomId]);
+
   const isLocalWork = useMemo(() => work?.source === "local", [work]);
+  const isCompanionLocked = companionActivity === "resting" || companionActivity === "waiting";
+  const companionBadgeLabel =
+    companionActivity === "waiting" ? "동행 복귀 대기중" : companionActivity === "resting" ? "동행 휴식 중" : null;
+  const effectiveProgress = isCompanionLocked ? "중단" : work?.progress ?? "진행 중";
+  const effectiveProgressLabel =
+    companionActivity === "waiting"
+      ? "동행 복귀 대기중"
+      : companionActivity === "resting"
+        ? "동행 휴식 중"
+        : work?.progress ?? "진행 중";
+
+  useEffect(() => {
+    if (isCompanionLocked) {
+      setIsEditing(false);
+    }
+  }, [isCompanionLocked]);
 
   function handleCancelEdit() {
     if (!work) return;
@@ -57,6 +127,10 @@ export default function MyWorkDetailPage() {
 
   function handleSaveEdit() {
     if (!work || !isLocalWork) return;
+    if (isCompanionLocked) {
+      alert("동행이 휴식 중이거나 복귀 대기 중일 때는 작품 기록을 수정할 수 없어요.");
+      return;
+    }
 
     const trimmedTitle = title.trim();
     const trimmedYarn = yarn.trim();
@@ -96,6 +170,10 @@ export default function MyWorkDetailPage() {
 
   function handleDelete() {
     if (!work || !isLocalWork) return;
+    if (isCompanionLocked) {
+      alert("동행이 다시 활성화되기 전까지는 연결된 작품을 삭제할 수 없어요.");
+      return;
+    }
 
     const shouldDelete = window.confirm("이 작품을 삭제할까요?");
     if (!shouldDelete) return;
@@ -140,17 +218,36 @@ export default function MyWorkDetailPage() {
 
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-4xl font-black text-slate-800">{work.title}</h1>
+              {companionBadgeLabel ? (
+                <span className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-semibold text-rose-700">
+                  {companionBadgeLabel}
+                </span>
+              ) : null}
               <span
                 className={[
                   "rounded-full px-3 py-1 text-xs font-semibold",
-                  getProgressBadgeClass(work.progress),
+                  getProgressBadgeClass(effectiveProgress),
                 ].join(" ")}
               >
-                {work.progress}
+                {effectiveProgressLabel}
               </span>
             </div>
 
             <p className="mt-4 max-w-2xl leading-7 text-slate-600">{work.detail}</p>
+            {isCompanionLocked ? (
+              <div className="mt-4 rounded-3xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm leading-6 text-rose-800">
+                동행이 휴식 상태이거나 복귀 순서를 기다리는 중이라 지금은 작품 기록이 잠겨 있어요.
+                {work.sourceCompanionRoomId ? (
+                  <>
+                    {" "}
+                    <Link href={`/companion/${work.sourceCompanionRoomId}`} className="font-semibold underline underline-offset-2">
+                      연결된 동행으로 이동
+                    </Link>
+                    해서 상태를 확인해 보세요.
+                  </>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="mt-8 h-64 rounded-[2rem] bg-[linear-gradient(135deg,#eefcf5,#f3f0ff,#fff7ee)]" />
           </div>
@@ -165,7 +262,13 @@ export default function MyWorkDetailPage() {
                     {!isEditing ? (
                       <button
                         type="button"
-                        onClick={() => setIsEditing(true)}
+                        onClick={() => {
+                          if (isCompanionLocked) {
+                            alert("동행이 다시 활성화되면 작품 기록을 수정할 수 있어요.");
+                            return;
+                          }
+                          setIsEditing(true);
+                        }}
                         className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700"
                       >
                         수정
@@ -189,13 +292,15 @@ export default function MyWorkDetailPage() {
                       </>
                     )}
 
-                    <button
-                      type="button"
-                      onClick={handleDelete}
-                      className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"
-                    >
-                      삭제
-                    </button>
+                    {!isCompanionLocked ? (
+                      <button
+                        type="button"
+                        onClick={handleDelete}
+                        className="rounded-xl bg-rose-500 px-4 py-2 text-sm font-semibold text-white"
+                      >
+                        삭제
+                      </button>
+                    ) : null}
                   </div>
                 ) : (
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
@@ -208,7 +313,7 @@ export default function MyWorkDetailPage() {
                 <div className="mt-4 space-y-3 text-sm text-slate-600">
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>상태</span>
-                    <span className="font-semibold text-slate-800">{work.progress}</span>
+                    <span className="font-semibold text-slate-800">{effectiveProgressLabel}</span>
                   </div>
                   <div className="flex justify-between gap-4 border-b border-slate-100 pb-3">
                     <span>사용 실</span>

@@ -335,6 +335,18 @@
   box-shadow: 0 10px 18px rgba(110, 138, 102, 0.24);
 }
 
+.sectionTabSand {
+  border-color: #e3beb8;
+  background: linear-gradient(135deg, rgba(231, 162, 154, 0.26), rgba(217, 123, 112, 0.16));
+  color: #9d584f;
+}
+
+.sectionTabSandActive {
+  background: linear-gradient(135deg, #e7a29a, #d97b70);
+  color: #ffffff;
+  box-shadow: 0 10px 18px rgba(217, 123, 112, 0.24);
+}
+
 .sectionTabBlue {
   border-color: #b9c7e9;
   background: #e3eaf8;
@@ -486,29 +498,28 @@
 }
 
 .quickLogPanel {
-  margin-bottom: 14px;
   display: grid;
-  gap: 16px;
-  padding: 18px;
+  gap: 12px;
+  padding: 16px;
 }
 
 .quickLogPanelHeader {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(520px, 0.95fr);
-  gap: 18px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 0.9fr);
+  gap: 14px;
+  align-items: end;
 }
 
 .quickLogTopActions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 200px;
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
   align-items: end;
 }
 
 .quickLogSelectWrap {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -721,14 +732,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 38px;
-  height: 38px;
-  padding: 0 12px;
+  min-width: 46px;
+  height: 42px;
+  padding: 0 16px;
   border: 1px solid #d8dee5;
   border-radius: 999px;
   background: #ffffff;
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 0.92rem;
   font-weight: 700;
   cursor: pointer;
   transition:
@@ -740,12 +751,24 @@
 
 .patternSearchPageButton:hover {
   transform: translateY(-1px);
+  border-color: #c7d6c1;
+  background: #edf4e8;
+  color: var(--app-sage-deep);
+}
+
+.patternSearchPageButton:disabled {
+  opacity: 0.48;
+  cursor: default;
+  transform: none;
+  color: #9ca3af;
+  border-color: #e5e7eb;
 }
 
 .patternSearchPageButtonActive {
-  border-color: #a8bc93;
-  background: #a8bc93;
+  border-color: var(--app-sage-deep);
+  background: var(--app-sage-deep);
   color: #ffffff;
+  box-shadow: 0 10px 18px rgba(168, 188, 147, 0.24);
 }
 
 .infoDetailGrid {
@@ -874,8 +897,8 @@
 
 .quickLogCompactGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.9fr) minmax(250px, 0.9fr);
-  gap: 14px;
+  grid-template-columns: minmax(240px, 0.92fr) minmax(0, 1.35fr);
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -883,33 +906,54 @@
 .quickLogMemoPanel,
 .quickLogActionPanel {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   min-width: 0;
-  padding: 14px;
+  padding: 12px;
   border: 1px solid #e7ecf1;
   border-radius: 16px;
-  background: linear-gradient(180deg, #ffffff, #fafcff);
+  background: #ffffff;
 }
 
 .quickLogActionPanel {
   align-content: start;
-  background:
-    radial-gradient(circle at top right, rgba(223, 232, 214, 0.52), transparent 42%),
-    linear-gradient(180deg, #ffffff, #f8fbf6);
+  background: #fbfcf8;
+  grid-column: 1 / -1;
 }
 
 .quickLogMemoPanel {
-  background: linear-gradient(180deg, #ffffff, #fbfcff);
+  background: #ffffff;
 }
 
 .quickLogField {
   display: grid;
-  gap: 6px;
+  gap: 5px;
+}
+
+.quickLogFieldHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.quickLogDurationRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 92px;
+  gap: 8px;
+  align-items: center;
+}
+
+.quickLogDurationInput {
+  text-align: right;
+}
+
+.quickLogDurationUnitSelect {
+  min-width: 0;
 }
 
 .quickLogPanelLabelRow {
   display: grid;
-  gap: 3px;
+  gap: 2px;
 }
 
 .quickLogSectionTitle {
@@ -921,8 +965,8 @@
 
 .quickLogSectionCaption {
   color: var(--app-muted-soft);
-  font-size: 0.76rem;
-  line-height: 1.4;
+  font-size: 0.74rem;
+  line-height: 1.34;
 }
 
 .quickLogChipRow {
@@ -984,13 +1028,15 @@
   justify-content: center;
   width: fit-content;
   cursor: pointer;
+  padding: 0 14px;
+  background: #f8fafc;
 }
 
 .quickLogPhotoRow {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .quickLogPhotoPreview {
@@ -1007,12 +1053,22 @@
 .quickLogPhotoPreviewCompact {
   display: grid;
   grid-template-columns: 58px minmax(0, 1fr);
-  gap: 10px;
+  gap: 8px;
   align-items: center;
-  padding: 8px 10px;
+  padding: 8px 9px;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
   background: #f8fafc;
+}
+
+.quickLogPhotoPreviewButton {
+  display: block;
+  width: 58px;
+  height: 58px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
 }
 
 .quickLogPhotoImage {
@@ -1031,6 +1087,52 @@
   object-fit: cover;
   border-radius: 12px;
   background: #e5e7eb;
+}
+
+.photoModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(6px);
+}
+
+.photoModalDialog {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(100%, 900px);
+  max-height: min(88vh, 920px);
+  padding: 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+}
+
+.photoModalClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #111827;
+  font-size: 0.92rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.photoModalImage {
+  display: block;
+  max-width: 100%;
+  max-height: min(78vh, 820px);
+  object-fit: contain;
+  border-radius: 18px;
 }
 
 .quickLogPhotoMeta {
@@ -1083,11 +1185,114 @@
 .quickLogPhotoEmpty {
   display: grid;
   align-content: center;
-  min-height: 96px;
-  padding: 10px 12px;
+  min-height: 60px;
+  padding: 8px 10px;
   border: 1px dashed #d8dee5;
   border-radius: 14px;
   background: rgba(248, 250, 252, 0.8);
+}
+
+.quickLogActionPanel .quickLogField {
+  gap: 10px;
+}
+
+.presetModalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(6px);
+}
+
+.presetModalDialog {
+  width: min(100%, 680px);
+  max-height: min(84vh, 760px);
+  overflow: auto;
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid rgba(229, 231, 235, 0.9);
+  border-radius: 24px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+}
+
+.presetModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.presetModalTitle {
+  margin: 0;
+  color: #111827;
+  font-size: 1.18rem;
+  font-weight: 800;
+}
+
+.presetModalDescription {
+  margin: 8px 0 0;
+  color: var(--app-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+
+.presetModalList {
+  display: grid;
+  gap: 10px;
+}
+
+.presetEditorRow {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
+.presetEditorIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: #f4f7f1;
+  color: var(--app-sage-deep);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.presetModalHelperRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.presetModalError {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.presetModalHint {
+  margin: -6px 0 0;
+  color: var(--app-muted-soft);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.presetModalActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .labelBlock {
@@ -1121,16 +1326,16 @@
 .sortSelect,
 .input,
 .select {
-  min-height: 46px;
-  padding: 0 14px;
-  font-size: 0.92rem;
+  min-height: 42px;
+  padding: 0 12px;
+  font-size: 0.88rem;
 }
 
 .quickLogMemoInput {
   width: 100%;
-  min-height: 154px;
+  min-height: 126px;
   resize: none;
-  padding: 12px 14px;
+  padding: 10px 12px;
   border: 1px solid #d1d5db;
   border-radius: 16px;
   background: #f8fafc;
@@ -1151,8 +1356,10 @@
 }
 
 .quickLogSubmitButtonTop {
-  min-height: 46px;
-  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  min-height: 42px;
+  min-width: 152px;
+  padding: 0 18px;
+  background: var(--app-sage-deep);
   border-color: transparent;
   color: #ffffff;
   box-shadow:
@@ -1163,7 +1370,7 @@
 .quickLogSubmitButton {
   width: 100%;
   min-height: 46px;
-  background: linear-gradient(135deg, var(--app-sage) 0%, var(--app-sage-deep) 100%);
+  background: var(--app-sage-deep);
   border-color: transparent;
   color: #ffffff;
   box-shadow:
@@ -1190,8 +1397,16 @@
 
 .activeGrid {
   display: grid;
-  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
-  gap: 14px;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.featuredPagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
 }
 
 .focusColumn,
@@ -1203,13 +1418,90 @@
 .infoList,
 .sideList {
   display: grid;
+  gap: 10px;
+}
+
+.focusColumn,
+.snapshotColumn {
+  align-content: start;
+}
+
+.focusColumn {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
 .focusCard {
   display: grid;
-  gap: 14px;
-  padding: 18px;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  align-self: start;
+  height: 100%;
+}
+
+.focusMedia {
+  position: relative;
+  min-height: 184px;
+  background:
+    radial-gradient(circle at top right, rgba(214, 228, 202, 0.78), transparent 34%),
+    linear-gradient(145deg, #f7faf5, #edf2fb 56%, #f8f5ee);
+}
+
+.focusMediaImage {
+  display: block;
+  width: 100%;
+  height: 184px;
+  object-fit: cover;
+}
+
+.focusMediaPlaceholder {
+  display: grid;
+  align-content: end;
+  gap: 8px;
+  height: 184px;
+  padding: 16px;
+}
+
+.focusMediaEyebrow {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 26px;
+  padding: 0 10px;
+  align-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #6d7b61;
+  font-size: 0.72rem;
+  font-weight: 700;
+  backdrop-filter: blur(10px);
+}
+
+.focusMediaWord {
+  max-width: 13ch;
+  color: #334155;
+  font-size: 1.3rem;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.focusMediaStatusRow {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.focusBody {
+  display: grid;
+  gap: 10px;
+  padding: 12px 13px 13px;
+  min-height: 148px;
 }
 
 .focusTop,
@@ -1220,6 +1512,19 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
+}
+
+.focusCopy {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  min-height: 40px;
+}
+
+.focusAside {
+  display: flex;
+  justify-content: flex-end;
+  min-width: fit-content;
 }
 
 .focusMeta,
@@ -1234,72 +1539,91 @@
 }
 
 .focusDescription {
-  margin-top: 8px;
-}
-
-.progressBlock {
-  display: grid;
-  gap: 8px;
-}
-
-.progressLabelRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
+  margin: 0;
   color: var(--app-muted);
   font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.progressLabelRow strong {
-  color: #111827;
-  font-size: 0.94rem;
-}
-
-.progressRail {
-  position: relative;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  height: 10px;
-  border-radius: 999px;
-  background: #eef2f7;
+  min-height: 2.8em;
 }
 
-.progressFill {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(135deg, #b8caa5, #8fa77d);
+.focusStats {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-start;
 }
 
 .focusBottom {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #eef2f6;
+  margin-top: auto;
 }
 
 .focusChecklist {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .focusLabel {
   color: var(--app-muted-soft);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .focusChecklist strong {
   color: #111827;
-  font-size: 0.92rem;
-  line-height: 1.45;
+  font-size: 0.84rem;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.focusActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.focusActions .inlineLink {
+  min-height: 30px;
+  padding: 0 10px;
+  font-size: 0.78rem;
+}
+
+.focusGhostAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .snapshotPanel {
   display: grid;
-  gap: 12px;
-  padding: 16px;
+  gap: 10px;
+  padding: 14px;
 }
 
 .snapshotCard,
@@ -1307,13 +1631,43 @@
 .sideListItem,
 .infoCard {
   display: grid;
-  gap: 8px;
+  gap: 6px;
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   background: #ffffff;
-  padding: 14px;
+  padding: 12px;
   text-decoration: none;
   color: inherit;
+}
+
+.reviveAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--app-border);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+  color: var(--app-muted);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 6px 14px rgba(15, 23, 42, 0.05);
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease,
+    opacity 0.18s ease;
+  cursor: pointer;
+}
+
+.reviveAction:hover {
+  transform: translateY(-1px);
 }
 
 .snapshotTop {
@@ -1327,6 +1681,11 @@
   margin: 0;
   color: var(--app-muted);
   font-size: 0.84rem;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .snapshotMeta {
@@ -1340,7 +1699,11 @@
   margin: 0;
   color: var(--app-muted);
   font-size: 0.84rem;
-  line-height: 1.55;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .libraryControls {
@@ -1352,6 +1715,12 @@
 .searchRow {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 138px;
+  gap: 10px;
+}
+
+.searchRowSingle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -1450,10 +1819,10 @@
   border: 1px dashed #d1d5db;
   border-radius: 14px;
   background: #f9fafb;
-  padding: 14px;
+  padding: 12px;
   color: var(--app-muted);
   font-size: 0.84rem;
-  line-height: 1.6;
+  line-height: 1.5;
 }
 
 .emptyState {
@@ -1528,6 +1897,20 @@
   .quickLogTopActions {
     grid-template-columns: 1fr;
   }
+
+  .quickLogActionPanel {
+    grid-column: auto;
+  }
+
+  .focusColumn {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .presetModalHeader,
+  .presetModalActions {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
 }
 
 @media (max-width: 900px) {
@@ -1563,13 +1946,24 @@
     grid-template-columns: 1fr;
   }
 
+  .focusColumn {
+    grid-template-columns: 1fr;
+  }
+
+  .focusMedia,
+  .focusMediaImage,
+  .focusMediaPlaceholder {
+    height: 154px;
+    min-height: 154px;
+  }
+
   .quickAddAction {
     grid-template-columns: 1fr;
   }
 
   .quickLogPhotoRow {
-    align-items: flex-start;
-    flex-direction: column;
+    justify-content: flex-end;
+    align-items: flex-end;
   }
 
   .quickLogOptionPanel,
@@ -1580,6 +1974,32 @@
 
   .quickLogMemoInput {
     min-height: 120px;
+  }
+
+  .quickLogFieldHead,
+  .presetEditorRow,
+  .presetModalHelperRow {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .quickLogDurationRow {
+    grid-template-columns: 1fr;
+  }
+
+  .presetEditorIndex {
+    width: 32px;
+    height: 32px;
+  }
+
+  .presetModalDialog {
+    padding: 18px;
+    border-radius: 20px;
+  }
+
+  .photoModalDialog {
+    padding: 16px;
+    border-radius: 20px;
   }
 
   .sectionBlock,

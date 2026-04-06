@@ -1,6 +1,8 @@
 import { type WorkItem, type WorkProgress } from "@/data/my-work";
+import type { CompanionRoom } from "@/lib/companion";
 
 export const MY_WORK_STORAGE_KEY = "knit_my_work_extra";
+const COMPANION_LINKED_WORK_PREFIX = "companion-work";
 
 export type StoredWorkItem = WorkItem & {
   source?: "seed" | "local";
@@ -12,6 +14,8 @@ export type StoredWorkItem = WorkItem & {
   lastQuickLogSummary?: string;
   quickLogPhotoDataUrl?: string;
   quickLogPhotoName?: string;
+  sourceCompanionRoomId?: string;
+  sourceCompanionTitle?: string;
 };
 
 const VALID_PROGRESS = new Set<WorkProgress>(["완성", "진행 중", "중단"]);
@@ -83,4 +87,60 @@ export function mergeStoredAndSeedWorkItems(
   return merged.filter(
     (item, index, items) => items.findIndex((candidate) => candidate.id === item.id) === index
   );
+}
+
+export function getCompanionLinkedWorkId(roomId: string) {
+  return `${COMPANION_LINKED_WORK_PREFIX}-${roomId}`;
+}
+
+export function createCompanionLinkedWorkItem(room: Pick<CompanionRoom, "id" | "title" | "patternName" | "level" | "createdAt">) {
+  const startedAt = room.createdAt.slice(0, 10);
+  return {
+    id: getCompanionLinkedWorkId(room.id),
+    title: room.title,
+    progress: "진행 중" as WorkProgress,
+    yarn: room.patternName || "동행 작품",
+    note: "동행에서 함께 진행 중인 작품이에요.",
+    needle: room.level,
+    startedAt,
+    updatedAt: startedAt,
+    detail: `${room.title} 동행에 참여해 연결된 작품이에요.`,
+    checklist: ["동행 기록 시작하기"],
+    source: "local" as const,
+    sourceCompanionRoomId: room.id,
+    sourceCompanionTitle: room.title,
+  } satisfies StoredWorkItem;
+}
+
+export function findCompanionLinkedWork(items: StoredWorkItem[], roomId: string) {
+  return (
+    items.find((item) => item.sourceCompanionRoomId === roomId) ??
+    items.find((item) => item.id === getCompanionLinkedWorkId(roomId)) ??
+    null
+  );
+}
+
+export function ensureCompanionLinkedWork(
+  items: StoredWorkItem[],
+  room: Pick<CompanionRoom, "id" | "title" | "patternName" | "level" | "createdAt">
+) {
+  const existing = findCompanionLinkedWork(items, room.id);
+  if (existing) {
+    const normalized = {
+      ...existing,
+      source: "local" as const,
+      sourceCompanionRoomId: room.id,
+      sourceCompanionTitle: room.title,
+    };
+    return {
+      items: items.map((item) => (item.id === existing.id ? normalized : item)),
+      workId: normalized.id,
+    };
+  }
+
+  const nextItem = createCompanionLinkedWorkItem(room);
+  return {
+    items: [nextItem, ...items],
+    workId: nextItem.id,
+  };
 }

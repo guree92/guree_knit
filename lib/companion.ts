@@ -12,7 +12,7 @@ export type CompanionLevel = (typeof companionLevels)[number];
 export type CompanionThreadType = (typeof companionThreadTypes)[number];
 export type CompanionPatternSourceType = (typeof companionPatternSourceTypes)[number];
 export type CompanionParticipantRole = "host" | "participant" | "waiting";
-export type CompanionParticipantActivityStatus = "progress" | "resting" | "graduated";
+export type CompanionParticipantActivityStatus = "waiting" | "progress" | "resting" | "graduated";
 
 const COMPANION_RESTING_THRESHOLD_MS = 1000 * 60 * 60 * 24 * 7;
 
@@ -200,6 +200,7 @@ export function getEffectiveCompanionParticipantActivityStatus(
   participant: CompanionParticipantStatusSource,
   fallbackLastActivityAt?: string | null
 ): CompanionParticipantActivityStatus {
+  if (participant.role === "waiting") return "waiting";
   if (participant.activity_status === "graduated") return "graduated";
   if (participant.activity_status === "resting") return "resting";
   const lastActivityAt = participant.last_activity_at ?? fallbackLastActivityAt ?? participant.joined_at ?? null;
