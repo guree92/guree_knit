@@ -13,7 +13,7 @@ import {
   toggleFavoritePattern,
   type FavoritePatternCard,
 } from "@/lib/favorite-patterns";
-import { getPatternImageUrl, getPatterns, type PatternItem } from "@/lib/patterns";
+import { getPatternImageUrl, getPatterns, sortPatternsByPopularity, type PatternItem } from "@/lib/patterns";
 import { createClient } from "@/lib/supabase/client";
 import styles from "./patterns-page.module.css";
 import heroHeaderImage from "../../Image/headerlogo.png";
@@ -133,14 +133,7 @@ export default function PatternsPage() {
   }, [keyword, patternItems, selectedNeedleFilter]);
 
   const featuredPatterns = useMemo(
-    () =>
-      [...patternItems]
-        .sort((a, b) => {
-          const likeGap = (b.like_count ?? 0) - (a.like_count ?? 0);
-          if (likeGap !== 0) return likeGap;
-          return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
-        })
-        .slice(0, FEATURED_COUNT),
+    () => sortPatternsByPopularity(patternItems).slice(0, FEATURED_COUNT),
     [patternItems]
   );
 
@@ -148,11 +141,7 @@ export default function PatternsPage() {
     const items = [...filteredPatterns];
 
     if (archiveSort === "popular") {
-      return items.sort((a, b) => {
-        const likeGap = (b.like_count ?? 0) - (a.like_count ?? 0);
-        if (likeGap !== 0) return likeGap;
-        return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
-      });
+      return sortPatternsByPopularity(items);
     }
 
     return items.sort(

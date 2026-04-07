@@ -75,6 +75,7 @@ const FEATURED_WORKS_PER_PAGE = 6;
 const MAX_QUICK_LOG_PRESETS = 8;
 const DEFAULT_QUICK_LOG_PRESETS: QuickLogPreset[] = ["한 단 완료", "실 교체", "수정 진행", "오늘은 여기까지"];
 const QUICK_LOG_DURATION_UNITS: QuickLogDurationUnit[] = ["분", "시간"];
+const COMPLETED_WORKS_PER_PAGE = 6;
 const SECTION_TAB_LABELS: Record<SectionTab, string> = {
   시작: "시작",
   "지금 하는 작업": "진행중",
@@ -243,6 +244,7 @@ function MyWorkPageContent() {
   const [patternSearchText, setPatternSearchText] = useState("");
   const [patternSearchPage, setPatternSearchPage] = useState(1);
   const [featuredWorksPage, setFeaturedWorksPage] = useState(1);
+  const [completedWorksPage, setCompletedWorksPage] = useState(1);
   const [featuredSearchText, setFeaturedSearchText] = useState("");
   const [searchText, setSearchText] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("최신순");
@@ -510,12 +512,9 @@ function MyWorkPageContent() {
         };
 
         const effectiveActivity = getEffectiveCompanionParticipantActivityStatus(participantLike);
-        let linkedWorkId = findCompanionLinkedWork(nextLocalWorks, row.id)?.id ?? null;
-        if (effectiveActivity !== "graduated") {
-          const ensured = ensureCompanionLinkedWork(nextLocalWorks, mapped);
-          nextLocalWorks = ensured.items;
-          linkedWorkId = ensured.workId;
-        }
+        const ensured = ensureCompanionLinkedWork(nextLocalWorks, mapped, effectiveActivity);
+        nextLocalWorks = ensured.items;
+        const linkedWorkId = ensured.workId;
 
         return {
           ...mapped,
@@ -577,6 +576,10 @@ function MyWorkPageContent() {
     setFeaturedWorksPage(1);
   }, [featuredSearchText, sectionTab]);
 
+  useEffect(() => {
+    setCompletedWorksPage(1);
+  }, [searchText, sectionTab, sortOption]);
+
   const companionActivityMap = useMemo(
     () => new Map(companions.map((item) => [item.id, item.myActivity] as const)),
     [companions]
@@ -597,8 +600,14 @@ function MyWorkPageContent() {
   const completedWorks = useMemo(
     () =>
       works.filter((work) => {
-        const viewProgress = getCompanionLinkedWorkViewProgress(work, companionActivityMap, !isCompanionLoading);
-        return viewProgress !== "hidden" && work.progress === "완성";
+        if (!work.sourceCompanionRoomId) {
+          return work.progress === "완성";
+        }
+
+        const companionActivity = companionActivityMap.get(work.sourceCompanionRoomId);
+        if (!companionActivity && !isCompanionLoading) return false;
+        if (companionActivity === "graduated") return true;
+        return work.progress === "완성";
       }),
     [companionActivityMap, isCompanionLoading, works]
   );
@@ -700,6 +709,48 @@ function MyWorkPageContent() {
       }),
     [companionActivityMap, isCompanionLoading, works]
   );
+
+  const filteredCompletedWorks = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+
+    const searched = completedWorks.filter((work) => {
+      if (!keyword) return true;
+
+      return [
+        work.title,
+        work.note,
+        work.detail,
+        work.lastQuickLogSummary ?? "",
+        work.sourcePatternTitle ?? "",
+        work.sourcePatternCategory ?? "",
+        work.sourceCompanionTitle ?? "",
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(keyword);
+    });
+
+    return [...searched].sort((a, b) => {
+      if (sortOption === "이름순") {
+        return a.title.localeCompare(b.title, "ko");
+      }
+
+      return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+    });
+  }, [completedWorks, searchText, sortOption]);
+
+  const completedWorksTotalPages = Math.max(1, Math.ceil(filteredCompletedWorks.length / COMPLETED_WORKS_PER_PAGE));
+  const safeCompletedWorksPage = Math.min(completedWorksPage, completedWorksTotalPages);
+  const pagedCompletedWorks = useMemo(() => {
+    const startIndex = (safeCompletedWorksPage - 1) * COMPLETED_WORKS_PER_PAGE;
+    return filteredCompletedWorks.slice(startIndex, startIndex + COMPLETED_WORKS_PER_PAGE);
+  }, [filteredCompletedWorks, safeCompletedWorksPage]);
+
+  useEffect(() => {
+    if (completedWorksPage > completedWorksTotalPages) {
+      setCompletedWorksPage(completedWorksTotalPages);
+    }
+  }, [completedWorksPage, completedWorksTotalPages]);
 
   const featuredWorksTotalPages = Math.max(1, Math.ceil(filteredFeaturedWorks.length / FEATURED_WORKS_PER_PAGE));
   const safeFeaturedWorksPage = Math.min(featuredWorksPage, featuredWorksTotalPages);
@@ -1514,33 +1565,77 @@ function MyWorkPageContent() {
             ) : null}
 
             {sectionTab === "멈춘 작품" ? (
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>멈춘 작품</h2>
-                  <p className={styles.sectionDescription}>
-                    휴식 중이거나 복귀 대기 중인 동행 작품, 그리고 중단한 개인 작품을 한곳에서 다시 볼 수 있어요.
-                  </p>
-                </div>
-              </div>
-
+            <section className={styles.sectionBlockPlain}>
               {pausedDisplayWorks.length > 0 ? (
-                <div className={styles.reviveList}>
+                <div className={styles.activeGrid}>
+                  <div className={styles.focusColumn}>
                   {pausedDisplayWorks.map((work) => (
-                    <article key={work.id} className={styles.reviveCard}>
-                      <strong>{work.title}</strong>
-                      <p>{getFocusSummary(work)}</p>
-                      {!work.sourceCompanionRoomId ? (
-                        <button
-                          type="button"
-                          onClick={() => handleChangeProgress(work, "진행 중")}
-                          className={styles.reviveAction}
-                        >
-                          다시 시작
-                        </button>
-                      ) : null}
+                    <article key={work.id} className={styles.focusCard}>
+                      <div className={styles.focusMedia}>
+                        {work.quickLogPhotoDataUrl ? (
+                          <img
+                            src={work.quickLogPhotoDataUrl}
+                            alt={work.quickLogPhotoName ?? work.title}
+                            className={styles.focusMediaImage}
+                          />
+                        ) : (
+                          <div className={styles.focusMediaPlaceholder}>
+                            <span className={styles.focusMediaEyebrow}>
+                              {work.sourceCompanionRoomId ? "동행 작품" : work.sourcePatternCategory ?? "내 작품"}
+                            </span>
+                            <strong className={styles.focusMediaWord}>
+                              {(work.sourcePatternTitle ?? work.title).slice(0, 12)}
+                            </strong>
+                          </div>
+                        )}
+                        <div className={styles.focusMediaStatusRow}>
+                          <span className={styles.metaPill}>{getRelativeText(work.updatedAt)}</span>
+                          <span className={[styles.badge, getWorkBadgeClass("중단")].join(" ")}>
+                            중단
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={styles.focusBody}>
+                        <div className={styles.focusTop}>
+                          <div className={styles.focusCopy}>
+                            <p className={styles.focusDescription}>{getFocusSummary(work)}</p>
+                          </div>
+                        </div>
+
+                        <div className={styles.focusStats}>
+                          <span className={styles.infoChip}>{getRecordCountLabel(work)}</span>
+                          <span className={styles.metaPill}>{work.sourcePatternCategory ?? "가방"}</span>
+                          <span className={styles.metaPill}>{work.needle || "초급"}</span>
+                          {work.sourcePatternTitle ? (
+                            <span className={styles.metaPill}>도안 연결</span>
+                          ) : null}
+                        </div>
+
+                        <div className={styles.focusBottom}>
+                          <div className={styles.focusChecklist}>
+                            <span className={styles.focusLabel}>다음 단계</span>
+                            <strong>{getFocusLabel(work)}</strong>
+                          </div>
+                          <div className={styles.focusActions}>
+                            <Link href={`/archive/${work.id}`} className={styles.inlineLink}>
+                              상세 보기
+                            </Link>
+                            {!work.sourceCompanionRoomId ? (
+                              <button
+                                type="button"
+                                onClick={() => handleChangeProgress(work, "진행 중")}
+                                className={styles.focusGhostAction}
+                              >
+                                다시 시작
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      </div>
                     </article>
                   ))}
+                  </div>
                 </div>
               ) : (
                 <div className={styles.emptyStateCompact}>지금은 멈춘 작품이 없어서 흐름이 좋아요.</div>
@@ -1552,33 +1647,19 @@ function MyWorkPageContent() {
             <section className={styles.sectionBlock}>
               <div className={styles.sectionHeading}>
                 <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>내 작품 목록</h2>
+                  <h2 className={styles.sectionTitle}>완성 작품</h2>
                   <p className={styles.sectionDescription}>
-                    전체 작품을 탐색하고 상태를 바꾸거나, 도안에서 시작한 작업만 따로 모아서 볼 수
-                    있어요.
+                    동행 졸업과 개인 작품 완성을 한곳에서 모아볼 수 있어요.
                   </p>
                 </div>
               </div>
 
               <div className={styles.libraryControls}>
-                <div className={styles.chipRow}>
-                  {(["전체", "진행 중", "완성", "중단", "도안 연결"] as LibraryTab[]).map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      onClick={() => setLibraryTab(tab)}
-                      className={libraryTab === tab ? styles.filterChipActive : styles.filterChip}
-                    >
-                      {tab}
-                    </button>
-                  ))}
-                </div>
-
                 <div className={styles.searchRow}>
                   <input
                     value={searchText}
                     onChange={(event) => setSearchText(event.target.value)}
-                    placeholder="작품명, 실, 메모, 연결 도안으로 검색"
+                    placeholder="작품명, 메모, 연결 도안으로 검색"
                     className={styles.searchInput}
                   />
                   <select
@@ -1592,64 +1673,125 @@ function MyWorkPageContent() {
                 </div>
               </div>
 
-              <div className={styles.libraryGrid}>
-                {filteredWorks.length > 0 ? (
-                  filteredWorks.map((work) => (
-                    <article key={work.id} className={styles.workCard}>
-                      <div className={styles.workCardTop}>
-                        <div className={styles.workCardCopy}>
-                          <div className={styles.workCardMeta}>
-                            <span className={styles.metaPill}>업데이트 {getRelativeText(work.updatedAt)}</span>
-                            {work.sourcePatternCategory ? (
-                              <span className={styles.metaPill}>{work.sourcePatternCategory}</span>
+              <div className={styles.activeGrid}>
+                <div className={styles.focusColumn}>
+                {pagedCompletedWorks.length > 0 ? (
+                  pagedCompletedWorks.map((work) => {
+                    const isGraduatedCompanion =
+                      Boolean(work.sourceCompanionRoomId) &&
+                      companionActivityMap.get(work.sourceCompanionRoomId ?? "") === "graduated";
+
+                    return (
+                      <article key={work.id} className={styles.focusCard}>
+                        <div className={styles.focusMedia}>
+                          {work.quickLogPhotoDataUrl ? (
+                            <img
+                              src={work.quickLogPhotoDataUrl}
+                              alt={work.quickLogPhotoName ?? work.title}
+                              className={styles.focusMediaImage}
+                            />
+                          ) : (
+                            <div className={styles.focusMediaPlaceholder}>
+                              <span className={styles.focusMediaEyebrow}>
+                                {work.sourceCompanionRoomId ? "동행 작품" : work.sourcePatternCategory ?? "내 작품"}
+                              </span>
+                              <strong className={styles.focusMediaWord}>
+                                {(work.sourcePatternTitle ?? work.title).slice(0, 12)}
+                              </strong>
+                            </div>
+                          )}
+                          <div className={styles.focusMediaStatusRow}>
+                            <span className={styles.metaPill}>{getRelativeText(work.updatedAt)}</span>
+                            <span className={[styles.badge, styles.badgeDone].join(" ")}>
+                              {isGraduatedCompanion ? "졸업" : "완성"}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className={styles.focusBody}>
+                          <div className={styles.focusTop}>
+                            <div className={styles.focusCopy}>
+                              <p className={styles.focusDescription}>{getFocusSummary(work)}</p>
+                            </div>
+                          </div>
+
+                          <div className={styles.focusStats}>
+                            <span className={styles.infoChip}>{getRecordCountLabel(work)}</span>
+                            <span className={styles.metaPill}>{work.sourcePatternCategory ?? "가방"}</span>
+                            <span className={styles.metaPill}>{work.needle || "초급"}</span>
+                            {work.sourcePatternTitle ? (
+                              <span className={styles.metaPill}>도안 연결</span>
                             ) : null}
                           </div>
-                          <h3 className={styles.workCardTitle}>{work.title}</h3>
-                          <p className={styles.workCardDescription}>{work.detail}</p>
+
+                          <div className={styles.focusBottom}>
+                            <div className={styles.focusChecklist}>
+                              <span className={styles.focusLabel}>마지막 단계</span>
+                              <strong>{isGraduatedCompanion ? "동행 마무리 완료" : "작품 완성 기록 보관"}</strong>
+                            </div>
+                            <div className={styles.focusActions}>
+                              {work.sourcePatternId ? (
+                                <Link href={`/patterns/${work.sourcePatternId}`} className={styles.inlineLink}>
+                                  원본 도안
+                                </Link>
+                              ) : null}
+                              <Link href={`/archive/${work.id}`} className={styles.inlineLink}>
+                                상세 보기
+                              </Link>
+                            </div>
+                          </div>
                         </div>
-                        <span className={[styles.badge, getWorkBadgeClass(work.progress)].join(" ")}>
-                          {work.progress}
-                        </span>
-                      </div>
-
-                      <div className={styles.workCardInfo}>
-                        <span className={styles.infoChip}>실 {work.yarn}</span>
-                        <span className={styles.infoChip}>바늘 {work.needle}</span>
-                        {work.sourcePatternTitle ? (
-                          <span className={styles.infoChip}>원본 {work.sourcePatternTitle}</span>
-                        ) : null}
-                      </div>
-
-                      <div className={styles.workCardBottom}>
-                        <select
-                          value={work.progress}
-                          onChange={(event) => handleChangeProgress(work, event.target.value as WorkProgress)}
-                          className={styles.inlineSelect}
-                        >
-                          <option value="진행 중">진행 중</option>
-                          <option value="완성">완성</option>
-                          <option value="중단">중단</option>
-                        </select>
-                        {work.sourcePatternId ? (
-                          <Link href={`/patterns/${work.sourcePatternId}`} className={styles.inlineLink}>
-                            원본 도안
-                          </Link>
-                        ) : null}
-                        <Link href={`/archive/${work.id}`} className={styles.secondaryMiniAction}>
-                          상세 보기
-                        </Link>
-                      </div>
-                    </article>
-                  ))
+                      </article>
+                    );
+                  })
                 ) : (
                   <div className={styles.emptyState}>
-                    <p className={styles.emptyStateTitle}>조건에 맞는 작품이 아직 없어요.</p>
+                    <p className={styles.emptyStateTitle}>완성된 작품이 아직 없어요.</p>
                     <p className={styles.emptyStateDescription}>
-                      검색어를 줄이거나 새 작품을 추가해서 서랍을 채워보세요.
+                      동행을 졸업하거나 개인 작품을 완성하면 이 탭에서 카드로 모아볼 수 있어요.
                     </p>
                   </div>
                 )}
+                </div>
               </div>
+
+              {completedWorksTotalPages > 1 ? (
+                <div className={styles.featuredPagination}>
+                  <button
+                    type="button"
+                    onClick={() => setCompletedWorksPage((current) => Math.max(1, current - 1))}
+                    className={styles.patternSearchPageButton}
+                    disabled={safeCompletedWorksPage === 1}
+                  >
+                    이전
+                  </button>
+                  {Array.from({ length: completedWorksTotalPages }, (_, index) => {
+                    const pageNumber = index + 1;
+                    return (
+                      <button
+                        key={`completed-page-${pageNumber}`}
+                        type="button"
+                        onClick={() => setCompletedWorksPage(pageNumber)}
+                        className={
+                          safeCompletedWorksPage === pageNumber
+                            ? `${styles.patternSearchPageButton} ${styles.patternSearchPageButtonActive}`
+                            : styles.patternSearchPageButton
+                        }
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setCompletedWorksPage((current) => Math.min(completedWorksTotalPages, current + 1))}
+                    className={styles.patternSearchPageButton}
+                    disabled={safeCompletedWorksPage === completedWorksTotalPages}
+                  >
+                    다음
+                  </button>
+                </div>
+              ) : null}
             </section>
             ) : null}
 

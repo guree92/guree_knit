@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { subscribeToMediaQuery } from "@/lib/media-query";
-import { getPatternImageUrl } from "@/lib/patterns";
+import { getPatternImageUrl, getPatterns, sortPatternsByPopularity } from "@/lib/patterns";
 import { createClient } from "@/lib/supabase/client";
 import styles from "@/app/home-dashboard.module.css";
 
@@ -34,6 +34,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
   const supabase = useMemo(() => createClient(), []);
   const [isCompactTabletViewport, setIsCompactTabletViewport] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [linkedTopPatterns, setLinkedTopPatterns] = useState<MainPatternCard[]>(topPatterns);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -65,6 +66,41 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
     };
   }, [supabase]);
 
+  useEffect(() => {
+    let isCancelled = false;
+
+    async function syncTopPatternsFromPatternsPage() {
+      try {
+        const patterns = await getPatterns();
+        const nextTopPatterns = sortPatternsByPopularity(patterns)
+          .slice(0, 5)
+          .map(
+            (pattern): MainPatternCard => ({
+              id: pattern.id,
+              title: pattern.title,
+              category: pattern.category,
+              level: pattern.level,
+              like_count: pattern.like_count ?? 0,
+              image_path: pattern.image_path ?? null,
+              author_nickname: pattern.author_nickname ?? null,
+            })
+          );
+
+        if (!isCancelled) {
+          setLinkedTopPatterns(nextTopPatterns);
+        }
+      } catch (error) {
+        console.error("메인 홈 인기 도안을 도안마루와 동기화하지 못했어요.", error);
+      }
+    }
+
+    void syncTopPatternsFromPatternsPage();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, []);
+
   return (
     <section className={styles.mainCollectionsGrid}>
       <section className={styles.popularShowcase}>
@@ -78,7 +114,7 @@ export default function HomeMainCollectionsClient({ topPatterns, progressItems }
         </div>
 
         <div className={styles.popularShowcaseList}>
-          {topPatterns.slice(0, isCompactTabletViewport ? 4 : 5).map((pattern) => {
+          {linkedTopPatterns.slice(0, isCompactTabletViewport ? 4 : 5).map((pattern) => {
             const imageUrl = pattern.image_path ? getPatternImageUrl(pattern.image_path) : "";
 
             return (

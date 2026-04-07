@@ -434,6 +434,16 @@
   padding: 18px;
 }
 
+.sectionBlockPlain {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 .sideSummaryPanel {
   display: grid;
   margin-top: 12px;
@@ -1437,7 +1447,7 @@
   padding: 0;
   overflow: hidden;
   align-self: start;
-  height: 100%;
+  height: auto;
 }
 
 .focusMedia {
@@ -1499,9 +1509,9 @@
 
 .focusBody {
   display: grid;
-  gap: 10px;
-  padding: 12px 13px 13px;
-  min-height: 148px;
+  gap: 8px;
+  padding: 12px 13px;
+  min-height: 0;
 }
 
 .focusTop,
@@ -1518,7 +1528,7 @@
   display: grid;
   gap: 2px;
   min-width: 0;
-  min-height: 40px;
+  min-height: 0;
 }
 
 .focusAside {
@@ -1547,7 +1557,7 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 2.8em;
+  min-height: 0;
 }
 
 .focusStats {
@@ -1563,9 +1573,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-top: 8px;
+  padding-top: 6px;
   border-top: 1px solid #eef2f6;
-  margin-top: auto;
+  margin-top: 0;
 }
 
 .focusChecklist {
@@ -1638,6 +1648,20 @@
   padding: 12px;
   text-decoration: none;
   color: inherit;
+}
+
+.reviveCardLink {
+  display: grid;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.reviveActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .reviveAction {
@@ -1854,18 +1878,18 @@
 }
 
 .badgeDone {
-  background: #edf4e8;
-  color: #5d7953;
+  background: #5e79b0;
+  color: #ffffff;
 }
 
 .badgeActive {
-  background: #eef2ff;
-  color: #4f46e5;
+  background: #6e8a66;
+  color: #ffffff;
 }
 
 .badgePaused {
-  background: #fef3c7;
-  color: #92400e;
+  background: linear-gradient(135deg, #e7a29a, #d97b70);
+  color: #ffffff;
 }
 
 @media (max-width: 1180px) {

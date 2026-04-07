@@ -106,6 +106,16 @@ export async function getPatterns(options: PatternQueryOptions = {}): Promise<Pa
   return attachNicknames((data ?? []) as PatternItem[]);
 }
 
+export function sortPatternsByPopularity<T extends Pick<PatternItem, "like_count" | "created_at">>(
+  patterns: T[]
+): T[] {
+  return [...patterns].sort((a, b) => {
+    const likeGap = (b.like_count ?? 0) - (a.like_count ?? 0);
+    if (likeGap !== 0) return likeGap;
+    return new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime();
+  });
+}
+
 export async function getPatternById(
   id: string,
   options: PatternQueryOptions = {}
@@ -237,4 +247,3 @@ export async function togglePatternLike(patternId: string) {
     pattern,
   };
 }
-
