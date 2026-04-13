@@ -68,6 +68,14 @@ type TimelineItem = {
   tone: "work" | "pattern" | "companion";
 };
 
+type TimelineGroup = {
+  key: string;
+  year: number;
+  month: number;
+  label: string;
+  items: TimelineItem[];
+};
+
 const DRAFT_STORAGE_KEY = "knit_my_work_draft";
 const QUICK_LOG_PRESET_STORAGE_KEY = "knit_quick_log_presets";
 const PATTERN_SEARCH_PAGE_SIZE = 10;
@@ -75,6 +83,7 @@ const FEATURED_WORKS_PER_PAGE = 6;
 const MAX_QUICK_LOG_PRESETS = 8;
 const DEFAULT_QUICK_LOG_PRESETS: QuickLogPreset[] = ["한 단 완료", "실 교체", "수정 진행", "오늘은 여기까지"];
 const QUICK_LOG_DURATION_UNITS: QuickLogDurationUnit[] = ["분", "시간"];
+const PAUSED_WORKS_PER_PAGE = 6;
 const COMPLETED_WORKS_PER_PAGE = 6;
 const SECTION_TAB_LABELS: Record<SectionTab, string> = {
   시작: "시작",
@@ -118,6 +127,64 @@ function getRelativeText(value: string) {
   if (diffDays === 1) return "어제";
   if (diffDays < 7) return `${diffDays}일 전`;
   return formatDate(value);
+}
+
+function formatMonthLabel(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
+
+function getTimelineGroupKey(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function getTodayDateInputValue() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function parseDateInputValue(value: string) {
+  const [year, month, day] = value.split("-").map((part) => Number(part));
+  if (!year || !month || !day) return null;
+  const parsed = new Date(year, month - 1, day);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatCalendarMonthLabel(date: Date) {
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+}
+
+function getCalendarDays(date: Date) {
+  const startOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+  const startDay = startOfMonth.getDay();
+  const startDate = new Date(startOfMonth);
+  startDate.setDate(startOfMonth.getDate() - startDay);
+
+  return Array.from({ length: 42 }, (_, index) => {
+    const current = new Date(startDate);
+    current.setDate(startDate.getDate() + index);
+    return current;
+  });
+}
+
+function formatHistoryPickerLabel(value: string) {
+  const [year, month, day] = value.split("-");
+  if (!year || !month || !day) return "날짜 선택";
+  return `${year}. ${month}. ${day}.`;
 }
 
 function getWorkBadgeClass(progress: WorkProgress) {
@@ -244,7 +311,11 @@ function MyWorkPageContent() {
   const [patternSearchText, setPatternSearchText] = useState("");
   const [patternSearchPage, setPatternSearchPage] = useState(1);
   const [featuredWorksPage, setFeaturedWorksPage] = useState(1);
+  const [pausedWorksPage, setPausedWorksPage] = useState(1);
   const [completedWorksPage, setCompletedWorksPage] = useState(1);
+  const [historyDateFilter, setHistoryDateFilter] = useState(() => getTodayDateInputValue());
+  const [isHistoryCalendarOpen, setIsHistoryCalendarOpen] = useState(false);
+  const [historyCalendarMonth, setHistoryCalendarMonth] = useState(() => parseDateInputValue(getTodayDateInputValue()) ?? new Date());
   const [featuredSearchText, setFeaturedSearchText] = useState("");
   const [searchText, setSearchText] = useState("");
   const [sortOption, setSortOption] = useState<SortOption>("최신순");
@@ -262,6 +333,7 @@ function MyWorkPageContent() {
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
   const [presetDrafts, setPresetDrafts] = useState<string[]>(DEFAULT_QUICK_LOG_PRESETS);
   const [presetModalError, setPresetModalError] = useState("");
+  const historyCalendarRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const localItems = readStoredWorkItems();
@@ -331,6 +403,36 @@ function MyWorkPageContent() {
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [isPresetModalOpen]);
+
+  useEffect(() => {
+    const selected = parseDateInputValue(historyDateFilter);
+    if (!selected) return;
+    setHistoryCalendarMonth(new Date(selected.getFullYear(), selected.getMonth(), 1));
+  }, [historyDateFilter]);
+
+  useEffect(() => {
+    if (!isHistoryCalendarOpen) return;
+
+    function handlePointerDown(event: MouseEvent) {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (historyCalendarRef.current?.contains(target)) return;
+      setIsHistoryCalendarOpen(false);
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsHistoryCalendarOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [isHistoryCalendarOpen]);
 
   useEffect(() => {
     let isCancelled = false;
@@ -580,6 +682,10 @@ function MyWorkPageContent() {
     setCompletedWorksPage(1);
   }, [searchText, sectionTab, sortOption]);
 
+  useEffect(() => {
+    setPausedWorksPage(1);
+  }, [sectionTab]);
+
   const companionActivityMap = useMemo(
     () => new Map(companions.map((item) => [item.id, item.myActivity] as const)),
     [companions]
@@ -710,6 +816,19 @@ function MyWorkPageContent() {
     [companionActivityMap, isCompanionLoading, works]
   );
 
+  const pausedWorksTotalPages = Math.max(1, Math.ceil(pausedDisplayWorks.length / PAUSED_WORKS_PER_PAGE));
+  const safePausedWorksPage = Math.min(pausedWorksPage, pausedWorksTotalPages);
+  const pagedPausedWorks = useMemo(() => {
+    const startIndex = (safePausedWorksPage - 1) * PAUSED_WORKS_PER_PAGE;
+    return pausedDisplayWorks.slice(startIndex, startIndex + PAUSED_WORKS_PER_PAGE);
+  }, [pausedDisplayWorks, safePausedWorksPage]);
+
+  useEffect(() => {
+    if (pausedWorksPage > pausedWorksTotalPages) {
+      setPausedWorksPage(pausedWorksTotalPages);
+    }
+  }, [pausedWorksPage, pausedWorksTotalPages]);
+
   const filteredCompletedWorks = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
 
@@ -810,8 +929,8 @@ function MyWorkPageContent() {
       description:
         work.lastQuickLogAt === work.updatedAt
           ? work.lastQuickLogSummary
-            ? `${formatDate(work.updatedAt)}에 ${work.lastQuickLogSummary} 기록을 남겼어요.`
-            : `${formatDate(work.updatedAt)}에 작업 기록이 남겨졌어요.`
+            ? `${work.lastQuickLogSummary} 기록을 남겼어요.`
+            : "작업 기록이 남겨졌어요."
           : `${work.sourcePatternTitle ? "도안에서 시작한 " : ""}${work.note}`,
       label: work.sourcePatternTitle ? "도안 연결" : "작품 업데이트",
       href: `/archive/${work.id}`,
@@ -829,9 +948,59 @@ function MyWorkPageContent() {
     }));
 
     return [...workTimeline, ...companionTimeline]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 8);
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [companions, works]);
+
+  const filteredTimelineItems = useMemo(() => {
+    if (!historyDateFilter) return timelineItems;
+
+    const [selectedYear, selectedMonth] = historyDateFilter.split("-");
+    if (!selectedYear || !selectedMonth) return timelineItems;
+
+    return timelineItems.filter((item) => {
+      const date = new Date(item.date);
+      if (Number.isNaN(date.getTime())) return false;
+      return String(date.getFullYear()) === selectedYear && String(date.getMonth() + 1).padStart(2, "0") === selectedMonth;
+    });
+  }, [historyDateFilter, timelineItems]);
+
+  const historyGroups = useMemo<TimelineGroup[]>(() => {
+    const grouped = new Map<string, TimelineGroup>();
+
+    filteredTimelineItems.forEach((item) => {
+      const date = new Date(item.date);
+      const groupKey = getTimelineGroupKey(item.date);
+      const year = Number.isNaN(date.getTime()) ? 0 : date.getFullYear();
+      const month = Number.isNaN(date.getTime()) ? 0 : date.getMonth() + 1;
+
+      if (!grouped.has(groupKey)) {
+        grouped.set(groupKey, {
+          key: groupKey,
+          year,
+          month,
+          label: formatMonthLabel(item.date),
+          items: [],
+        });
+      }
+
+      grouped.get(groupKey)?.items.push(item);
+    });
+
+    return Array.from(grouped.values()).sort((left, right) => {
+      if (left.year !== right.year) return right.year - left.year;
+      return right.month - left.month;
+    });
+  }, [filteredTimelineItems]);
+
+  const selectedHistoryDate = useMemo(
+    () => parseDateInputValue(historyDateFilter) ?? new Date(),
+    [historyDateFilter]
+  );
+
+  const historyCalendarDays = useMemo(
+    () => getCalendarDays(historyCalendarMonth),
+    [historyCalendarMonth]
+  );
 
   const summary = useMemo(
     () => ({
@@ -1569,7 +1738,7 @@ function MyWorkPageContent() {
               {pausedDisplayWorks.length > 0 ? (
                 <div className={styles.activeGrid}>
                   <div className={styles.focusColumn}>
-                  {pausedDisplayWorks.map((work) => (
+                  {pagedPausedWorks.map((work) => (
                     <article key={work.id} className={styles.focusCard}>
                       <div className={styles.focusMedia}>
                         {work.quickLogPhotoDataUrl ? (
@@ -1640,6 +1809,44 @@ function MyWorkPageContent() {
               ) : (
                 <div className={styles.emptyStateCompact}>지금은 멈춘 작품이 없어서 흐름이 좋아요.</div>
               )}
+
+              {pausedWorksTotalPages > 1 ? (
+                <div className={styles.featuredPagination}>
+                  <button
+                    type="button"
+                    onClick={() => setPausedWorksPage((current) => Math.max(1, current - 1))}
+                    className={styles.patternSearchPageButton}
+                    disabled={safePausedWorksPage === 1}
+                  >
+                    이전
+                  </button>
+                  {Array.from({ length: pausedWorksTotalPages }, (_, index) => {
+                    const pageNumber = index + 1;
+                    return (
+                      <button
+                        key={`paused-page-${pageNumber}`}
+                        type="button"
+                        onClick={() => setPausedWorksPage(pageNumber)}
+                        className={
+                          safePausedWorksPage === pageNumber
+                            ? `${styles.patternSearchPageButton} ${styles.patternSearchPageButtonActive}`
+                            : styles.patternSearchPageButton
+                        }
+                      >
+                        {pageNumber}
+                      </button>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    onClick={() => setPausedWorksPage((current) => Math.min(pausedWorksTotalPages, current + 1))}
+                    className={styles.patternSearchPageButton}
+                    disabled={safePausedWorksPage === pausedWorksTotalPages}
+                  >
+                    다음
+                  </button>
+                </div>
+              ) : null}
             </section>
             ) : null}
 
@@ -1796,40 +2003,133 @@ function MyWorkPageContent() {
             ) : null}
 
             {sectionTab === "기록" ? (
-            <section className={styles.sectionBlock}>
-              <div className={styles.sectionHeading}>
-                <div className={styles.sectionHeadingCopy}>
-                  <h2 className={styles.sectionTitle}>기록</h2>
-                  <p className={styles.sectionDescription}>
-                    작품 업데이트와 동행 스냅샷을 시간순으로 쌓아두고, 언제든 흐름을 되돌아볼 수
-                    있어요.
-                  </p>
-                </div>
-              </div>
+            <section className={styles.sectionBlockPlain}>
+              <div className={styles.historyPanel}>
+                <div className={styles.historyScrollArea}>
+                  {historyGroups.length > 0 ? (
+                    <div className={styles.historyGroupList}>
+                      {historyGroups.map((group, index) => (
+                        <section key={group.key} className={styles.historyGroup}>
+                          <div className={styles.historyGroupHeader}>
+                            <strong>{group.label}</strong>
+                            {index === 0 ? (
+                              <div ref={historyCalendarRef} className={styles.historyDateWrap}>
+                                <button
+                                  type="button"
+                                  onClick={() => setIsHistoryCalendarOpen((current) => !current)}
+                                  className={styles.historyDateButton}
+                                >
+                                  <span>{historyDateFilter ? formatHistoryPickerLabel(historyDateFilter) : "날짜 선택"}</span>
+                                </button>
+                                {isHistoryCalendarOpen ? (
+                                  <div className={styles.historyCalendarPopover}>
+                                    <div className={styles.historyCalendarHeader}>
+                                      <strong>{formatCalendarMonthLabel(historyCalendarMonth)}</strong>
+                                      <div className={styles.historyCalendarNav}>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setHistoryCalendarMonth(
+                                              (current) => new Date(current.getFullYear(), current.getMonth() - 1, 1)
+                                            )
+                                          }
+                                          className={styles.historyCalendarNavButton}
+                                          aria-label="이전 달"
+                                        >
+                                          {"<"}
+                                        </button>
+                                        <button
+                                          type="button"
+                                          onClick={() =>
+                                            setHistoryCalendarMonth(
+                                              (current) => new Date(current.getFullYear(), current.getMonth() + 1, 1)
+                                            )
+                                          }
+                                          className={styles.historyCalendarNavButton}
+                                          aria-label="다음 달"
+                                        >
+                                          {">"}
+                                        </button>
+                                      </div>
+                                    </div>
+                                    <div className={styles.historyCalendarWeekdays}>
+                                      {["일", "월", "화", "수", "목", "금", "토"].map((day) => (
+                                        <span key={day}>{day}</span>
+                                      ))}
+                                    </div>
+                                    <div className={styles.historyCalendarGrid}>
+                                      {historyCalendarDays.map((date) => {
+                                        const isCurrentMonth = date.getMonth() === historyCalendarMonth.getMonth();
+                                        const isSelected =
+                                          date.getFullYear() === selectedHistoryDate.getFullYear() &&
+                                          date.getMonth() === selectedHistoryDate.getMonth() &&
+                                          date.getDate() === selectedHistoryDate.getDate();
+                                        const isToday = formatDateInputValue(date) === getTodayDateInputValue();
 
-              <div className={styles.timelineList}>
-                {timelineItems.map((item) => (
-                  <Link key={item.id} href={item.href} className={styles.timelineItem}>
-                    <span
-                      className={[
-                        styles.timelineDot,
-                        item.tone === "pattern"
-                          ? styles.timelinePattern
-                          : item.tone === "companion"
-                            ? styles.timelineCompanion
-                            : styles.timelineWork,
-                      ].join(" ")}
-                    />
-                    <div className={styles.timelineCopy}>
-                      <div className={styles.timelineMeta}>
-                        <span className={styles.metaPill}>{item.label}</span>
-                        <span>{formatDate(item.date)}</span>
-                      </div>
-                      <strong className={styles.timelineTitle}>{item.title}</strong>
-                      <p className={styles.timelineDescription}>{item.description}</p>
+                                        return (
+                                          <button
+                                            key={formatDateInputValue(date)}
+                                            type="button"
+                                            onClick={() => {
+                                              setHistoryDateFilter(formatDateInputValue(date));
+                                              setIsHistoryCalendarOpen(false);
+                                            }}
+                                            className={[
+                                              styles.historyCalendarDay,
+                                              isCurrentMonth ? styles.historyCalendarDayCurrent : styles.historyCalendarDayMuted,
+                                              isSelected ? styles.historyCalendarDaySelected : "",
+                                              !isSelected && isToday ? styles.historyCalendarDayToday : "",
+                                            ]
+                                              .filter(Boolean)
+                                              .join(" ")}
+                                          >
+                                            {date.getDate()}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                ) : null}
+                              </div>
+                            ) : null}
+                          </div>
+                          <div className={styles.timelineList}>
+                            {group.items.map((item) => (
+                              <Link key={item.id} href={item.href} className={styles.timelineItem}>
+                                <span className={styles.timelineRail} aria-hidden="true" />
+                                <span
+                                  className={[
+                                    styles.timelineDot,
+                                    item.tone === "pattern"
+                                      ? styles.timelinePattern
+                                      : item.tone === "companion"
+                                        ? styles.timelineCompanion
+                                        : styles.timelineWork,
+                                  ].join(" ")}
+                                />
+                                <div className={styles.timelineCopy}>
+                                  <div className={styles.timelineMeta}>
+                                    <span className={styles.metaPill}>{item.label}</span>
+                                    <strong className={styles.timelineMetaTitle}>{item.title}</strong>
+                                  </div>
+                                  <p className={styles.timelineDescription}>{`${formatDate(item.date)} ${item.description}`}</p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
                     </div>
-                  </Link>
-                ))}
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>해당 연도에는 아직 기록이 없어요.</p>
+                      <p className={styles.emptyStateDescription}>
+                        빠른 기록을 한 번 남기면 시간순 연혁이 여기부터 차곡차곡 쌓이기 시작해요.
+                      </p>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </section>
             ) : null}

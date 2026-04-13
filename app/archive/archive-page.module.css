@@ -1419,6 +1419,141 @@
   margin-top: 18px;
 }
 
+.historyDateButton {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 16px;
+  border: 1px solid #d9dfe6;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #ffffff, #f8fafb);
+  color: #243247;
+  font-size: 0.9rem;
+  font-weight: 800;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.82),
+    0 10px 24px rgba(15, 23, 42, 0.05);
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.historyDateButton:hover {
+  border-color: #cbd5df;
+}
+
+.historyDateWrap {
+  position: relative;
+}
+
+.historyCalendarPopover {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 12;
+  width: 280px;
+  padding: 14px;
+  border: 1px solid #dfe5ea;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 20px 50px rgba(15, 23, 42, 0.12);
+  backdrop-filter: blur(16px);
+}
+
+.historyCalendarHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.historyCalendarHeader strong {
+  color: #1f2937;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.historyCalendarNav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.historyCalendarNavButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dce3ea;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff, #f8fafb);
+  color: #526273;
+  font-size: 0.92rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.historyCalendarWeekdays,
+.historyCalendarGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.historyCalendarWeekdays {
+  margin-bottom: 8px;
+}
+
+.historyCalendarWeekdays span {
+  display: inline-flex;
+  justify-content: center;
+  color: #94a3b8;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.historyCalendarGrid {
+  gap: 6px;
+}
+
+.historyCalendarDay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: #1f2937;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.historyCalendarDayCurrent {
+  color: #1f2937;
+}
+
+.historyCalendarDayMuted {
+  color: #c0c8d4;
+}
+
+.historyCalendarDayToday {
+  background: #edf4e8;
+  color: #5d7357;
+}
+
+.historyCalendarDaySelected {
+  background: linear-gradient(135deg, #b58a2a, #9d7721);
+  color: #ffffff;
+}
+
 .focusColumn,
 .snapshotColumn,
 .snapshotList,
@@ -1766,11 +1901,26 @@
 .timelineItem {
   position: relative;
   display: grid;
-  grid-template-columns: 16px minmax(0, 1fr);
+  grid-template-columns: 18px minmax(0, 1fr);
   gap: 12px;
-  padding: 16px;
+  align-items: center;
+  padding: 6px 16px 6px 0;
   text-decoration: none;
   color: inherit;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.timelineRail {
+  position: absolute;
+  left: 7px;
+  top: 0;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(191, 201, 182, 0.24), rgba(191, 201, 182, 0.92));
 }
 
 .timelineDot {
@@ -1778,8 +1928,10 @@
   width: 14px;
   height: 14px;
   border-radius: 999px;
-  margin-top: 4px;
-  box-shadow: 0 0 0 5px rgba(226, 232, 240, 0.6);
+  z-index: 1;
+  box-shadow:
+    0 0 0 6px rgba(255, 255, 255, 0.98),
+    0 6px 14px rgba(15, 23, 42, 0.12);
 }
 
 .timelineWork {
@@ -1797,11 +1949,86 @@
 .timelineCopy {
   display: grid;
   gap: 8px;
+  padding: 14px 18px;
+  border: 1px solid #e3e7eb;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #ffffff, #fbfcfd);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.86),
+    0 10px 30px rgba(15, 23, 42, 0.05);
 }
 
 .timelineMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
   color: var(--app-muted-soft);
   font-size: 0.78rem;
+}
+
+.timelineMetaTitle {
+  color: #111827;
+  font-size: 1.04rem;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.historyPanel {
+  display: grid;
+  gap: 12px;
+}
+
+.historyScrollArea {
+  max-height: 70vh;
+  padding: 6px 8px 6px 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 188, 147, 0.95) rgba(236, 240, 232, 0.95);
+}
+
+.historyScrollArea::-webkit-scrollbar {
+  width: 10px;
+}
+
+.historyScrollArea::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(236, 240, 232, 0.95);
+}
+
+.historyScrollArea::-webkit-scrollbar-thumb {
+  border: 2px solid rgba(236, 240, 232, 0.95);
+  border-radius: 999px;
+  background: linear-gradient(180deg, #c8d8b6, #a8bc93);
+}
+
+.historyGroupList,
+.historyGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.historyGroup {
+  position: relative;
+}
+
+.historyGroupHeader {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 6px 2px 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: #111827;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  backdrop-filter: blur(10px);
 }
 
 .summaryList {
